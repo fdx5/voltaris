@@ -29,68 +29,72 @@ export function LoginScreen() {
   return (
     <main className="login-screen">
       <form className="login-card" onSubmit={submit}>
-        <small>ORBITAL COMMAND / PILOT ACCESS</small>
-        <h1>VOLTARIS</h1>
-        <h2>{register ? '파일럿 계정 만들기' : '파일럿 로그인'}</h2>
-        <p>클리어 기록을 이어가고 모든 파일럿의 비행 이력을 확인하세요.</p>
-        <label>
-          아이디
-          <input
-            name="username"
-            autoComplete="username"
-            autoFocus
-            value={username}
-            onChange={(e) => setUsername(e.target.value)}
-            pattern="[a-zA-Z0-9_]{3,24}"
-            minLength={3}
-            maxLength={24}
-            required
-            placeholder="영문·숫자·_ 3~24자"
-          />
-        </label>
-        <label>
-          비밀번호
-          <input
-            name="password"
-            type="password"
-            autoComplete={register ? 'new-password' : 'current-password'}
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            minLength={10}
-            maxLength={128}
-            required
-            placeholder="10자 이상"
-          />
-        </label>
-        {account.error && (
-          <p className="account-error" role="alert">
-            {account.error}
+        <div className="login-intro">
+          <small>ORBITAL COMMAND / PILOT ACCESS</small>
+          <h1>VOLTARIS</h1>
+          <h2>{register ? '파일럿 계정 만들기' : '파일럿 로그인'}</h2>
+          <p>클리어 기록을 이어가고 모든 파일럿의 비행 이력을 확인하세요.</p>
+          <p className="fine">
+            첫 출격은 STAGE 01부터 시작합니다. 일반 모드 클리어 시 다음 스테이지가 열립니다. ID와
+            게임 이력은 로그인한 모든 사용자에게 공개됩니다.
           </p>
-        )}
-        <button className="primary wide" disabled={busy || account.loading}>
-          {busy
-            ? '연결 중…'
-            : account.loading
-              ? '세션 확인 중…'
-              : register
-                ? '가입하고 시작'
-                : '로그인'}
-        </button>
-        <button
-          className="secondary-button wide"
-          type="button"
-          disabled={busy}
-          onClick={() => {
-            setRegister(!register);
-            useAccount.setState({ error: '' });
-          }}
-        >
-          {register ? '기존 계정으로 로그인' : '처음 오셨나요? 회원가입'}
-        </button>
-        <p className="fine">
-          첫 출격은 STAGE 01부터 시작합니다. 일반 모드 클리어 시 다음 스테이지가 열립니다. ID와 게임
-          이력은 로그인한 모든 사용자에게 공개됩니다.
-        </p>
+        </div>
+        <div className="login-fields">
+          <label>
+            아이디
+            <input
+              name="username"
+              autoComplete="username"
+              autoFocus
+              value={username}
+              onChange={(e) => setUsername(e.target.value)}
+              pattern="[a-zA-Z0-9_]{3,24}"
+              minLength={3}
+              maxLength={24}
+              required
+              placeholder="영문·숫자·_ 3~24자"
+            />
+          </label>
+          <label>
+            비밀번호
+            <input
+              name="password"
+              type="password"
+              autoComplete={register ? 'new-password' : 'current-password'}
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              minLength={10}
+              maxLength={128}
+              required
+              placeholder="10자 이상"
+            />
+          </label>
+          {account.error && (
+            <p className="account-error" role="alert">
+              {account.error}
+            </p>
+          )}
+          <button className="primary wide" disabled={busy || account.loading}>
+            {busy
+              ? '연결 중…'
+              : account.loading
+                ? '세션 확인 중…'
+                : register
+                  ? '가입하고 시작'
+                  : '로그인'}
+          </button>
+          <button
+            className="secondary-button wide"
+            type="button"
+            disabled={busy}
+            onClick={() => {
+              setRegister(!register);
+              useAccount.setState({ error: '' });
+            }}
+          >
+            {register ? '기존 계정으로 로그인' : '처음 오셨나요? 회원가입'}
+          </button>
+        </div>
       </form>
     </main>
   );
