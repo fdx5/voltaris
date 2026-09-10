@@ -173,6 +173,25 @@ test('draws the combat batches after a renderer restart, not just the hangar', a
   const restarted = await draws('/?rendererfail=1');
   expect(restarted).toBeGreaterThanOrEqual(healthy - 2);
 });
+test('latches option hold from the HUD, since a phone cannot hold a button', async ({ page }) => {
+  await page.goto('/?webgl=1');
+  await expect(page.getByRole('button', { name: 'BEGIN SORTIE 출격 준비' })).toBeEnabled({
+    timeout: 45000,
+  });
+  await page.getByRole('button', { name: 'BEGIN SORTIE 출격 준비' }).click();
+  await page.getByRole('button', { name: '출격 · LAUNCH MISSION' }).click();
+  await expect(page.locator('.play-frame')).toBeVisible();
+  const hold = page.getByRole('button', { name: '옵션 홀드' });
+  await expect(hold).toHaveAttribute('aria-pressed', 'false');
+  await hold.click();
+  await expect(hold).toHaveAttribute('aria-pressed', 'true');
+  await expect(hold).toContainText('ON');
+  // It stays latched across a mode change, which is the point of latching.
+  await page.getByRole('button', { name: /옵션 모드/ }).click();
+  await expect(hold).toHaveAttribute('aria-pressed', 'true');
+  await hold.click();
+  await expect(hold).toHaveAttribute('aria-pressed', 'false');
+});
 test('mobile landscape touch and portrait pause overlay', async ({ page }) => {
   await page.setViewportSize({ width: 932, height: 430 });
   await page.goto('/?webgl=1');

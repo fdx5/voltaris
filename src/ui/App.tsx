@@ -22,6 +22,7 @@ import {
   Target,
   Move,
   Orbit,
+  Magnet,
   Activity,
   RotateCcw,
   Lock,
@@ -392,13 +393,32 @@ function GameApp() {
                   r()?.cycleMode();
                   r()?.publish();
                 }}
-                className={'mode-button' + (ui.optionHold ? ' held' : '')}
-                title="Q 모드 전환 · Shift(모바일 OPTION HOLD) 제어"
+                className="mode-button"
+                aria-label={`옵션 모드 ${MODES[ui.mode]} · 눌러서 전환`}
+                title="옵션 제어 모드 전환 (Q)"
               >
                 <Orbit size={15} />
-                {MODES[ui.mode]}
+                <span>{MODES[ui.mode]}</span>
                 <b>×{ui.optionCount}</b>
                 <kbd>Q</kbd>
+              </button>
+              {/* Latching, not momentary: a phone cannot hold a button down and
+                  steer at the same time. Shift still works the old way, and
+                  either source lighting the bit lights this control. */}
+              <button
+                className={'hold-button' + (ui.optionHold ? ' on' : '')}
+                aria-pressed={ui.optionHold}
+                aria-label="옵션 홀드"
+                title="옵션 홀드 고정 / 해제 (Shift)"
+                onClick={() => {
+                  const input = r()?.input;
+                  if (input) input.set(Key.Hold, !input.latched(Key.Hold));
+                  r()?.publish();
+                }}
+              >
+                <Magnet size={15} />
+                <span>HOLD</span>
+                <i>{ui.optionHold ? 'ON' : 'OFF'}</i>
               </button>
               <button
                 aria-label="일시정지"
@@ -500,24 +520,10 @@ function GameApp() {
             ))}
           </div>
           <div className="touch-controls">
-            <span>화면을 드래그하여 이동 · {autoFire ? '자동 발사' : '자동 발사 꺼짐'}</span>
-            <button
-              onPointerDown={(e) => {
-                e.preventDefault();
-                try {
-                  e.currentTarget.setPointerCapture(e.pointerId);
-                } catch {
-                  return;
-                }
-                r()?.input.set(Key.Hold, true, e.pointerId);
-              }}
-              onPointerUp={(e) => r()?.input.set(Key.Hold, false, e.pointerId)}
-              onPointerCancel={(e) => r()?.input.set(Key.Hold, false, e.pointerId)}
-              onLostPointerCapture={(e) => r()?.input.set(Key.Hold, false, e.pointerId)}
-              aria-label="누르는 동안 옵션 위치 고정"
-            >
-              OPTION HOLD
-            </button>
+            <span>
+              화면을 드래그하여 이동 · {autoFire ? '자동 발사' : '자동 발사 꺼짐'} · 우측 상단{' '}
+              <b>OPTION</b> / <b>HOLD</b> 로 옵션 제어
+            </span>
           </div>
         </div>
       )}
@@ -956,7 +962,7 @@ function GameApp() {
               <Layers />
               <h3>OPTION CONTROL</h3>
               <p>
-                <kbd>Q</kbd> 모드 전환 · <kbd>Shift</kbd>(모바일 OPTION HOLD) 제어
+                <kbd>Q</kbd> 모드 전환 · <kbd>Shift</kbd> 또는 화면 우측 상단 <b>HOLD</b> 제어
                 <br />
                 옵션은 1기로 시작하고 청색 링으로 4기까지 늘어납니다.
                 <br />

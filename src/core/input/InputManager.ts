@@ -143,6 +143,14 @@ export class InputManager {
     );
   }
 
+  /**
+   * True while a key is latched on by the on-screen controls, as opposed to
+   * held down on the keyboard. The HUD toggles against this rather than
+   * against the published frame, which is always one tick behind.
+   */
+  latched(key: Key) {
+    return (this.virtual & key) !== 0;
+  }
   set(key: Key, on: boolean, pointerId?: number) {
     if (pointerId !== undefined) {
       if (on) this.virtualPointers.set(pointerId, key);

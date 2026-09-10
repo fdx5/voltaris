@@ -604,19 +604,70 @@ kbd {
   background: #07131aa8;
   color: #bad4dd;
 }
-.mode-button {
+.mode-button,
+.hold-button {
   font: 10px monospace;
   letter-spacing: 1px;
+  /* These two are controls, not readouts. They are drawn brighter than the
+     rest of the HUD, with a live edge, so a first-time player sees there is
+     something here to press. */
+  border-color: #48c8ff5c;
+  background: linear-gradient(#0d1f2be0, #071119e0);
+  color: #d3ecf6;
+  min-height: 26px;
 }
 .mode-button b {
   color: #8be6ff;
   font-weight: 700;
 }
-/* Lit while the control key is down, so the player can see the mode bite. */
-.mode-button.held {
+.mode-button kbd {
+  border: 1px solid #4b6f7d;
+  border-radius: 3px;
+  padding: 0 3px;
+  font-size: 9px;
+  color: #86a5b2;
+}
+.hold-button {
+  border-color: #ffbe5c66;
+  color: #ffd79a;
+}
+.hold-button i {
+  font-style: normal;
+  font-weight: 700;
+  color: #6f8794;
+}
+/* Latched on: the control glows and says so, since nothing is being held. */
+.hold-button.on {
   border-color: #7ff0d8;
+  background: linear-gradient(#123f3ce0, #0a2429e0);
   color: #d6fff6;
-  box-shadow: 0 0 14px rgba(88, 232, 210, 0.45);
+  box-shadow:
+    0 0 16px rgba(88, 232, 210, 0.5),
+    inset 0 0 12px rgba(88, 232, 210, 0.18);
+}
+.hold-button.on i {
+  color: #7ff0d8;
+}
+.mode-button:hover,
+.hold-button:hover {
+  border-color: #7ff0d8;
+  color: #eafcff;
+}
+@media (hover: none) {
+  /* On a phone there is no hover to hint with, so the pair breathes instead
+     until the player has latched the control at least once. */
+  .hold-button:not(.on) {
+    animation: hold-hint 2.4s ease-in-out infinite;
+  }
+}
+@keyframes hold-hint {
+  0%,
+  100% {
+    box-shadow: 0 0 0 rgba(255, 190, 92, 0);
+  }
+  50% {
+    box-shadow: 0 0 14px rgba(255, 190, 92, 0.45);
+  }
 }
 .bottom-left {
   left: 3.5%;
