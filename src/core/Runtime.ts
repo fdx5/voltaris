@@ -15,6 +15,24 @@ const STAGE_CLEAR = '/audio/win.mp3';
 const WRECK_LIGHT = '/audio/11_soft_puff.mp3';
 const WRECK_HEAVY = '/audio/04_rumble_break.mp3';
 
+/**
+ * Turns a renderer start-up failure into something the player can act on.
+ * By the time this runs the backend has already retried on WebGL 2, so the
+ * question left is whether the machine can draw at all.
+ */
+function graphicsAdvice(e: unknown) {
+  const detail = e instanceof Error ? e.message : String(e);
+  let webgl2 = false;
+  try {
+    webgl2 = !!document.createElement('canvas').getContext('webgl2');
+  } catch {
+    /* a browser that throws here has no WebGL 2 either */
+  }
+  return webgl2
+    ? `그래픽 드라이버가 3D 컨텍스트를 열지 못했습니다. 다른 탭을 닫고 새로고침해 주세요. (${detail})`
+    : `브라우저의 하드웨어 가속이 꺼져 있거나 WebGL 2를 지원하지 않습니다. 브라우저 설정에서 하드웨어 가속을 켜고 새로고침해 주세요. (${detail})`;
+}
+
 export class Runtime {
   game = new GameState();
   private runId: string | null = null;
@@ -38,7 +56,9 @@ export class Runtime {
   private portrait = false;
   constructor(host: HTMLElement) {
     this.visual = new ThreeBackend(host, new URLSearchParams(location.search).has('webgl'));
-    this.input = new InputManager(this.visual.canvas);
+    // Bound to the frame, not to the canvas: a failed WebGPU start swaps the
+    // canvas for a WebGL 2 one, and touch controls must survive that.
+    this.input = new InputManager(host);
     this.loop = new GameLoop(this.tick, this.render);
     const signal = this.controller.signal;
     window.addEventListener(
@@ -84,7 +104,8 @@ export class Runtime {
       // Combat shaders build behind the hangar rather than in front of it.
       void this.visual.warmup();
     } catch (e) {
-      useUI.setState({ error: e instanceof Error ? e.message : String(e) });
+      console.error('[ZERO LANCE] renderer init failed', e);
+      useUI.setState({ error: graphicsAdvice(e) });
     }
   }
   private checkOrientation() {

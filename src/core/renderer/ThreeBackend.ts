@@ -174,8 +174,8 @@ function shotStyles(): ShotStyle[] {
 }
 
 export class ThreeBackend implements IRenderBackend {
-  readonly renderer: T.WebGPURenderer;
-  readonly canvas: HTMLCanvasElement;
+  renderer: T.WebGPURenderer;
+  canvas: HTMLCanvasElement;
   readonly scene = new T.Scene();
   readonly camera = new T.PerspectiveCamera(30, 16 / 9, 0.1, 220);
   backendName = 'INITIALIZING';
@@ -225,18 +225,10 @@ export class ThreeBackend implements IRenderBackend {
   private visualTime = 0;
   constructor(
     private host: HTMLElement,
-    forceWebGL = false,
+    private forceWebGL = false,
   ) {
-    this.renderer = new T.WebGPURenderer({
-      antialias: true,
-      alpha: false,
-      forceWebGL,
-      powerPreference: 'high-performance',
-    });
-    this.canvas = this.renderer.domElement;
-    this.canvas.className = 'game-canvas';
-    this.canvas.setAttribute('aria-label', 'ZERO LANCE 3D 전투 화면');
-    host.appendChild(this.canvas);
+    this.renderer = this.makeRenderer(forceWebGL, true);
+    this.canvas = this.attach();
     this.scene.background = new T.Color('#03060c');
     this.scene.fog = new T.FogExp2('#060d16', 0.003);
     this.scene.add(new T.HemisphereLight('#b9d6eb', '#15161c', 2.1));
@@ -429,6 +421,24 @@ export class ThreeBackend implements IRenderBackend {
     this.scene.add(this.hitDot);
     this.resize();
   }
+  private makeRenderer(forceWebGL: boolean, antialias: boolean) {
+    return new T.WebGPURenderer({
+      antialias,
+      alpha: false,
+      forceWebGL,
+      // A discrete GPU is worth asking for, but on a hybrid laptop the ask can
+      // be what fails, so the fallback pass leaves the choice to the browser.
+      powerPreference: forceWebGL ? undefined : 'high-performance',
+    });
+  }
+  /** Puts the current renderer's canvas into the host element. */
+  private attach() {
+    const canvas = this.renderer.domElement;
+    canvas.className = 'game-canvas';
+    canvas.setAttribute('aria-label', 'ZERO LANCE 3D 전투 화면');
+    this.host.appendChild(canvas);
+    return canvas;
+  }
   /** Reveals one stage's backdrop and boss, hiding every other. */
   private showStage(index: number) {
     this.stage = Math.max(0, Math.min(index, this.skies.length - 1));
@@ -440,8 +450,39 @@ export class ThreeBackend implements IRenderBackend {
     }
   }
   async init() {
+    try {
+      await this.boot();
+    } catch (e) {
+      // WebGPU can be advertised and still fail: an old driver, a blocklisted
+      // GPU, a device lost while the first shaders compile. Three picks its
+      // backend in the constructor and never retries, so we do - once, on
+      // WebGL 2 with the modest context a tired machine is likelier to grant.
+      if (this.forceWebGL) throw e;
+      console.warn('[ZERO LANCE] WebGPU start failed, retrying on WebGL 2:', e);
+      this.canvas.remove();
+      this.pipeline?.dispose();
+      this.pipeline = null;
+      try {
+        this.renderer.dispose();
+      } catch {
+        /* it never came up; there is nothing to release */
+      }
+      this.forceWebGL = true;
+      // A machine that just failed to start a renderer gets the modest one:
+      // no multisampling, no high-performance request, fewer pixels.
+      this.quality = 'MEDIUM';
+      this.renderer = this.makeRenderer(true, false);
+      this.canvas = this.attach();
+      this.resize();
+      await this.boot();
+    }
+  }
+  /** Brings the current renderer all the way up to a compiled hangar. */
+  private async boot() {
     await this.renderer.init();
-    this.backendName = this.renderer.backend.constructor.name.includes('WebGL')
+    // The backend's own flag, not its class name: a production build mangles
+    // class names, so the label used to read WEBGPU whatever was running.
+    this.backendName = (this.renderer.backend as { isWebGLBackend?: boolean }).isWebGLBackend
       ? 'WEBGL 2'
       : 'WEBGPU';
     console.info('[ZERO LANCE] Active backend:', this.backendName);

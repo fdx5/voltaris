@@ -1007,6 +1007,8 @@ function GameApp() {
         <div className="fatal">
           <h2>그래픽 초기화에 실패했습니다</h2>
           <p>{ui.error}</p>
+          {/* WebGL 2 is retried automatically now, so the link only helps a
+              browser whose WebGPU path hangs rather than throws. */}
           <a href="?webgl=1">WebGL 2 호환 모드로 다시 실행</a>
         </div>
       )}

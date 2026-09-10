@@ -122,6 +122,37 @@ test('stage four flies an ice cave with a roof and a deck', async ({ page }) => 
   await expect(page.getByText('STAGE 04 SKY HIGH')).toBeVisible();
   expect(errors).toEqual([]);
 });
+test('falls back to WebGL 2 when WebGPU advertises itself and then refuses', async ({ page }) => {
+  const errors: string[] = [];
+  page.on('pageerror', (e) => errors.push(e.message));
+  // The case three does not handle: navigator.gpu exists, so it picks the
+  // WebGPU backend in its constructor, and the adapter request then fails.
+  await page.addInitScript(() => {
+    Object.defineProperty(navigator, 'gpu', {
+      configurable: true,
+      value: {
+        requestAdapter: async () => null,
+        getPreferredCanvasFormat: () => 'bgra8unorm',
+        wgslLanguageFeatures: new Set(),
+      },
+    });
+  });
+  await page.goto('/');
+  await expect(page.getByRole('button', { name: 'BEGIN SORTIE 출격 준비' })).toBeEnabled({
+    timeout: 45000,
+  });
+  await expect(page.locator('.fatal')).toHaveCount(0);
+  await expect(page.locator('.footer')).toContainText('WEBGL 2');
+  // The canvas was replaced on the way down, so touch has to still land.
+  await page.getByRole('button', { name: 'BEGIN SORTIE 출격 준비' }).click();
+  await page.getByRole('button', { name: '출격 · LAUNCH MISSION' }).click();
+  await expect(page.locator('.play-frame')).toBeVisible();
+  await page.mouse.move(700, 450);
+  await page.mouse.down();
+  await page.mouse.move(700, 300, { steps: 8 });
+  await page.mouse.up();
+  expect(errors).toEqual([]);
+});
 test('mobile landscape touch and portrait pause overlay', async ({ page }) => {
   await page.setViewportSize({ width: 932, height: 430 });
   await page.goto('/?webgl=1');
