@@ -9,8 +9,8 @@ export default defineConfig({
     VitePWA({
       registerType: 'autoUpdate',
       manifest: {
-        name: 'PROJECT ZERO LANCE',
-        short_name: 'ZERO LANCE',
+        name: 'VOLTARIS',
+        short_name: 'VOLTARIS',
         description: 'An original 3D orbital arcade shooter',
         theme_color: '#070c12',
         background_color: '#070c12',
@@ -39,7 +39,7 @@ export default defineConfig({
             urlPattern: /\/audio\/.*\.mp3$/,
             handler: 'CacheFirst',
             options: {
-              cacheName: 'zero-lance-music',
+              cacheName: 'voltaris-music',
               rangeRequests: true,
               expiration: { maxEntries: 8 },
               cacheableResponse: { statuses: [0, 200] },

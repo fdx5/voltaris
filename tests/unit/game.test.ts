@@ -251,7 +251,8 @@ describe('arcade rules', () => {
     expect(g.shield).toBe(2);
     g.start('LASER', 1);
     expect(g.level).toBe(1);
-    expect(g.optionCount).toBe(0);
+    // A fresh sortie drops the carried options but always keeps the first one.
+    expect(g.optionCount).toBe(1);
     expect(g.shield).toBe(0);
   });
   it('halves hostile fire volume while the player is at minimum power', () => {
@@ -441,6 +442,60 @@ describe('arcade rules', () => {
     expect(new Set(roster.map((t) => defs[t].fire.pattern)).size).toBe(roster.length);
     expect(new Set(roster.map((t) => defs[t].fire.kind)).size).toBe(roster.length);
   });
+  it('flies stage one with an option already attached', () => {
+    const g = new GameState();
+    g.start('LASER', 3, false, false, 0);
+    expect(g.optionCount).toBe(1);
+    // A death scatters the extras as rings but never leaves the ship bare.
+    g.optionCount = 3;
+    g.invincible = 0;
+    g.hit();
+    expect(g.optionCount).toBe(1);
+  });
+  it('gives each option control mode its own behaviour under the hold key', () => {
+    const settle = (mode: number) => {
+      const g = new GameState();
+      g.start('LASER', 3, false, false, 0);
+      g.optionCount = 4;
+      g.mode = mode;
+      for (let i = 0; i < 90; i++) g.tick(dt, Key.Up, 0, 0, 0);
+      const free = { x: g.optionX[0], y: g.optionY[0] };
+      for (let i = 0; i < 40; i++) g.tick(dt, Key.Hold | Key.Down, 0, 0, -1);
+      return { g, free };
+    };
+    // TRAIL: still following, but tucked in much closer than it flies loose.
+    const trail = settle(0);
+    expect(trail.g.optionHold).toBe(true);
+    expect(Math.abs(trail.g.optionY[0] - trail.g.y)).toBeLessThan(1);
+    // Tucked in, but never inside the hull.
+    expect(trail.g.optionX[0] - trail.g.x).toBeGreaterThan(-0.9);
+    expect(trail.g.optionX[0]).toBeLessThanOrEqual(trail.g.x - 0.5);
+    // FREEZE: pinned where it stood when the key went down.
+    const freeze = settle(1);
+    expect(freeze.g.optionY[0]).toBeCloseTo(freeze.free.y, 5);
+    expect(freeze.g.optionX[0]).toBeCloseTo(freeze.free.x, 5);
+    expect(Math.abs(freeze.g.optionY[0] - freeze.g.y)).toBeGreaterThan(2);
+    // DIRECTIONAL: trailing as usual, guns turned to the stick.
+    const aim = settle(2);
+    expect(aim.g.optionAngle[0]).toBeCloseTo(-Math.PI / 2, 2);
+    // ROTATE: swung out around the ship, gun following the orbit.
+    const spin = settle(3);
+    const r = Math.hypot(spin.g.optionX[0] - spin.g.x, spin.g.optionY[0] - spin.g.y);
+    expect(r).toBeCloseTo(1.8, 1);
+    // Letting go puts every mode back on the trail with the guns forward.
+    for (let i = 0; i < 40; i++) spin.g.tick(dt, 0, 0, 0, 0);
+    expect(spin.g.optionHold).toBe(false);
+    expect(spin.g.optionAngle[0]).toBe(0);
+  });
+  it('announces the mode the control key now drives', () => {
+    const g = new GameState();
+    g.start('LASER', 3, false, false, 0);
+    for (const name of ['FREEZE', 'DIRECTIONAL', 'ROTATE', 'TRAIL']) {
+      g.cycleMode();
+      expect(g.notice).toContain(name);
+      expect(g.noticeTime).toBeGreaterThan(0);
+    }
+  });
   it('keeps every stage four formation inside the corridor the ship can fly', () => {
     const g = new GameState();
     g.start('LASER', 3, false, false, 3);
@@ -499,7 +554,7 @@ describe('arcade rules', () => {
     g.start('LASER', 1);
     expect(g.bullets.count).toBe(0);
     expect(g.level).toBe(1);
-    expect(g.optionCount).toBe(0);
+    expect(g.optionCount).toBe(1);
     expect(g.boss).toBe(false);
     expect(g.rank).toBe(0);
     expect(g.replayFrames).toBe(0);

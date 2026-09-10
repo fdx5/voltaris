@@ -286,6 +286,9 @@ export async function createApp(
         if (path.includes('/assets/') || path.includes('\\assets\\'))
           res.set('Cache-Control', 'public, max-age=31536000, immutable');
         else res.set('Cache-Control', 'no-cache');
+        // The link-preview card is fetched and re-hosted by other origins, so
+        // it is the one asset that may not be same-origin locked.
+        if (path.endsWith('og-cover.png')) res.set('Cross-Origin-Resource-Policy', 'cross-origin');
       },
     }),
   );
@@ -300,14 +303,12 @@ export async function createApp(
     const status = err.status || (err.type === 'entity.too.large' ? 413 : 500);
     // Never log request bodies, credentials or database connection details.
     if (status >= 500) console.error('Request failed:', req.method, req.path, status);
-    res
-      .status(status)
-      .json({
-        error:
-          status < 500 || status === 503
-            ? err.message
-            : '서버 처리 중 오류가 발생했습니다. 잠시 후 다시 시도하세요.',
-      });
+    res.status(status).json({
+      error:
+        status < 500 || status === 503
+          ? err.message
+          : '서버 처리 중 오류가 발생했습니다. 잠시 후 다시 시도하세요.',
+    });
   });
   return app;
 }

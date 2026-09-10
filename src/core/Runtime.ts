@@ -108,7 +108,7 @@ export class Runtime {
       // Combat shaders build behind the hangar rather than in front of it.
       void this.visual.warmup();
     } catch (e) {
-      console.error('[ZERO LANCE] renderer init failed', e);
+      console.error('[VOLTARIS] renderer init failed', e);
       useUI.setState({ error: graphicsAdvice(e) });
     }
   }
@@ -347,6 +347,7 @@ export class Runtime {
       creditsUsed: g.creditsUsed,
       mode: g.mode,
       optionCount: g.optionCount,
+      optionHold: g.optionHold,
       shield: g.shield,
       graze: g.graze,
       time: g.time,

@@ -70,14 +70,12 @@ for (const [width, height] of [
     );
     await page.goto('/?webgl=1');
     await expect(page.locator('.login-card')).toBeVisible();
-    const size = await page
-      .locator('.login-screen')
-      .evaluate((el) => ({
-        height: el.clientHeight,
-        scroll: el.scrollHeight,
-        width: el.clientWidth,
-        wide: el.scrollWidth,
-      }));
+    const size = await page.locator('.login-screen').evaluate((el) => ({
+      height: el.clientHeight,
+      scroll: el.scrollHeight,
+      width: el.clientWidth,
+      wide: el.scrollWidth,
+    }));
     expect(size.scroll).toBeLessThanOrEqual(size.height + 1);
     expect(size.wide).toBeLessThanOrEqual(size.width + 1);
     await page.screenshot({ path: `test-results/login-${width}x${height}.png` });

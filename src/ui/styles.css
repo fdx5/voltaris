@@ -608,6 +608,16 @@ kbd {
   font: 10px monospace;
   letter-spacing: 1px;
 }
+.mode-button b {
+  color: #8be6ff;
+  font-weight: 700;
+}
+/* Lit while the control key is down, so the player can see the mode bite. */
+.mode-button.held {
+  border-color: #7ff0d8;
+  color: #d6fff6;
+  box-shadow: 0 0 14px rgba(88, 232, 210, 0.45);
+}
 .bottom-left {
   left: 3.5%;
   bottom: 4%;

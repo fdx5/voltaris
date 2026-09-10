@@ -14,6 +14,10 @@ export type Weapon = keyof typeof weapons;
 export type Mode = 'TRAIL' | 'FREEZE' | 'DIRECTIONAL' | 'ROTATE';
 export type Status = 'menu' | 'playing' | 'paused' | 'continue' | 'gameover' | 'clear' | 'stress';
 export const MODES: Mode[] = ['TRAIL', 'FREEZE', 'DIRECTIONAL', 'ROTATE'];
+/** What holding the control key does in each mode, for the on-screen notice. */
+export const MODE_NOTE = ['밀착 대형', '위치 고정', '진행 방향 조준', '기체 공전'];
+/** Frames an option lags behind the ship's path, per option, while trailing. */
+const TRAIL_LAG = 22;
 export class GameState {
   readonly bullets = new BulletPool(tuning.pools.bullets);
   readonly enemies = new ObjectPool(tuning.pools.enemies);
@@ -64,6 +68,10 @@ export class GameState {
   status: Status = 'menu';
   weapon: Weapon = 'LASER';
   mode = 0;
+  /** True while the option control key is down; the HUD lights up with it. */
+  optionHold = false;
+  /** Heading DIRECTIONAL last aimed at, kept while the stick is centred. */
+  private optionAim = 0;
   level = 1;
   optionCount = 0;
   shield = 0;
@@ -173,7 +181,10 @@ export class GameState {
     this.practice = practice;
     if (!carry) this.loadout.level = this.loadout.optionCount = this.loadout.shield = 0;
     this.level = practice ? 6 : Math.max(1, carry ? this.loadout.level : 1);
-    this.optionCount = practice ? 4 : carry ? this.loadout.optionCount : 0;
+    // Every sortie flies with one option, so option control is something the
+    // player has from the first stage rather than a reward for surviving to
+    // the first blue ring. Rings still stack it up to four.
+    this.optionCount = practice ? 4 : Math.max(1, carry ? this.loadout.optionCount : 0);
     this.x = this.previousX = -7;
     this.y = this.previousY = 0;
     this.frame = this.time = this.score = this.kills = this.deaths = this.rank = 0;
@@ -219,8 +230,10 @@ export class GameState {
     this.notice = text;
     this.noticeTime = seconds;
   }
+  /** Rotates through the option control modes and says what the key now does. */
   cycleMode() {
     this.mode = (this.mode + 1) % 4;
+    this.announce(`OPTION ${MODES[this.mode]} / ${MODE_NOTE[this.mode]}`, 1.6);
   }
   pause() {
     if (this.status === 'playing') this.status = 'paused';
@@ -231,7 +244,7 @@ export class GameState {
     this.creditsUsed++;
     this.lives = 3;
     this.level = 1;
-    this.optionCount = 0;
+    this.optionCount = 1;
     this.shield = 0;
     this.charge.fill(0);
     this.effects.fill(0);
@@ -359,25 +372,47 @@ export class GameState {
     this.updateItems(dt);
     this.particles.move(dt);
   }
+  /**
+   * Places the option drones for the frame.
+   *
+   * The mode picks what the control key does while it is held; let go and the
+   * options fall back into the trail behind the ship. Every mode does
+   * something visible, so cycling with `Q` always reads as a change:
+   * TRAIL pulls them into a tight line beside the ship, FREEZE pins them where
+   * they stand, DIRECTIONAL turns their guns to the stick, ROTATE swings them
+   * around the hull.
+   */
   private updateOptions(bits: number, ax: number, ay: number) {
     this.historyHead = (this.historyHead + 1) % 512;
     this.historyX[this.historyHead] = this.x;
     this.historyY[this.historyHead] = this.y;
+    const hold = (bits & Key.Hold) !== 0;
+    this.optionHold = hold;
+    if (hold && (ax || ay)) this.optionAim = Math.atan2(ay, ax);
     for (let i = 0; i < 4; i++) {
-      if (this.mode === 1 && bits & Key.Hold) continue;
-      if (this.mode === 3 && bits & Key.Hold) {
+      // FREEZE: the drone keeps the position it already holds, and keeps
+      // firing from it.
+      if (hold && this.mode === 1) continue;
+      if (hold && this.mode === 3) {
         const a = this.time * 2.2 + (i * Math.PI) / 2;
         this.optionX[i] = this.x + Math.cos(a) * 1.8;
         this.optionY[i] = this.y + Math.sin(a) * 1.8;
+        // Guns point outwards along the orbit, so the ring covers every side.
         this.optionAngle[i] = a;
-      } else {
-        const h = (this.historyHead - 24 * (i + 1) + 512) % 512;
-        this.optionX[i] = this.historyX[h] - (i + 1) * 0.45;
-        this.optionY[i] = this.historyY[h];
-        if (this.mode === 2 && bits & Key.Hold) {
-          if (ax || ay) this.optionAngle[i] = Math.atan2(ay, ax);
-        } else this.optionAngle[i] = 0;
+        continue;
       }
+      // TRAIL closes the formation up while held: same path, a fifth of the
+      // lag, so a held burst lands as one column instead of a smear.
+      const tight = hold && this.mode === 0;
+      const lag = tight ? 4 : TRAIL_LAG;
+      const h = (this.historyHead - lag * (i + 1) + 512) % 512;
+      this.optionX[i] = this.historyX[h] - (i + 1) * (tight ? 0.16 : 0.45);
+      this.optionY[i] = this.historyY[h];
+      // A ship that stops flying has its own trail land on top of it, and the
+      // drones disappear inside the hull. They keep a stand-off behind it.
+      const gap = (tight ? 0.55 : 0.85) + i * 0.5;
+      this.optionX[i] = Math.min(this.optionX[i], this.x - gap);
+      this.optionAngle[i] = hold && this.mode === 2 ? this.optionAim : 0;
     }
   }
   private fireWeapon(x: number, y: number, angle: number) {
@@ -1309,9 +1344,11 @@ export class GameState {
       );
     this.level = Math.max(1, this.level - tuning.combat.powerPenalty);
     this.rank = Math.max(0, this.rank - 15);
-    for (let i = 0; i < this.optionCount; i++)
+    // The options break away as rings to be caught again, all but the one the
+    // ship always carries.
+    for (let i = 1; i < this.optionCount; i++)
       this.items.acquire(this.optionX[i], this.optionY[i], -1, 0, 1, 8, 0.5);
-    this.optionCount = 0;
+    this.optionCount = 1;
     this.respawn = 1.5;
     this.invincible = 3.5;
     if (this.lives <= 0) {

@@ -208,7 +208,9 @@ export class ThreeBackend implements IRenderBackend {
   private readonly groundCores: T.InstancedMesh;
   private readonly bombs: T.InstancedMesh;
   private readonly skyBombs: T.InstancedMesh;
-  private readonly options: T.Mesh[] = [];
+  private readonly options: T.Group[] = [];
+  /** The tumbling inner shape of each option, spun independently of its gun. */
+  private readonly optionCores: T.Mesh[] = [];
   private readonly itemBatches: T.InstancedMesh[] = [];
   private readonly particles: T.InstancedMesh;
   /** One backdrop and one boss model per stage, swapped by visibility so the
@@ -381,7 +383,21 @@ export class ThreeBackend implements IRenderBackend {
     this.scene.add(this.enemyCores);
 
     for (let i = 0; i < 4; i++) {
-      const option = new T.Mesh(new T.OctahedronGeometry(0.23, 1), glow('#93ebff', 2));
+      // An option is a tumbling core inside a housing that turns with its
+      // gun: without the muzzle showing, DIRECTIONAL and ROTATE look the same
+      // as trailing along.
+      const option = new T.Group();
+      const core = new T.Mesh(new T.OctahedronGeometry(0.23, 1), glow('#93ebff', 2));
+      const muzzle = new T.Mesh(
+        new T.ConeGeometry(0.09, 0.34, 6).rotateZ(-Math.PI / 2).translate(0.3, 0, 0),
+        glow('#dff6ff', 2.4),
+      );
+      const ring = new T.Mesh(
+        new T.TorusGeometry(0.3, 0.028, 6, 20).rotateY(Math.PI / 2),
+        glow('#4fb6ff', 1.6),
+      );
+      option.add(core, muzzle, ring);
+      this.optionCores.push(core);
       this.options.push(option);
       this.deferred.push(option);
       this.scene.add(option);
@@ -435,7 +451,7 @@ export class ThreeBackend implements IRenderBackend {
   private attach() {
     const canvas = this.renderer.domElement;
     canvas.className = 'game-canvas';
-    canvas.setAttribute('aria-label', 'ZERO LANCE 3D 전투 화면');
+    canvas.setAttribute('aria-label', 'VOLTARIS 3D 전투 화면');
     this.host.appendChild(canvas);
     return canvas;
   }
@@ -458,7 +474,7 @@ export class ThreeBackend implements IRenderBackend {
       // backend in the constructor and never retries, so we do - once, on
       // WebGL 2 with the modest context a tired machine is likelier to grant.
       if (this.forceWebGL) throw e;
-      console.warn('[ZERO LANCE] WebGPU start failed, retrying on WebGL 2:', e);
+      console.warn('[VOLTARIS] WebGPU start failed, retrying on WebGL 2:', e);
       this.canvas.remove();
       this.pipeline?.dispose();
       this.pipeline = null;
@@ -485,7 +501,7 @@ export class ThreeBackend implements IRenderBackend {
     this.backendName = (this.renderer.backend as { isWebGLBackend?: boolean }).isWebGLBackend
       ? 'WEBGL 2'
       : 'WEBGPU';
-    console.info('[ZERO LANCE] Active backend:', this.backendName);
+    console.info('[VOLTARIS] Active backend:', this.backendName);
     this.renderer.toneMapping = T.ACESFilmicToneMapping;
     this.renderer.toneMappingExposure = 1.05;
     const scenePass = pass(this.scene, this.camera);
@@ -808,8 +824,15 @@ export class ThreeBackend implements IRenderBackend {
     for (let i = 0; i < 4; i++) {
       const o = this.options[i];
       o.visible = !inactive && i < g.optionCount;
-      if (o.visible) o.position.set(g.optionX[i], g.optionY[i], 0.3);
-      o.rotation.set(t, t * 1.2, t * 0.7);
+      if (o.visible) {
+        o.position.set(g.optionX[i], g.optionY[i], 0.3);
+        // The housing carries the gun's heading; the core keeps tumbling.
+        o.rotation.z = g.optionAngle[i];
+        // Held control reads as the drones bracing: a touch larger, and the
+        // ring squares up with the ship.
+        o.scale.setScalar(g.optionHold ? 1.18 + Math.sin(t * 12) * 0.05 : 1);
+        this.optionCores[i].rotation.set(t, t * 1.2, t * 0.7);
+      }
     }
     const boss = this.bosses[this.stage];
     boss.root.visible = g.boss;

@@ -26,6 +26,8 @@ export interface UIState {
   creditsUsed: number;
   mode: number;
   optionCount: number;
+  /** True while the option control key is held. */
+  optionHold: boolean;
   shield: number;
   graze: number;
   time: number;
@@ -71,6 +73,7 @@ export const useUI = create<UIState>(() => ({
   creditsUsed: 1,
   mode: 0,
   optionCount: 0,
+  optionHold: false,
   shield: 0,
   graze: 1,
   time: 0,

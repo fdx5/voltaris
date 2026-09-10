@@ -186,7 +186,7 @@ function GameApp() {
     );
     const a = document.createElement('a');
     a.href = url;
-    a.download = 'zero-lance-performance.json';
+    a.download = 'voltaris-performance.json';
     a.click();
     URL.revokeObjectURL(url);
   };
@@ -200,9 +200,9 @@ function GameApp() {
         <>
           <header className="header">
             <a className="brand" href="#" onClick={(e) => e.preventDefault()}>
-              <span className="brand-mark">Z</span>
+              <span className="brand-mark">V</span>
               <span>
-                ZERO LANCE<small>ORBITAL COMMAND</small>
+                VOLTARIS<small>ORBITAL COMMAND</small>
               </span>
             </a>
             <div className="nav-caption">
@@ -244,9 +244,9 @@ function GameApp() {
               <span /> EARTH DEFENSE INITIATIVE <b>2186</b>
             </div>
             <div className="title">
-              <span>ZERO</span>
+              <span>VOLT</span>
               <span>
-                LANCE<i>™</i>
+                ARIS<i>™</i>
               </span>
             </div>
             <p className="tagline">THE SILENCE ENDS HERE.</p>
@@ -286,7 +286,7 @@ function GameApp() {
             <span className="bracket" />
             <small>INTERCEPTOR CLASS</small>
             <strong>
-              ZL–01 <span> / </span> LANCE
+              VL–01 <span> / </span> LANCE
             </strong>
             <p>DUAL ION DRIVE · ADAPTIVE ARMAMENT</p>
             <div>
@@ -392,10 +392,12 @@ function GameApp() {
                   r()?.cycleMode();
                   r()?.publish();
                 }}
-                className="mode-button"
+                className={'mode-button' + (ui.optionHold ? ' held' : '')}
+                title="Q 모드 전환 · Shift(모바일 OPTION HOLD) 제어"
               >
                 <Orbit size={15} />
                 {MODES[ui.mode]}
+                <b>×{ui.optionCount}</b>
                 <kbd>Q</kbd>
               </button>
               <button
@@ -954,11 +956,13 @@ function GameApp() {
               <Layers />
               <h3>OPTION CONTROL</h3>
               <p>
-                <kbd>Q</kbd> 모드 전환 · <kbd>Shift</kbd> 제어
+                <kbd>Q</kbd> 모드 전환 · <kbd>Shift</kbd>(모바일 OPTION HOLD) 제어
                 <br />
-                TRAIL 후행 / FREEZE 위치 고정
+                옵션은 1기로 시작하고 청색 링으로 4기까지 늘어납니다.
                 <br />
-                DIRECTIONAL 조준 / ROTATE 공전
+                누르는 동안 — TRAIL 밀착 대형 / FREEZE 위치 고정
+                <br />
+                DIRECTIONAL 진행 방향 조준 / ROTATE 기체 공전
               </p>
             </div>
             <div>
