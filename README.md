@@ -182,4 +182,4 @@ render.yaml     Render Blueprint
 
 기존 Sites용 `worker/`와 `tools/build-hosting.mjs`는 정적 프런트용 보조 도구입니다. 현재 기본 배포는 Render의 `server/index.mjs`이며 해당 Worker만 배포해서는 로그인 API가 제공되지 않습니다.
 
-메뉴 사진 출처: [`public/images/missions/CREDITS.md`](public/images/missions/CREDITS.md). 행성 텍스처는 NASA / Three.js 예제 및 [Solar System Scope](https://www.solarsystemscope.com/textures)(CC BY 4.0), 암석·얼음 텍스처는 [Poly Haven](https://polyhaven.com/)(CC0) 자료를 사용합니다. `tools/fetch-textures.mjs`에 원본 경로가 있습니다. `public/audio/`는 프로젝트에서 제공한 게임 오디오입니다. 이 저장소는 제3자 에셋의 별도 이용 조건을 대체하지 않습니다.
+메뉴 사진 출처: [`public/images/missions/CREDITS.md`](public/images/missions/CREDITS.md). 행성 텍스처는 NASA / Three.js 예제 및 [Solar System Scope](https://www.solarsystemscope.com/textures)(CC BY 4.0), 암석·얼음 텍스처는 [Poly Haven](https://polyhaven.com/)(CC0) 자료를 사용합니다. 별하늘은 내려받지 않고 `tools/fetch-textures.mjs`가 직접 그립니다. `tools/fetch-textures.mjs`에 원본 경로가 있습니다. `public/audio/`는 프로젝트에서 제공한 게임 오디오입니다. 이 저장소는 제3자 에셋의 별도 이용 조건을 대체하지 않습니다.

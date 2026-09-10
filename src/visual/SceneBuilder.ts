@@ -2460,7 +2460,7 @@ export function buildBackdrop(
     fog: false,
     depthWrite: false,
   });
-  const sky = texture(loadTexture('space/milkyway.jpg', true));
+  const sky = texture(loadTexture('space/starfield.jpg', true));
   skyMaterial.colorNode = mix(color('#050912'), sky.mul(color(config.skyTint)), float(0.62)).mul(
     config.skyGain,
   );
