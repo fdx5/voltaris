@@ -1,0 +1,482 @@
+{
+  "id": 2,
+  "name": "IRON BELT",
+  "subtitle": "화성 궤도 · 소행성대 돌파",
+  "durationSec": 180,
+  "music": "/audio/space-engine.mp3",
+  "bossMusic": null,
+  "scene": "mars",
+  "pressure": 0.55,
+  "hull": 0.25,
+  "volley": 0.34,
+  "firstWave": 6,
+  "minY": -7.2,
+  "maxY": 7.2,
+  "surface": null,
+  "ground": [],
+  "boss": {
+    "id": "ARES CROWN",
+    "design": "ares",
+    "hp": 5200,
+    "parts": 6,
+    "partHp": 220,
+    "ringRadius": 4.0,
+    "coreRadius": 1.8
+  },
+  "lighting": {
+    "background": "#0d0806",
+    "key": "#e0c2a8",
+    "rim": "#8a5f4a"
+  },
+  "spawns": [
+    {
+      "time": 3,
+      "type": 0,
+      "y": 3,
+      "count": 12,
+      "pattern": 0
+    },
+    {
+      "time": 6,
+      "type": 13,
+      "y": -3,
+      "count": 12,
+      "pattern": 1
+    },
+    {
+      "time": 10,
+      "type": 0,
+      "y": 2,
+      "count": 14,
+      "pattern": 1
+    },
+    {
+      "time": 13,
+      "type": 20,
+      "y": -2,
+      "count": 10,
+      "pattern": 0
+    },
+    {
+      "time": 16,
+      "type": 16,
+      "y": 1,
+      "count": 4,
+      "pattern": 0
+    },
+    {
+      "time": 19,
+      "type": 13,
+      "y": 4,
+      "count": 14,
+      "pattern": 1
+    },
+    {
+      "time": 22,
+      "type": 4,
+      "y": -3,
+      "count": 16,
+      "pattern": 1
+    },
+    {
+      "time": 25,
+      "type": 14,
+      "y": 0,
+      "count": 10,
+      "pattern": 2
+    },
+    {
+      "time": 28,
+      "type": 0,
+      "y": -4,
+      "count": 18,
+      "pattern": 1
+    },
+    {
+      "time": 31,
+      "type": 7,
+      "y": 2,
+      "count": 12,
+      "pattern": 1
+    },
+    {
+      "time": 34,
+      "type": 16,
+      "y": -2,
+      "count": 4,
+      "pattern": 0
+    },
+    {
+      "time": 36,
+      "type": 20,
+      "y": 3,
+      "count": 12,
+      "pattern": 1
+    },
+    {
+      "time": 39,
+      "type": 18,
+      "y": 0,
+      "count": 5,
+      "pattern": 0
+    },
+    {
+      "time": 42,
+      "type": 13,
+      "y": -2,
+      "count": 16,
+      "pattern": 2
+    },
+    {
+      "time": 45,
+      "type": 19,
+      "y": 3,
+      "count": 2,
+      "pattern": 0
+    },
+    {
+      "time": 48,
+      "type": 4,
+      "y": 4,
+      "count": 18,
+      "pattern": 1
+    },
+    {
+      "time": 50,
+      "type": 14,
+      "y": -3,
+      "count": 12,
+      "pattern": 1
+    },
+    {
+      "time": 52,
+      "type": 17,
+      "y": 1,
+      "count": 1,
+      "pattern": 0
+    },
+    {
+      "time": 55,
+      "type": 16,
+      "y": 2,
+      "count": 5,
+      "pattern": 0
+    },
+    {
+      "time": 57,
+      "type": 0,
+      "y": 3,
+      "count": 20,
+      "pattern": 1
+    },
+    {
+      "time": 59,
+      "type": 9,
+      "y": -3,
+      "count": 6,
+      "pattern": 0
+    },
+    {
+      "time": 61,
+      "type": 15,
+      "y": 0,
+      "count": 1,
+      "pattern": 0
+    },
+    {
+      "time": 66,
+      "type": 20,
+      "y": 3,
+      "count": 14,
+      "pattern": 1
+    },
+    {
+      "time": 69,
+      "type": 18,
+      "y": -2,
+      "count": 5,
+      "pattern": 0
+    },
+    {
+      "time": 72,
+      "type": 7,
+      "y": -3,
+      "count": 14,
+      "pattern": 1
+    },
+    {
+      "time": 75,
+      "type": 13,
+      "y": -4,
+      "count": 18,
+      "pattern": 2
+    },
+    {
+      "time": 77,
+      "type": 16,
+      "y": 3,
+      "count": 5,
+      "pattern": 0
+    },
+    {
+      "time": 80,
+      "type": 19,
+      "y": 0,
+      "count": 2,
+      "pattern": 0
+    },
+    {
+      "time": 83,
+      "type": 4,
+      "y": -3,
+      "count": 18,
+      "pattern": 0
+    },
+    {
+      "time": 86,
+      "type": 14,
+      "y": 2,
+      "count": 14,
+      "pattern": 1
+    },
+    {
+      "time": 89,
+      "type": 0,
+      "y": 3,
+      "count": 24,
+      "pattern": 2
+    },
+    {
+      "time": 92,
+      "type": 20,
+      "y": 1,
+      "count": 16,
+      "pattern": 1
+    },
+    {
+      "time": 95,
+      "type": 8,
+      "y": -1,
+      "count": 2,
+      "pattern": 0
+    },
+    {
+      "time": 97,
+      "type": 16,
+      "y": -1,
+      "count": 5,
+      "pattern": 0
+    },
+    {
+      "time": 100,
+      "type": 15,
+      "y": 0,
+      "count": 2,
+      "pattern": 0
+    },
+    {
+      "time": 103,
+      "type": 13,
+      "y": -3,
+      "count": 20,
+      "pattern": 1
+    },
+    {
+      "time": 105,
+      "type": 17,
+      "y": 3,
+      "count": 1,
+      "pattern": 0
+    },
+    {
+      "time": 109,
+      "type": 18,
+      "y": 2,
+      "count": 6,
+      "pattern": 0
+    },
+    {
+      "time": 112,
+      "type": 4,
+      "y": -3,
+      "count": 22,
+      "pattern": 1
+    },
+    {
+      "time": 114,
+      "type": 19,
+      "y": -2,
+      "count": 2,
+      "pattern": 0
+    },
+    {
+      "time": 117,
+      "type": 16,
+      "y": 3,
+      "count": 6,
+      "pattern": 0
+    },
+    {
+      "time": 120,
+      "type": 14,
+      "y": 0,
+      "count": 16,
+      "pattern": 2
+    },
+    {
+      "time": 123,
+      "type": 7,
+      "y": 4,
+      "count": 14,
+      "pattern": 0
+    },
+    {
+      "time": 126,
+      "type": 20,
+      "y": -4,
+      "count": 16,
+      "pattern": 1
+    },
+    {
+      "time": 129,
+      "type": 11,
+      "y": 1,
+      "count": 2,
+      "pattern": 0
+    },
+    {
+      "time": 132,
+      "type": 13,
+      "y": -2,
+      "count": 22,
+      "pattern": 1
+    },
+    {
+      "time": 135,
+      "type": 18,
+      "y": 3,
+      "count": 6,
+      "pattern": 0
+    },
+    {
+      "time": 137,
+      "type": 15,
+      "y": -2,
+      "count": 2,
+      "pattern": 0
+    },
+    {
+      "time": 141,
+      "type": 4,
+      "y": -3,
+      "count": 24,
+      "pattern": 1
+    },
+    {
+      "time": 144,
+      "type": 16,
+      "y": 1,
+      "count": 6,
+      "pattern": 0
+    },
+    {
+      "time": 147,
+      "type": 17,
+      "y": 2,
+      "count": 1,
+      "pattern": 0
+    },
+    {
+      "time": 150,
+      "type": 0,
+      "y": -3,
+      "count": 26,
+      "pattern": 1
+    },
+    {
+      "time": 153,
+      "type": 9,
+      "y": 3,
+      "count": 8,
+      "pattern": 0
+    },
+    {
+      "time": 156,
+      "type": 19,
+      "y": 3,
+      "count": 2,
+      "pattern": 0
+    },
+    {
+      "time": 159,
+      "type": 14,
+      "y": -1,
+      "count": 18,
+      "pattern": 0
+    },
+    {
+      "time": 162,
+      "type": 20,
+      "y": 2,
+      "count": 18,
+      "pattern": 1
+    },
+    {
+      "time": 164,
+      "type": 16,
+      "y": 0,
+      "count": 6,
+      "pattern": 0
+    },
+    {
+      "time": 167,
+      "type": 8,
+      "y": 2,
+      "count": 2,
+      "pattern": 0
+    },
+    {
+      "time": 170,
+      "type": 13,
+      "y": 0,
+      "count": 24,
+      "pattern": 2
+    },
+    {
+      "time": 173,
+      "type": 18,
+      "y": -1,
+      "count": 7,
+      "pattern": 0
+    },
+    {
+      "time": 176,
+      "type": 4,
+      "y": 0,
+      "count": 26,
+      "pattern": 2
+    }
+  ],
+  "items": [
+    {
+      "time": 10,
+      "type": 1,
+      "y": 0
+    },
+    {
+      "time": 58,
+      "type": 3,
+      "y": 0
+    },
+    {
+      "time": 96,
+      "type": 2,
+      "y": 0
+    },
+    {
+      "time": 148,
+      "type": 1,
+      "y": 2
+    }
+  ]
+}

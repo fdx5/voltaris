@@ -1,0 +1,106 @@
+{
+  "world": {
+    "width": 32,
+    "height": 18,
+    "minX": -13.4,
+    "maxX": 12.8,
+    "minY": -7.2,
+    "maxY": 7.2
+  },
+  "player": {
+    "speed": 8,
+    "hitRadius": 0.12,
+    "grazeRadius": 0.48,
+    "lives": 3,
+    "respawnSeconds": 1.5,
+    "invincibleSeconds": 2
+  },
+  "pools": {
+    "bullets": 4096,
+    "enemies": 256,
+    "particles": 3000,
+    "items": 64,
+    "ground": 64
+  },
+  "spawn": {
+    "firstWave": 3,
+    "growth": 1
+  },
+  "combat": {
+    "bulletSpeed": 30,
+    "enemyBulletSpeed": 6,
+    "shotRadius": [0.13, 0.1, 0.14, 0.15, 0.14, 0.26, 0.15, 0.15, 0.12, 0.22],
+    "powerFire": {
+      "min": 0.5,
+      "full": 5
+    },
+    "telegraph": 0.4,
+    "fireRate": 12,
+    "bossHp": 3600,
+    "bossLimit": 180,
+    "bossTransition": 2,
+    "powerPenalty": 2,
+    "grazeStep": 0.01,
+    "maxGraze": 5,
+    "dropChance": 0.012,
+    "groundMissile": {
+      "rate": 1.2,
+      "damage": 9,
+      "blast": 1.9,
+      "drop": -10,
+      "lead": 10,
+      "spread": 4
+    },
+    "hullRamp": 0.75
+  },
+  "items": {
+    "speed": 4,
+    "magnetRadius": 6,
+    "magnetSpeed": 12,
+    "radius": 0.65,
+    "amplitude": 0.8,
+    "period": 1.2,
+    "missPenalty": 500
+  },
+  "skills": [
+    {
+      "name": "OVERDRIVE",
+      "kills": 40,
+      "duration": 3
+    },
+    {
+      "name": "REFLECT FIELD",
+      "kills": 50,
+      "duration": 5
+    },
+    {
+      "name": "PHASE DASH",
+      "kills": 25,
+      "duration": 0.3
+    },
+    {
+      "name": "OPTION BURST",
+      "kills": 30,
+      "duration": 1
+    },
+    {
+      "name": "LANCE CANNON",
+      "kills": 70,
+      "duration": 2
+    },
+    {
+      "name": "REPAIR DRONE",
+      "kills": 60,
+      "duration": 8
+    }
+  ],
+  "score": {
+    "drone": 100,
+    "shooter": 350,
+    "carrier": 500,
+    "cruiser": 2500,
+    "boss": 50000,
+    "noMiss": 50000,
+    "powerBonus": 5000
+  }
+}

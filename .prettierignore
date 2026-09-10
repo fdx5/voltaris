@@ -1,0 +1,5 @@
+dist
+node_modules
+doc/PROJECT_ZERO_LANCE_개발프롬프트.md
+test-results
+package-lock.json

@@ -1,0 +1,18 @@
+services:
+  - type: web
+    name: voltaris
+    runtime: node
+    region: singapore
+    plan: free
+    buildCommand: npm ci --include=dev && npm run build
+    startCommand: npm start
+    healthCheckPath: /api/health
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: NODE_VERSION
+        value: '22'
+      - key: TURSO_DATABASE_URL
+        value: libsql://voltaris-fdx5555.aws-ap-northeast-1.turso.io
+      - key: TURSO_AUTH_TOKEN
+        sync: false

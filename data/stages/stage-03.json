@@ -1,0 +1,832 @@
+{
+  "id": 3,
+  "name": "IO SURFACE",
+  "subtitle": "목성 위성 이오 · 지표 강습",
+  "durationSec": 180,
+  "music": "/audio/fly-fly.mp3",
+  "bossMusic": "/audio/level3-boss.mp3",
+  "scene": "jupiter",
+  "pressure": 0.55,
+  "hull": 0.22,
+  "volley": 0.3,
+  "firstWave": 8,
+  "minY": -3.6,
+  "maxY": 7.2,
+  "surface": {
+    "span": 120,
+    "near": 22,
+    "far": -46,
+    "base": -7.0,
+    "relief": 3.4,
+    "speed": 6,
+    "seed": 60712,
+    "texture": "rocks/rock_06.jpg",
+    "valley": "#7d6349",
+    "crest": "#d4b389",
+    "haze": "#5c4a3e",
+    "contour": 0.55,
+    "roof": null
+  },
+  "ground": [
+    {
+      "time": 6.0,
+      "type": 1,
+      "roof": 0
+    },
+    {
+      "time": 9.3,
+      "type": 3,
+      "roof": 0
+    },
+    {
+      "time": 12.7,
+      "type": 0,
+      "roof": 0
+    },
+    {
+      "time": 16.0,
+      "type": 1,
+      "roof": 0
+    },
+    {
+      "time": 19.2,
+      "type": 2,
+      "roof": 0
+    },
+    {
+      "time": 22.5,
+      "type": 3,
+      "roof": 0
+    },
+    {
+      "time": 25.7,
+      "type": 1,
+      "roof": 0
+    },
+    {
+      "time": 28.9,
+      "type": 0,
+      "roof": 0
+    },
+    {
+      "time": 32.0,
+      "type": 1,
+      "roof": 0
+    },
+    {
+      "time": 35.2,
+      "type": 3,
+      "roof": 0
+    },
+    {
+      "time": 38.3,
+      "type": 0,
+      "roof": 0
+    },
+    {
+      "time": 41.4,
+      "type": 1,
+      "roof": 0
+    },
+    {
+      "time": 44.4,
+      "type": 2,
+      "roof": 0
+    },
+    {
+      "time": 47.4,
+      "type": 3,
+      "roof": 0
+    },
+    {
+      "time": 50.4,
+      "type": 1,
+      "roof": 0
+    },
+    {
+      "time": 53.4,
+      "type": 0,
+      "roof": 0
+    },
+    {
+      "time": 56.4,
+      "type": 1,
+      "roof": 0
+    },
+    {
+      "time": 59.3,
+      "type": 3,
+      "roof": 0
+    },
+    {
+      "time": 62.2,
+      "type": 0,
+      "roof": 0
+    },
+    {
+      "time": 65.1,
+      "type": 1,
+      "roof": 0
+    },
+    {
+      "time": 68.0,
+      "type": 2,
+      "roof": 0
+    },
+    {
+      "time": 70.8,
+      "type": 3,
+      "roof": 0
+    },
+    {
+      "time": 73.6,
+      "type": 1,
+      "roof": 0
+    },
+    {
+      "time": 76.4,
+      "type": 0,
+      "roof": 0
+    },
+    {
+      "time": 79.1,
+      "type": 1,
+      "roof": 0
+    },
+    {
+      "time": 81.9,
+      "type": 3,
+      "roof": 0
+    },
+    {
+      "time": 84.6,
+      "type": 0,
+      "roof": 0
+    },
+    {
+      "time": 87.3,
+      "type": 1,
+      "roof": 0
+    },
+    {
+      "time": 90.0,
+      "type": 2,
+      "roof": 0
+    },
+    {
+      "time": 92.6,
+      "type": 3,
+      "roof": 0
+    },
+    {
+      "time": 95.2,
+      "type": 1,
+      "roof": 0
+    },
+    {
+      "time": 97.9,
+      "type": 0,
+      "roof": 0
+    },
+    {
+      "time": 100.4,
+      "type": 1,
+      "roof": 0
+    },
+    {
+      "time": 103.0,
+      "type": 3,
+      "roof": 0
+    },
+    {
+      "time": 105.5,
+      "type": 0,
+      "roof": 0
+    },
+    {
+      "time": 108.1,
+      "type": 1,
+      "roof": 0
+    },
+    {
+      "time": 110.6,
+      "type": 2,
+      "roof": 0
+    },
+    {
+      "time": 113.0,
+      "type": 3,
+      "roof": 0
+    },
+    {
+      "time": 115.5,
+      "type": 1,
+      "roof": 0
+    },
+    {
+      "time": 117.9,
+      "type": 0,
+      "roof": 0
+    },
+    {
+      "time": 120.4,
+      "type": 1,
+      "roof": 0
+    },
+    {
+      "time": 122.8,
+      "type": 3,
+      "roof": 0
+    },
+    {
+      "time": 125.1,
+      "type": 0,
+      "roof": 0
+    },
+    {
+      "time": 127.5,
+      "type": 1,
+      "roof": 0
+    },
+    {
+      "time": 129.8,
+      "type": 2,
+      "roof": 0
+    },
+    {
+      "time": 132.1,
+      "type": 3,
+      "roof": 0
+    },
+    {
+      "time": 134.4,
+      "type": 1,
+      "roof": 0
+    },
+    {
+      "time": 136.7,
+      "type": 0,
+      "roof": 0
+    },
+    {
+      "time": 139.0,
+      "type": 1,
+      "roof": 0
+    },
+    {
+      "time": 141.2,
+      "type": 3,
+      "roof": 0
+    },
+    {
+      "time": 143.4,
+      "type": 0,
+      "roof": 0
+    },
+    {
+      "time": 145.7,
+      "type": 1,
+      "roof": 0
+    },
+    {
+      "time": 147.8,
+      "type": 2,
+      "roof": 0
+    },
+    {
+      "time": 150.0,
+      "type": 3,
+      "roof": 0
+    },
+    {
+      "time": 152.2,
+      "type": 1,
+      "roof": 0
+    },
+    {
+      "time": 154.3,
+      "type": 0,
+      "roof": 0
+    },
+    {
+      "time": 156.4,
+      "type": 1,
+      "roof": 0
+    },
+    {
+      "time": 158.5,
+      "type": 3,
+      "roof": 0
+    },
+    {
+      "time": 160.6,
+      "type": 0,
+      "roof": 0
+    },
+    {
+      "time": 162.6,
+      "type": 1,
+      "roof": 0
+    },
+    {
+      "time": 164.7,
+      "type": 2,
+      "roof": 0
+    },
+    {
+      "time": 166.7,
+      "type": 3,
+      "roof": 0
+    },
+    {
+      "time": 168.7,
+      "type": 1,
+      "roof": 0
+    },
+    {
+      "time": 170.7,
+      "type": 0,
+      "roof": 0
+    },
+    {
+      "time": 172.7,
+      "type": 1,
+      "roof": 0
+    },
+    {
+      "time": 174.7,
+      "type": 3,
+      "roof": 0
+    },
+    {
+      "time": 176.6,
+      "type": 0,
+      "roof": 0
+    }
+  ],
+  "boss": {
+    "id": "JOVE ANVIL",
+    "design": "jove",
+    "hp": 10400,
+    "parts": 8,
+    "partHp": 300,
+    "ringRadius": 5.2,
+    "coreRadius": 2.2
+  },
+  "lighting": {
+    "background": "#0a0704",
+    "key": "#f0d2a8",
+    "rim": "#7a5a3a"
+  },
+  "spawns": [
+    {
+      "time": 3,
+      "type": 25,
+      "y": 3,
+      "count": 14,
+      "pattern": 0
+    },
+    {
+      "time": 6,
+      "type": 21,
+      "y": -3,
+      "count": 14,
+      "pattern": 1
+    },
+    {
+      "time": 10,
+      "type": 25,
+      "y": 2,
+      "count": 16,
+      "pattern": 1
+    },
+    {
+      "time": 13,
+      "type": 28,
+      "y": -2,
+      "count": 12,
+      "pattern": 0
+    },
+    {
+      "time": 16,
+      "type": 23,
+      "y": 1,
+      "count": 6,
+      "pattern": 0
+    },
+    {
+      "time": 19,
+      "type": 21,
+      "y": 4,
+      "count": 16,
+      "pattern": 1
+    },
+    {
+      "time": 22,
+      "type": 28,
+      "y": -3,
+      "count": 14,
+      "pattern": 1
+    },
+    {
+      "time": 25,
+      "type": 29,
+      "y": 0,
+      "count": 10,
+      "pattern": 2
+    },
+    {
+      "time": 28,
+      "type": 25,
+      "y": -4,
+      "count": 20,
+      "pattern": 1
+    },
+    {
+      "time": 31,
+      "type": 30,
+      "y": 2,
+      "count": 8,
+      "pattern": 0
+    },
+    {
+      "time": 34,
+      "type": 32,
+      "y": -2,
+      "count": 4,
+      "pattern": 0
+    },
+    {
+      "time": 36,
+      "type": 21,
+      "y": 3,
+      "count": 16,
+      "pattern": 1
+    },
+    {
+      "time": 39,
+      "type": 26,
+      "y": 0,
+      "count": 5,
+      "pattern": 0
+    },
+    {
+      "time": 42,
+      "type": 28,
+      "y": -2,
+      "count": 18,
+      "pattern": 2
+    },
+    {
+      "time": 45,
+      "type": 22,
+      "y": 3,
+      "count": 3,
+      "pattern": 0
+    },
+    {
+      "time": 48,
+      "type": 25,
+      "y": 4,
+      "count": 20,
+      "pattern": 1
+    },
+    {
+      "time": 50,
+      "type": 29,
+      "y": -3,
+      "count": 12,
+      "pattern": 1
+    },
+    {
+      "time": 52,
+      "type": 27,
+      "y": 1,
+      "count": 2,
+      "pattern": 0
+    },
+    {
+      "time": 55,
+      "type": 23,
+      "y": 2,
+      "count": 6,
+      "pattern": 0
+    },
+    {
+      "time": 57,
+      "type": 21,
+      "y": 3,
+      "count": 22,
+      "pattern": 1
+    },
+    {
+      "time": 59,
+      "type": 30,
+      "y": -3,
+      "count": 8,
+      "pattern": 0
+    },
+    {
+      "time": 61,
+      "type": 33,
+      "y": 0,
+      "count": 1,
+      "pattern": 0
+    },
+    {
+      "time": 66,
+      "type": 28,
+      "y": 3,
+      "count": 16,
+      "pattern": 1
+    },
+    {
+      "time": 69,
+      "type": 26,
+      "y": -2,
+      "count": 6,
+      "pattern": 0
+    },
+    {
+      "time": 72,
+      "type": 24,
+      "y": -3,
+      "count": 5,
+      "pattern": 1
+    },
+    {
+      "time": 75,
+      "type": 25,
+      "y": -4,
+      "count": 22,
+      "pattern": 2
+    },
+    {
+      "time": 77,
+      "type": 32,
+      "y": 3,
+      "count": 5,
+      "pattern": 0
+    },
+    {
+      "time": 80,
+      "type": 31,
+      "y": 0,
+      "count": 2,
+      "pattern": 0
+    },
+    {
+      "time": 83,
+      "type": 21,
+      "y": -3,
+      "count": 20,
+      "pattern": 0
+    },
+    {
+      "time": 86,
+      "type": 29,
+      "y": 2,
+      "count": 14,
+      "pattern": 1
+    },
+    {
+      "time": 89,
+      "type": 25,
+      "y": 3,
+      "count": 26,
+      "pattern": 2
+    },
+    {
+      "time": 92,
+      "type": 30,
+      "y": 1,
+      "count": 10,
+      "pattern": 1
+    },
+    {
+      "time": 95,
+      "type": 22,
+      "y": -1,
+      "count": 3,
+      "pattern": 0
+    },
+    {
+      "time": 97,
+      "type": 23,
+      "y": -1,
+      "count": 7,
+      "pattern": 0
+    },
+    {
+      "time": 100,
+      "type": 27,
+      "y": 0,
+      "count": 2,
+      "pattern": 0
+    },
+    {
+      "time": 103,
+      "type": 28,
+      "y": -3,
+      "count": 22,
+      "pattern": 1
+    },
+    {
+      "time": 105,
+      "type": 33,
+      "y": 3,
+      "count": 1,
+      "pattern": 0
+    },
+    {
+      "time": 109,
+      "type": 26,
+      "y": 2,
+      "count": 7,
+      "pattern": 0
+    },
+    {
+      "time": 112,
+      "type": 21,
+      "y": -3,
+      "count": 24,
+      "pattern": 1
+    },
+    {
+      "time": 114,
+      "type": 31,
+      "y": -2,
+      "count": 2,
+      "pattern": 0
+    },
+    {
+      "time": 117,
+      "type": 32,
+      "y": 3,
+      "count": 6,
+      "pattern": 0
+    },
+    {
+      "time": 120,
+      "type": 29,
+      "y": 0,
+      "count": 16,
+      "pattern": 2
+    },
+    {
+      "time": 123,
+      "type": 24,
+      "y": 4,
+      "count": 6,
+      "pattern": 0
+    },
+    {
+      "time": 126,
+      "type": 25,
+      "y": -4,
+      "count": 24,
+      "pattern": 1
+    },
+    {
+      "time": 129,
+      "type": 27,
+      "y": 1,
+      "count": 3,
+      "pattern": 0
+    },
+    {
+      "time": 132,
+      "type": 28,
+      "y": -2,
+      "count": 24,
+      "pattern": 1
+    },
+    {
+      "time": 135,
+      "type": 26,
+      "y": 3,
+      "count": 7,
+      "pattern": 0
+    },
+    {
+      "time": 137,
+      "type": 22,
+      "y": -2,
+      "count": 3,
+      "pattern": 0
+    },
+    {
+      "time": 141,
+      "type": 21,
+      "y": -3,
+      "count": 26,
+      "pattern": 1
+    },
+    {
+      "time": 144,
+      "type": 23,
+      "y": 1,
+      "count": 7,
+      "pattern": 0
+    },
+    {
+      "time": 147,
+      "type": 31,
+      "y": 2,
+      "count": 2,
+      "pattern": 0
+    },
+    {
+      "time": 150,
+      "type": 25,
+      "y": -3,
+      "count": 28,
+      "pattern": 1
+    },
+    {
+      "time": 153,
+      "type": 30,
+      "y": 3,
+      "count": 10,
+      "pattern": 0
+    },
+    {
+      "time": 156,
+      "type": 33,
+      "y": 3,
+      "count": 1,
+      "pattern": 0
+    },
+    {
+      "time": 159,
+      "type": 29,
+      "y": -1,
+      "count": 18,
+      "pattern": 0
+    },
+    {
+      "time": 162,
+      "type": 32,
+      "y": 2,
+      "count": 7,
+      "pattern": 0
+    },
+    {
+      "time": 164,
+      "type": 24,
+      "y": 0,
+      "count": 6,
+      "pattern": 0
+    },
+    {
+      "time": 167,
+      "type": 27,
+      "y": 2,
+      "count": 3,
+      "pattern": 0
+    },
+    {
+      "time": 170,
+      "type": 28,
+      "y": 0,
+      "count": 26,
+      "pattern": 2
+    },
+    {
+      "time": 173,
+      "type": 26,
+      "y": -1,
+      "count": 8,
+      "pattern": 0
+    },
+    {
+      "time": 176,
+      "type": 25,
+      "y": 0,
+      "count": 28,
+      "pattern": 2
+    }
+  ],
+  "items": [
+    {
+      "time": 12,
+      "type": 1,
+      "y": 0
+    },
+    {
+      "time": 56,
+      "type": 3,
+      "y": 0
+    },
+    {
+      "time": 98,
+      "type": 2,
+      "y": 0
+    },
+    {
+      "time": 146,
+      "type": 1,
+      "y": 2
+    }
+  ]
+}

@@ -1,0 +1,145 @@
+import { test, expect } from '@playwright/test';
+// Rendering regression tests use an unlocked API fixture; auth.spec.ts tests real authentication.
+test.beforeEach(async ({ page }) => {
+  const user = {
+    id: 'renderer-fixture',
+    username: 'renderer_pilot',
+    unlockedStage: 4,
+    clearedStages: [1, 2, 3, 4],
+  };
+  await page.route('**/api/**', async (route) => {
+    const path = new URL(route.request().url()).pathname;
+    const body =
+      path === '/api/runs'
+        ? { id: 'renderer-run', config: {} }
+        : path === '/api/history'
+          ? { rows: [], total: 0, pages: 1, page: 1 }
+          : { user, status: 'abandoned' };
+    await route.fulfill({ json: body });
+  });
+});
+test('WebGL2 hangar, launch, movement, options, pause and settings', async ({ page }) => {
+  const errors: string[] = [];
+  page.on('pageerror', (e) => errors.push(e.message));
+  await page.goto('/?webgl=1');
+  await expect(page.getByRole('button', { name: 'BEGIN SORTIE 출격 준비' })).toBeEnabled({
+    timeout: 45000,
+  });
+  await page.screenshot({ path: 'test-results/hangar.png' });
+  await page.getByRole('button', { name: 'BEGIN SORTIE 출격 준비' }).click();
+  await expect(page.getByRole('dialog')).toBeVisible();
+  await page.getByRole('button', { name: 'SPREAD SCATTER CANNON' }).click();
+  await page.getByRole('button', { name: '출격 · LAUNCH MISSION' }).click();
+  await expect(page.locator('.play-frame')).toBeVisible();
+  await page.keyboard.down('ArrowUp');
+  await page.waitForTimeout(500);
+  await page.keyboard.up('ArrowUp');
+  await page.keyboard.press('KeyQ');
+  await expect(page.locator('.mode-button')).toContainText('FREEZE');
+  await page.waitForTimeout(4500);
+  await page.screenshot({ path: 'test-results/combat.png' });
+  await page.keyboard.press('Escape');
+  await expect(page.getByRole('dialog', { name: 'FLIGHT PAUSED' })).toBeVisible();
+  await page.getByRole('button', { name: '설정', exact: true }).click();
+  await page.getByLabel('피격 판정 점 표시').uncheck();
+  await expect(page.getByLabel('음악 볼륨')).toHaveValue('0.5');
+  await page.getByLabel('음악 볼륨').fill('0.8');
+  await expect(page.getByText('80% · STAGE 01 GALAXY DASH')).toBeVisible();
+  await page.getByRole('button', { name: '닫기' }).click();
+  await page.getByRole('button', { name: '전투 재개', exact: true }).click();
+  await expect(page.getByRole('dialog')).not.toBeVisible();
+  expect(errors).toEqual([]);
+});
+test('boss training, phase notice and stress count controls', async ({ page }) => {
+  const errors: string[] = [];
+  page.on('pageerror', (e) => errors.push(e.message));
+  await page.goto('/?webgl=1');
+  await expect(page.getByRole('button', { name: 'SIMULATION 보스 훈련' })).toBeEnabled({
+    timeout: 45000,
+  });
+  await page.getByRole('button', { name: 'SIMULATION 보스 훈련' }).click();
+  await page.getByRole('button', { name: '출격 · LAUNCH MISSION' }).click();
+  await expect(page.locator('.boss-hud')).toContainText('GATEKEEPER');
+  await page.waitForTimeout(6000);
+  await page.screenshot({ path: 'test-results/boss.png' });
+  await page.keyboard.press('Escape');
+  await page.getByRole('button', { name: '출격 포기 · 격납고로' }).click();
+  await page.getByRole('button', { name: '테스트 랩' }).click();
+  await expect(page.locator('.lab')).toBeVisible();
+  await page.getByLabel('탄환 수').fill('4000');
+  await expect(page.locator('.lab')).toContainText('4000');
+  await page.waitForTimeout(3000);
+  await page.screenshot({ path: 'test-results/stress.png' });
+  await page.getByRole('button', { name: '메뉴로 돌아가기' }).click();
+  expect(errors).toEqual([]);
+});
+test('stage two launches with its own sector, roster and boss', async ({ page }) => {
+  const errors: string[] = [];
+  page.on('pageerror', (e) => errors.push(e.message));
+  await page.goto('/?webgl=1');
+  await expect(page.getByRole('button', { name: /IRON BELT/ })).toBeEnabled({ timeout: 45000 });
+  await page.getByRole('button', { name: /IRON BELT/ }).click();
+  await expect(page.getByRole('dialog')).toContainText('MISSION 02 / IRON BELT');
+  await page.getByRole('button', { name: '출격 · LAUNCH MISSION' }).click();
+  await expect(page.locator('.hud.top-left')).toContainText('STAGE 02');
+  await expect(page.locator('.hud.top-left')).toContainText('IRON BELT');
+  await page.waitForTimeout(4000);
+  await page.screenshot({ path: 'test-results/stage-02.png' });
+  await page.keyboard.press('Escape');
+  await page.getByRole('button', { name: '설정', exact: true }).click();
+  await expect(page.getByText('STAGE 02 SPACE ENGINE')).toBeVisible();
+  expect(errors).toEqual([]);
+});
+test('stage three flies a surface sector with terrain and emplacements', async ({ page }) => {
+  const errors: string[] = [];
+  page.on('pageerror', (e) => errors.push(e.message));
+  await page.goto('/?webgl=1');
+  await expect(page.getByRole('button', { name: /IO SURFACE/ })).toBeEnabled({ timeout: 45000 });
+  await page.getByRole('button', { name: /IO SURFACE/ }).click();
+  await expect(page.getByRole('dialog')).toContainText('MISSION 03 / IO SURFACE');
+  await page.getByRole('button', { name: '출격 · LAUNCH MISSION' }).click();
+  await expect(page.locator('.hud.top-left')).toContainText('IO SURFACE');
+  await page.waitForTimeout(9000);
+  await page.screenshot({ path: 'test-results/stage-03.png' });
+  await page.keyboard.press('Escape');
+  await page.getByRole('button', { name: '설정', exact: true }).click();
+  await expect(page.getByText('STAGE 03 FLY FLY')).toBeVisible();
+  expect(errors).toEqual([]);
+});
+test('stage four flies an ice cave with a roof and a deck', async ({ page }) => {
+  const errors: string[] = [];
+  page.on('pageerror', (e) => errors.push(e.message));
+  await page.goto('/?webgl=1');
+  await expect(page.getByRole('button', { name: /GLACIAL VAULT/ })).toBeEnabled({ timeout: 45000 });
+  await page.getByRole('button', { name: /GLACIAL VAULT/ }).click();
+  await expect(page.getByRole('dialog')).toContainText('MISSION 04 / GLACIAL VAULT');
+  await page.getByRole('button', { name: '출격 · LAUNCH MISSION' }).click();
+  await expect(page.locator('.hud.top-left')).toContainText('GLACIAL VAULT');
+  await page.waitForTimeout(9000);
+  await page.screenshot({ path: 'test-results/stage-04.png' });
+  await page.keyboard.press('Escape');
+  await page.getByRole('button', { name: '설정', exact: true }).click();
+  await expect(page.getByText('STAGE 04 SKY HIGH')).toBeVisible();
+  expect(errors).toEqual([]);
+});
+test('mobile landscape touch and portrait pause overlay', async ({ page }) => {
+  await page.setViewportSize({ width: 932, height: 430 });
+  await page.goto('/?webgl=1');
+  await expect(page.getByRole('button', { name: 'BEGIN SORTIE 출격 준비' })).toBeEnabled({
+    timeout: 45000,
+  });
+  await page.screenshot({ path: 'test-results/mobile-hangar.png' });
+  await page.getByRole('button', { name: 'BEGIN SORTIE 출격 준비' }).click();
+  await page.getByRole('button', { name: '출격 · LAUNCH MISSION' }).click();
+  await page
+    .locator('canvas')
+    .dispatchEvent('pointerdown', { pointerId: 1, clientX: 200, clientY: 200 });
+  await page
+    .locator('canvas')
+    .dispatchEvent('pointermove', { pointerId: 1, clientX: 250, clientY: 150 });
+  await page.locator('canvas').dispatchEvent('pointerup', { pointerId: 1 });
+  await page.setViewportSize({ width: 430, height: 932 });
+  await expect(page.getByText('가로로 돌려주세요', { exact: true })).toBeVisible();
+  await page.setViewportSize({ width: 932, height: 430 });
+  await expect(page.getByRole('dialog', { name: 'FLIGHT PAUSED' })).toBeVisible();
+});
