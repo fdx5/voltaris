@@ -52,16 +52,7 @@ const assets = [
 ];
 
 // Poly Haven slugs, one per asteroid class. Photographed bare rock, CC0.
-const rocks = [
-  'gray_rocks',
-  'dark_rock',
-  'rock_06',
-  'marble_rock_02',
-  'rock_04',
-  // Ice for the Neptune cave. `frozen_lake` on Poly Haven is an HDRI, not a
-  // surface, so the cave uses packed snow and tints it for ice.
-  'snow_02',
-];
+const rocks = ['gray_rocks', 'dark_rock', 'rock_06', 'marble_rock_02', 'rock_04'];
 for (const slug of rocks) {
   const files = await (await fetch(`https://api.polyhaven.com/files/${slug}`)).json();
   assets.push([files.Diffuse['1k'].jpg.url, `rocks/${slug}.jpg`, 512]);

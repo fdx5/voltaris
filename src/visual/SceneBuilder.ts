@@ -2180,9 +2180,9 @@ function buildStrip(cfg: GroundConfig, terrain: Terrain, flip: boolean) {
   const valley = new T.Color(cfg.valley).convertSRGBToLinear();
   const crest = new T.Color(cfg.crest).convertSRGBToLinear();
   const haze = new T.Color(cfg.haze).convertSRGBToLinear();
-  // Distance on the vault is mist, not void: fading it to the deck's haze
-  // turned every stretch of roof seen between two near ridges into a black
-  // hole. It fades towards the crest colour instead, and less far.
+  // Distance on the vault reads as mist rather than as depth: it is lit from
+  // below only, so the deck's haze colour left the far roof too close to the
+  // sky behind it. It fades towards the crest colour instead.
   if (flip) haze.lerp(new T.Color(cfg.crest).convertSRGBToLinear(), 0.42);
   const shade = new T.Color();
   const centre = (near + far) / 2;
@@ -2237,8 +2237,9 @@ function buildStrip(cfg: GroundConfig, terrain: Terrain, flip: boolean) {
       vertexColors: true,
       roughness: cfg.normal ? 0.78 : 0.95,
       metalness: 0.04,
-      // Bounced light alone leaves the vault's steeper faces black. A dim
-      // self-lit floor keyed to the same map keeps their detail readable.
+      // A cave has no light from above and the hemisphere light hands a
+      // down-facing normal its ground colour, so the vault gets a dim self-lit
+      // floor keyed to its own map: the grain stays readable everywhere.
       emissive: new T.Color(flip ? '#1d3d58' : '#000000'),
       emissiveMap: flip ? loadTexture(cfg.texture, true, true) : null,
       side: flip ? T.DoubleSide : T.FrontSide,
