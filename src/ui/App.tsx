@@ -498,14 +498,21 @@ function GameApp() {
             ))}
           </div>
           <div className="touch-controls">
-            <span>DRAG TO MOVE</span>
+            <span>화면을 드래그하여 이동 · {autoFire ? '자동 발사' : '자동 발사 꺼짐'}</span>
             <button
               onPointerDown={(e) => {
-                e.currentTarget.setPointerCapture(e.pointerId);
-                r()?.input.set(Key.Hold, true);
+                e.preventDefault();
+                try {
+                  e.currentTarget.setPointerCapture(e.pointerId);
+                } catch {
+                  return;
+                }
+                r()?.input.set(Key.Hold, true, e.pointerId);
               }}
-              onPointerUp={() => r()?.input.set(Key.Hold, false)}
-              onPointerCancel={() => r()?.input.set(Key.Hold, false)}
+              onPointerUp={(e) => r()?.input.set(Key.Hold, false, e.pointerId)}
+              onPointerCancel={(e) => r()?.input.set(Key.Hold, false, e.pointerId)}
+              onLostPointerCapture={(e) => r()?.input.set(Key.Hold, false, e.pointerId)}
+              aria-label="누르는 동안 옵션 위치 고정"
             >
               OPTION HOLD
             </button>

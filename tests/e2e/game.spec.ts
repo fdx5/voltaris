@@ -174,3 +174,64 @@ test('mobile landscape touch and portrait pause overlay', async ({ page }) => {
   await page.setViewportSize({ width: 932, height: 430 });
   await expect(page.getByRole('dialog', { name: 'FLIGHT PAUSED' })).toBeVisible();
 });
+
+test.describe('mobile touch device', () => {
+  test.use({ hasTouch: true, isMobile: true });
+  test('touch steering survives multiple fingers and capture loss in recorded gameplay', async ({
+    page,
+  }) => {
+    let events: number[][] = [];
+    page.on('request', (request) => {
+      if (request.url().endsWith('/finish')) events = request.postDataJSON().events;
+    });
+    await page.setViewportSize({ width: 932, height: 430 });
+    await page.goto('/?webgl=1');
+    await page.getByRole('button', { name: 'BEGIN SORTIE 출격 준비' }).click();
+    await page.getByRole('button', { name: '출격 · LAUNCH MISSION' }).click();
+    await expect(page.locator('.play-frame')).toBeVisible();
+    const canvas = page.locator('canvas');
+    await canvas.dispatchEvent('pointerdown', {
+      pointerId: 21,
+      pointerType: 'touch',
+      clientX: 750,
+      clientY: 200,
+    });
+    await canvas.dispatchEvent('pointerdown', {
+      pointerId: 22,
+      pointerType: 'touch',
+      clientX: 400,
+      clientY: 200,
+    });
+    await canvas.dispatchEvent('pointermove', {
+      pointerId: 21,
+      pointerType: 'touch',
+      clientX: 780,
+      clientY: 170,
+    });
+    await page.waitForTimeout(150);
+    await canvas.dispatchEvent('lostpointercapture', { pointerId: 21 });
+    await canvas.dispatchEvent('pointermove', {
+      pointerId: 21,
+      pointerType: 'touch',
+      clientX: 750,
+      clientY: 200,
+    });
+    await page.waitForTimeout(150);
+    await canvas.dispatchEvent('pointerup', { pointerId: 21 });
+    await canvas.dispatchEvent('pointermove', {
+      pointerId: 22,
+      pointerType: 'touch',
+      clientX: 430,
+      clientY: 230,
+    });
+    await page.waitForTimeout(150);
+    await canvas.dispatchEvent('pointercancel', { pointerId: 22 });
+    await page.getByRole('button', { name: '일시정지', exact: true }).click();
+    await page.getByRole('button', { name: '출격 포기 · 격납고로' }).click();
+    await expect.poll(() => events.length).toBeGreaterThan(0);
+    const movement = events.filter((e) => e[0] === 0 && (e[3] || e[4]));
+    expect(movement.some((e) => e[3] > 0 && e[4] > 0)).toBe(true);
+    expect(movement.some((e) => e[3] < 0 && e[4] < 0)).toBe(true);
+    expect(movement.some((e) => e[3] > 0 && e[4] < 0)).toBe(true);
+  });
+});

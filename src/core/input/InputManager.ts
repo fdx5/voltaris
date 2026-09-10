@@ -40,14 +40,17 @@ export class InputManager {
   private pending = 0;
   private keyboard = 0;
   private virtual = 0;
+  private virtualPointers = new Map<number, Key>();
   private last = 0;
   private drag = -1;
-  private x = 0;
-  private y = 0;
+  private pointers = new Map<number, { x: number; y: number }>();
   private mx = 0;
   private my = 0;
   private controller = new AbortController();
-  constructor(element: HTMLElement) {
+  constructor(
+    private element: HTMLElement,
+    private canMove: () => boolean = () => true,
+  ) {
     const signal = this.controller.signal;
     window.addEventListener(
       'keydown',
@@ -70,36 +73,82 @@ export class InputManager {
       { signal },
     );
     window.addEventListener('blur', () => this.clear(), { signal });
-    element.addEventListener(
-      'pointerdown',
-      (e) => {
-        if (e.target !== element || e.clientX > innerWidth * 0.65) return;
-        e.preventDefault();
-        this.drag = e.pointerId;
-        this.x = e.clientX;
-        this.y = e.clientY;
-        element.setPointerCapture(e.pointerId);
+    document.addEventListener(
+      'visibilitychange',
+      () => {
+        if (document.hidden) this.clear();
       },
       { signal },
     );
-    element.addEventListener(
+    const eligible = (e: PointerEvent) =>
+      this.canMove() &&
+      !(e.target as Element).closest(
+        'button,input,select,textarea,a,[role="dialog"],[data-no-flight-input]',
+      );
+    const begin = (e: PointerEvent) => {
+      if (!eligible(e) || (e.pointerType === 'mouse' && e.button !== 0)) return;
+      e.preventDefault();
+      this.pointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
+      // A second finger must never steal the current steering finger.
+      if (this.drag === -1) this.drag = e.pointerId;
+      try {
+        element.setPointerCapture(e.pointerId);
+      } catch {
+        /* Window listeners retain tracking. */
+      }
+    };
+    element.addEventListener('pointerdown', begin, { signal, passive: false });
+    window.addEventListener(
       'pointermove',
       (e) => {
-        if (e.pointerId !== this.drag) return;
-        this.mx += e.clientX - this.x;
-        this.my += e.clientY - this.y;
-        this.x = e.clientX;
-        this.y = e.clientY;
+        const point = this.pointers.get(e.pointerId);
+        if (!point) return;
+        if (!this.canMove()) {
+          this.clear();
+          return;
+        }
+        if (e.cancelable) e.preventDefault();
+        if (e.pointerId === this.drag) {
+          this.mx += e.clientX - point.x;
+          this.my += e.clientY - point.y;
+        }
+        point.x = e.clientX;
+        point.y = e.clientY;
+      },
+      { signal, passive: false },
+    );
+    const end = (e: PointerEvent) => {
+      this.virtualPointers.delete(e.pointerId);
+      this.pointers.delete(e.pointerId);
+      if (e.pointerId === this.drag) {
+        // Use the remaining finger's latest position; never jump on handoff.
+        this.drag = this.pointers.keys().next().value ?? -1;
+      }
+      try {
+        if (element.hasPointerCapture(e.pointerId)) element.releasePointerCapture(e.pointerId);
+      } catch {
+        /* The browser may already have released a cancelled pointer. */
+      }
+    };
+    window.addEventListener('pointerup', end, { signal });
+    window.addEventListener('pointercancel', end, { signal });
+    // Losing capture is not a release: window listeners keep the same finger
+    // moving until pointerup/cancel. Dropping it here makes steering freeze.
+    element.addEventListener(
+      'contextmenu',
+      (e) => {
+        if (this.canMove()) e.preventDefault();
       },
       { signal },
     );
-    const up = (e: PointerEvent) => {
-      if (e.pointerId === this.drag) this.drag = -1;
-    };
-    element.addEventListener('pointerup', up, { signal });
-    element.addEventListener('pointercancel', up, { signal });
   }
-  set(key: Key, on: boolean) {
+
+  set(key: Key, on: boolean, pointerId?: number) {
+    if (pointerId !== undefined) {
+      if (on) this.virtualPointers.set(pointerId, key);
+      else this.virtualPointers.delete(pointerId);
+      return;
+    }
     if (on) this.virtual |= key;
     else this.virtual &= ~key;
   }
@@ -125,21 +174,34 @@ export class InputManager {
         if (p.buttons[9]?.pressed) padBits |= Key.Pause;
         break;
       }
-    this.bits = this.keyboard | this.virtual | padBits;
+    let touchBits = 0;
+    for (const key of this.virtualPointers.values()) touchBits |= key;
+    this.bits = this.keyboard | this.virtual | touchBits | padBits;
     this.pressed = (this.bits & ~this.last) | this.pending;
     this.pending = 0;
     this.last = this.bits;
     const scale = 18 / Math.min(innerHeight, (innerWidth * 9) / 16);
-    this.dx = this.mx * scale * this.sensitivity;
-    this.dy = -this.my * scale * this.sensitivity;
+    this.dx = Math.max(-32, Math.min(32, this.mx * scale * this.sensitivity));
+    this.dy = Math.max(-18, Math.min(18, -this.my * scale * this.sensitivity));
     this.mx = this.my = 0;
   }
   clear() {
     this.pending = this.keyboard = this.virtual = this.bits = this.pressed = this.last = 0;
     this.dx = this.dy = this.mx = this.my = 0;
     this.drag = -1;
+    this.virtualPointers.clear();
+    const ids = [...this.pointers.keys()];
+    this.pointers.clear();
+    for (const id of ids) {
+      try {
+        if (this.element.hasPointerCapture(id)) this.element.releasePointerCapture(id);
+      } catch {
+        /* Capture may have been cancelled by the OS. */
+      }
+    }
   }
   dispose() {
+    this.clear();
     this.controller.abort();
   }
 }

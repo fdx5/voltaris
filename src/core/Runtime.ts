@@ -8,7 +8,11 @@ import { ThreeBackend } from './renderer/ThreeBackend';
 import type { Quality } from './renderer/IRenderBackend';
 import { useUI } from '../ui/store/useUI';
 /** Weapons that fire a recorded sample instead of the synth blip. */
-const FIRE_SAMPLES: Partial<Record<Weapon, string>> = { LASER: '/audio/laser.mp3' };
+const FIRE_SAMPLES: Record<Weapon, string> = {
+  LASER: '/audio/laser.mp3',
+  MISSILE: '/audio/laser.mp3',
+  SPREAD: '/audio/laser.mp3',
+};
 /** Played once when a sector is secured. */
 const STAGE_CLEAR = '/audio/win.mp3';
 /** Wreck samples, chosen by how much hull came apart. */
@@ -58,7 +62,7 @@ export class Runtime {
     this.visual = new ThreeBackend(host, new URLSearchParams(location.search).has('webgl'));
     // Bound to the frame, not to the canvas: a failed WebGPU start swaps the
     // canvas for a WebGL 2 one, and touch controls must survive that.
-    this.input = new InputManager(host);
+    this.input = new InputManager(host.parentElement ?? host, () => this.game.status === 'playing');
     this.loop = new GameLoop(this.tick, this.render);
     const signal = this.controller.signal;
     window.addEventListener(
@@ -119,6 +123,8 @@ export class Runtime {
   /** `carry` continues a run into the next stage with its upgrades intact. */
   async start(weapon: Weapon, credits: number, practice = false, carry = false, stageIndex = 0) {
     if (useAccount.getState().launching) return;
+    // iOS requires audio activation inside the launch gesture, before network awaits.
+    void this.audio.unlock();
     useAccount.setState({ launching: true, error: '' });
     try {
       await this.finishRun();

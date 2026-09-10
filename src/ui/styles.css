@@ -1649,7 +1649,35 @@ kbd {
     margin-top: 16px;
   }
 }
-@media (pointer: coarse) {
+.in-flight {
+  touch-action: none;
+  overscroll-behavior: none;
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none;
+}
+.in-flight .hud {
+  pointer-events: none;
+}
+.in-flight .hud button {
+  pointer-events: auto;
+}
+.play-frame button {
+  touch-action: none;
+}
+@media (any-pointer: coarse) {
+  .in-flight {
+    min-height: 0;
+  }
+  .play-frame button {
+    min-width: 48px;
+    min-height: 48px;
+  }
+  .touch-controls button:active {
+    background: #256078;
+    border-color: #83e9ff;
+    color: white;
+  }
   .touch-controls {
     display: block;
     position: absolute;
@@ -1660,9 +1688,9 @@ kbd {
     position: absolute;
     bottom: 24%;
     left: 6%;
-    font: 7px monospace;
-    letter-spacing: 2px;
-    color: #69869266;
+    font: 10px monospace;
+    letter-spacing: 0.5px;
+    color: #9bb8c9;
   }
   .touch-controls button {
     pointer-events: auto;
