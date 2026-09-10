@@ -153,6 +153,26 @@ test('falls back to WebGL 2 when WebGPU advertises itself and then refuses', asy
   await page.mouse.up();
   expect(errors).toEqual([]);
 });
+test('draws the combat batches after a renderer restart, not just the hangar', async ({ page }) => {
+  // The compile pass hides the combat batches; a start-up that fails there and
+  // retries used to leave them hidden for the rest of the session - a game
+  // with no enemies and no shots. `?rendererfail` fails the first attempt at
+  // exactly that point. The stress lab is the honest witness: it draws nothing
+  // but those batches, and prints its draw calls.
+  const draws = async (query: string) => {
+    await page.goto(query);
+    await expect(page.getByRole('button', { name: 'BEGIN SORTIE 출격 준비' })).toBeEnabled({
+      timeout: 45000,
+    });
+    await page.getByRole('button', { name: /테스트 랩/ }).click();
+    await page.waitForTimeout(3500);
+    return Number(await page.locator('.metrics div:nth-child(3) strong').innerText());
+  };
+  const healthy = await draws('/?webgl=1');
+  expect(healthy).toBeGreaterThan(40);
+  const restarted = await draws('/?rendererfail=1');
+  expect(restarted).toBeGreaterThanOrEqual(healthy - 2);
+});
 test('mobile landscape touch and portrait pause overlay', async ({ page }) => {
   await page.setViewportSize({ width: 932, height: 430 });
   await page.goto('/?webgl=1');

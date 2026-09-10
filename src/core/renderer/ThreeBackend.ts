@@ -228,6 +228,12 @@ export class ThreeBackend implements IRenderBackend {
   constructor(
     private host: HTMLElement,
     private forceWebGL = false,
+    /**
+     * Test seam: makes the first start-up fail the way a lost device does,
+     * after the compile pass has already hidden the combat batches. Set from
+     * `?rendererfail`, and only ever true for one attempt.
+     */
+    private failFirstBoot = false,
   ) {
     this.renderer = this.makeRenderer(forceWebGL, true);
     this.canvas = this.attach();
@@ -466,6 +472,11 @@ export class ThreeBackend implements IRenderBackend {
     }
   }
   async init() {
+    // What the deferred batches looked like before anything touched them. A
+    // failed attempt leaves them hidden, and the retry must not inherit that:
+    // the batches would then be filtered out of the second compile and stay
+    // invisible for the whole session - a game with no enemies and no shots.
+    const shown = this.deferred.map((o) => o.visible);
     try {
       await this.boot();
     } catch (e) {
@@ -484,6 +495,7 @@ export class ThreeBackend implements IRenderBackend {
         /* it never came up; there is nothing to release */
       }
       this.forceWebGL = true;
+      for (let i = 0; i < this.deferred.length; i++) this.deferred[i].visible = shown[i];
       // A machine that just failed to start a renderer gets the modest one:
       // no multisampling, no high-performance request, fewer pixels.
       this.quality = 'MEDIUM';
@@ -514,8 +526,15 @@ export class ThreeBackend implements IRenderBackend {
     // the hangar draws.
     const held = this.deferred.filter((o) => o.visible);
     for (const o of held) o.visible = false;
-    await this.renderer.compileAsync(this.scene, this.camera);
-    for (const o of held) o.visible = true;
+    try {
+      if (this.failFirstBoot) {
+        this.failFirstBoot = false;
+        throw new Error('forced renderer failure (?rendererfail)');
+      }
+      await this.renderer.compileAsync(this.scene, this.camera);
+    } finally {
+      for (const o of held) o.visible = true;
+    }
   }
   /**
    * Compiles everything held back from `init`, after the first frame is up.

@@ -59,7 +59,8 @@ export class Runtime {
   private bossTrack = false;
   private portrait = false;
   constructor(host: HTMLElement) {
-    this.visual = new ThreeBackend(host, new URLSearchParams(location.search).has('webgl'));
+    const flags = new URLSearchParams(location.search);
+    this.visual = new ThreeBackend(host, flags.has('webgl'), flags.has('rendererfail'));
     // Bound to the frame, not to the canvas: a failed WebGPU start swaps the
     // canvas for a WebGL 2 one, and touch controls must survive that.
     this.input = new InputManager(host.parentElement ?? host, () => this.game.status === 'playing');
