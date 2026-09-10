@@ -4,7 +4,7 @@
   "subtitle": "지구 저궤도 · 제7 방어선",
   "durationSec": 180,
   "music": "/audio/galaxy-dash.mp3",
-  "bossMusic": null,
+  "bossMusic": "/audio/level1-boss.mp3",
   "scene": "earth",
   "pressure": 0.75,
   "hull": 0.75,

@@ -442,6 +442,16 @@ describe('arcade rules', () => {
     expect(new Set(roster.map((t) => defs[t].fire.pattern)).size).toBe(roster.length);
     expect(new Set(roster.map((t) => defs[t].fire.kind)).size).toBe(roster.length);
   });
+  it('gives every stage its own track and its own boss track', () => {
+    for (const stage of STAGES) {
+      expect(stage.music).toMatch(/^\/audio\/.+\.mp3$/);
+      expect(stage.bossMusic).toMatch(/^\/audio\/.+\.mp3$/);
+      expect(stage.bossMusic).not.toBe(stage.music);
+    }
+    // One boss track each, no sharing.
+    const tracks = STAGES.map((s) => s.bossMusic);
+    expect(new Set(tracks).size).toBe(tracks.length);
+  });
   it('flies stage one with an option already attached', () => {
     const g = new GameState();
     g.start('LASER', 3, false, false, 0);

@@ -355,6 +355,7 @@ export class Runtime {
       kills: g.kills,
       boss: g.boss,
       bossHp: g.bossHp,
+      bossHpFull: g.stage.boss.hp,
       bossPhase: g.bossPhase,
       bossTime: g.bossTime,
       notice: g.notice,

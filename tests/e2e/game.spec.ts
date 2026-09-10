@@ -192,6 +192,30 @@ test('latches option hold from the HUD, since a phone cannot hold a button', asy
   await hold.click();
   await expect(hold).toHaveAttribute('aria-pressed', 'false');
 });
+test('keeps the boss gauge inside its track on the heaviest boss', async ({ page }) => {
+  await page.goto('/?webgl=1');
+  await expect(page.getByRole('button', { name: /GLACIAL VAULT/ })).toBeEnabled({ timeout: 45000 });
+  await page.getByRole('button', { name: /GLACIAL VAULT/ }).click();
+  await page.getByRole('button', { name: '닫기' }).click();
+  await page.getByRole('button', { name: /보스 훈련/ }).click();
+  await page.getByRole('button', { name: '출격 · LAUNCH MISSION' }).click();
+  await expect(page.locator('.boss-hud')).toBeVisible({ timeout: 30000 });
+  const fits = await page.locator('.boss-hud').evaluate((el) => {
+    const track = el.querySelector('div') as HTMLElement;
+    const fill = el.querySelector('i') as HTMLElement;
+    return {
+      track: track.getBoundingClientRect().width,
+      fill: fill.getBoundingClientRect().width,
+      page: document.documentElement.clientWidth,
+      right: track.getBoundingClientRect().right,
+    };
+  });
+  // NEREID carries 15,600 - more than six times the constant the bar used to
+  // divide by, which ran the fill clean off the side of the screen.
+  expect(fits.fill).toBeLessThanOrEqual(fits.track + 1);
+  expect(fits.right).toBeLessThanOrEqual(fits.page);
+  expect(fits.fill).toBeGreaterThan(fits.track * 0.9);
+});
 test('mobile landscape touch and portrait pause overlay', async ({ page }) => {
   await page.setViewportSize({ width: 932, height: 430 });
   await page.goto('/?webgl=1');

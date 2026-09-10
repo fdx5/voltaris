@@ -34,6 +34,8 @@ export interface UIState {
   kills: number;
   boss: boolean;
   bossHp: number;
+  /** The boss's hull at full, so the gauge can be drawn as a fraction. */
+  bossHpFull: number;
   bossPhase: number;
   bossTime: number;
   notice: string;
@@ -80,6 +82,7 @@ export const useUI = create<UIState>(() => ({
   kills: 0,
   boss: false,
   bossHp: 0,
+  bossHpFull: 1,
   bossPhase: 1,
   bossTime: 0,
   notice: '',

@@ -443,7 +443,14 @@ function GameApp() {
                 </span>
               </small>
               <div>
-                <i style={{ width: `${Math.max(0, (ui.bossHp / 2400) * 100)}%` }} />
+                {/* Against the boss's own hull, not a constant: the later
+                    bosses carry several times what the first one did, and a
+                    fixed divisor ran the bar off the side of the screen. */}
+                <i
+                  style={{
+                    width: `${Math.max(0, Math.min(100, (ui.bossHp / Math.max(1, ui.bossHpFull)) * 100))}%`,
+                  }}
+                />
               </div>
               <p>포탑을 파괴하면 해당 포탑의 공격이 사라집니다</p>
             </div>

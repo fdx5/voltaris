@@ -4,7 +4,7 @@
   "subtitle": "화성 궤도 · 소행성대 돌파",
   "durationSec": 180,
   "music": "/audio/space-engine.mp3",
-  "bossMusic": null,
+  "bossMusic": "/audio/level2-boss.mp3",
   "scene": "mars",
   "pressure": 0.55,
   "hull": 0.25,

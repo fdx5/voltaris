@@ -786,6 +786,8 @@ kbd {
   height: 4px;
   background: #522b2b;
   margin-top: 8px;
+  /* The fill is a percentage of this track and nothing may escape it. */
+  overflow: hidden;
 }
 .boss-hud i {
   display: block;
