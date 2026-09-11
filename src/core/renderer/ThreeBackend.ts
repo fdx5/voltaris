@@ -225,6 +225,11 @@ export class ThreeBackend implements IRenderBackend {
   private readonly engineLight = new T.PointLight('#76dfff', 8, 8, 2);
   private readonly explosionLight = new T.PointLight('#ffa872', 0, 15, 2);
   private visualTime = 0;
+  /**
+   * Set once every shader has been compiled. Until then every batch stays in
+   * the scene so the compile pass can see it.
+   */
+  private warmed = false;
   constructor(
     private host: HTMLElement,
     private forceWebGL = false,
@@ -507,6 +512,12 @@ export class ThreeBackend implements IRenderBackend {
   }
   /** Brings the current renderer all the way up to a compiled hangar. */
   private async boot() {
+    // A restart compiles from scratch, and the compile pass only sees what is
+    // visible: every batch the last session hid as empty comes back first.
+    this.warmed = false;
+    this.scene.traverse((o) => {
+      if ((o as T.InstancedMesh).isInstancedMesh) o.visible = true;
+    });
     await this.renderer.init();
     // The backend's own flag, not its class name: a production build mangles
     // class names, so the label used to read WEBGPU whatever was running.
@@ -552,6 +563,7 @@ export class ThreeBackend implements IRenderBackend {
       await this.renderer.compileAsync(this.scene, this.camera);
     }
     this.showStage(active);
+    this.warmed = true;
   }
   resize() {
     const w = Math.max(1, this.host.clientWidth),
@@ -613,6 +625,37 @@ export class ThreeBackend implements IRenderBackend {
     if (batch.count >= batch.instanceMatrix.count) return;
     this.set(batch.count++, batch, x, y, z, sx, sy, sz, angle);
   }
+  /**
+   * Hands one filled batch to the renderer.
+   *
+   * A visible instanced mesh has its whole matrix buffer handed to the GPU
+   * every frame, all of it, however few instances are actually drawn from it.
+   * A stage carries a batch per enemy family, per emplacement, per shot
+   * style, and all but a handful of them are empty at any one moment: left
+   * visible they were three megabytes of upload a frame to draw nothing. An
+   * empty batch is therefore dropped from the scene outright, and a filled
+   * one uploads only the prefix it filled.
+   *
+   * Nothing may be hidden before the shaders are built, though: the compile
+   * pass walks the visible scene, so a batch hidden while empty would never
+   * be compiled and would stall the frame it first appears in.
+   */
+  private commit(batch: T.InstancedMesh | null | undefined) {
+    if (!batch) return;
+    const used = batch.count > 0;
+    if (this.warmed) batch.visible = used;
+    if (!used && this.warmed) return;
+    const matrix = batch.instanceMatrix;
+    matrix.clearUpdateRanges();
+    matrix.addUpdateRange(0, batch.count * 16);
+    matrix.needsUpdate = true;
+    const color = batch.instanceColor;
+    if (color) {
+      color.clearUpdateRanges();
+      color.addUpdateRange(0, batch.count * 3);
+      color.needsUpdate = true;
+    }
+  }
   private syncPool(pool: ObjectPool, batches: T.InstancedMesh[], alpha: number, spin: boolean) {
     for (const b of batches) b.count = 0;
     for (let i = 0; i < pool.capacity; i++) {
@@ -623,7 +666,7 @@ export class ThreeBackend implements IRenderBackend {
         y = pool.py[i] + (pool.y[i] - pool.py[i]) * alpha;
       this.push(batch, x, y, 0.2, 1, 1, 1, spin ? this.visualTime * 2 : 0);
     }
-    for (const b of batches) b.instanceMatrix.needsUpdate = true;
+    for (const b of batches) this.commit(b);
   }
   /** Player bolts, missiles, the charge lance and all ten hostile families. */
   private syncBullets(g: Readonly<GameState>, alpha: number) {
@@ -673,7 +716,7 @@ export class ThreeBackend implements IRenderBackend {
           this.push(this.shotHalo, x, y, 0.14, r * 2.2, r * 0.95, r * 0.95, aim);
       }
     }
-    for (const b of this.allShotBatches) b.instanceMatrix.needsUpdate = true;
+    for (const b of this.allShotBatches) this.commit(b);
   }
   private syncEnemies(g: Readonly<GameState>, alpha: number) {
     const e = g.enemies,
@@ -721,13 +764,9 @@ export class ThreeBackend implements IRenderBackend {
         this.enemyCores.setColorAt(idx, this.tint);
       }
     }
-    for (const b of this.enemyHulls) {
-      b.instanceMatrix.needsUpdate = true;
-      if (b.instanceColor) b.instanceColor.needsUpdate = true;
-    }
-    for (const b of this.enemyAccents) if (b) b.instanceMatrix.needsUpdate = true;
-    this.enemyCores.instanceMatrix.needsUpdate = true;
-    if (this.enemyCores.instanceColor) this.enemyCores.instanceColor.needsUpdate = true;
+    for (const b of this.enemyHulls) this.commit(b);
+    for (const b of this.enemyAccents) this.commit(b);
+    this.commit(this.enemyCores);
   }
   /** Emplacements sit on the surface; the lamp marks the muzzle. */
   private syncGround(g: Readonly<GameState>, alpha: number) {
@@ -774,13 +813,9 @@ export class ThreeBackend implements IRenderBackend {
         this.groundCores.setColorAt(idx, this.tint);
       }
     }
-    for (const b of this.groundHulls) {
-      b.instanceMatrix.needsUpdate = true;
-      if (b.instanceColor) b.instanceColor.needsUpdate = true;
-    }
-    for (const b of this.groundAccents) if (b) b.instanceMatrix.needsUpdate = true;
-    this.groundCores.instanceMatrix.needsUpdate = true;
-    if (this.groundCores.instanceColor) this.groundCores.instanceColor.needsUpdate = true;
+    for (const b of this.groundHulls) this.commit(b);
+    for (const b of this.groundAccents) this.commit(b);
+    this.commit(this.groundCores);
   }
   sync(g: Readonly<GameState>, alpha: number, dt: number) {
     this.visualTime += dt;
@@ -837,8 +872,8 @@ export class ThreeBackend implements IRenderBackend {
         const accent = this.enemyAccents[type];
         if (accent) this.push(accent, x, y, 0, 1, 1, 1, angle);
       }
-      for (const b of this.enemyHulls) b.instanceMatrix.needsUpdate = true;
-      for (const b of this.enemyAccents) if (b) b.instanceMatrix.needsUpdate = true;
+      for (const b of this.enemyHulls) this.commit(b);
+      for (const b of this.enemyAccents) this.commit(b);
     }
     for (let i = 0; i < 4; i++) {
       const o = this.options[i];
@@ -877,8 +912,7 @@ export class ThreeBackend implements IRenderBackend {
       this.tint.set(EMBERS[p.type[i] % EMBERS.length]);
       this.particles.setColorAt(idx, this.tint);
     }
-    this.particles.instanceMatrix.needsUpdate = true;
-    if (this.particles.instanceColor) this.particles.instanceColor.needsUpdate = true;
+    this.commit(this.particles);
     this.explosionLight.position.set(g.x, g.y, 3);
     this.explosionLight.intensity = g.flash * 35;
     const shake = this.reducedMotion ? 0 : g.shake;
