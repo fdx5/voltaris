@@ -216,6 +216,34 @@ test('keeps the boss gauge inside its track on the heaviest boss', async ({ page
   expect(fits.right).toBeLessThanOrEqual(fits.page);
   expect(fits.fill).toBeGreaterThan(fits.track * 0.9);
 });
+test.describe('phone held sideways', () => {
+  test.use({ viewport: { width: 844, height: 390 }, hasTouch: true });
+  test('takes the whole screen on launch and keeps the HUD controls small', async ({ page }) => {
+    // The address bar costs a fifth of a landscape phone screen.
+    await page.addInitScript(() => {
+      (window as unknown as { fsCalls: number }).fsCalls = 0;
+      (
+        Element.prototype as unknown as { requestFullscreen: () => Promise<void> }
+      ).requestFullscreen = () => {
+        (window as unknown as { fsCalls: number }).fsCalls++;
+        return Promise.resolve();
+      };
+    });
+    await page.goto('/?webgl=1');
+    await expect(page.getByRole('button', { name: 'BEGIN SORTIE 출격 준비' })).toBeEnabled({
+      timeout: 45000,
+    });
+    await page.getByRole('button', { name: 'BEGIN SORTIE 출격 준비' }).click();
+    await page.getByRole('button', { name: '출격 · LAUNCH MISSION' }).click();
+    await expect(page.locator('.play-frame')).toBeVisible();
+    expect(await page.evaluate(() => (window as unknown as { fsCalls: number }).fsCalls)).toBe(1);
+    // And the player can hand the screen back.
+    await expect(page.getByRole('button', { name: /전체화면|창 모드/ })).toBeVisible();
+    const strip = await page.locator('.hud.top-right > div').boundingBox();
+    expect(strip!.height).toBeLessThanOrEqual(26);
+    expect(strip!.width).toBeLessThanOrEqual(300);
+  });
+});
 test('mobile landscape touch and portrait pause overlay', async ({ page }) => {
   await page.setViewportSize({ width: 932, height: 430 });
   await page.goto('/?webgl=1');

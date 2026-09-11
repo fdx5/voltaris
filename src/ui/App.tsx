@@ -9,6 +9,7 @@ import {
   Volume2,
   VolumeX,
   Maximize,
+  Minimize,
   Settings2,
   X,
   Pause,
@@ -99,7 +100,16 @@ function GameApp() {
     [stressShips, setStressShips] = useState(20),
     [practice, setPractice] = useState(false),
     [stage, setStage] = useState(0),
-    [fullError, setFullError] = useState('');
+    [fullError, setFullError] = useState(''),
+    [full, setFull] = useState(false);
+  // The player can leave fullscreen with the system back gesture or Escape, so
+  // the button follows the document rather than its own memory of the state.
+  useEffect(() => {
+    const sync = () => setFull(!!document.fullscreenElement);
+    sync();
+    document.addEventListener('fullscreenchange', sync);
+    return () => document.removeEventListener('fullscreenchange', sync);
+  }, []);
   useEffect(() => {
     if (!host.current) return;
     const r = new Runtime(host.current);
@@ -121,20 +131,29 @@ function GameApp() {
     return () => window.removeEventListener('keydown', onKey, true);
   }, [panel]);
   const r = () => runtime.current;
+  const enterFullscreen = async () => {
+    await document.documentElement.requestFullscreen();
+    const o = screen.orientation as ScreenOrientation & { lock?: (s: string) => Promise<void> };
+    await o.lock?.('landscape').catch(() => {});
+  };
   const fullscreen = async () => {
     try {
       if (document.fullscreenElement) await document.exitFullscreen();
-      else {
-        await document.documentElement.requestFullscreen();
-        const o = screen.orientation as ScreenOrientation & { lock?: (s: string) => Promise<void> };
-        await o.lock?.('landscape').catch(() => {});
-      }
+      else await enterFullscreen();
     } catch {
       setFullError('이 브라우저에서는 홈 화면에 추가하여 전체화면으로 실행하세요.');
       setTimeout(() => setFullError(''), 5000);
     }
   };
   const start = async () => {
+    // Asked for inside the click, before anything is awaited: a browser only
+    // grants fullscreen while the gesture that asked for it is still live. On
+    // a phone the address bar costs a fifth of a landscape screen, so a sortie
+    // takes the whole display and the HUD button hands it back.
+    if (matchMedia('(any-pointer: coarse)').matches && !document.fullscreenElement)
+      void enterFullscreen().catch(() => {
+        /* iOS refuses outside of video; the game still runs windowed */
+      });
     try {
       await r()?.start(weapon, credits, practice, false, stage);
       setPanel(null);
@@ -420,14 +439,24 @@ function GameApp() {
                 <span>HOLD</span>
                 <i>{ui.optionHold ? 'ON' : 'OFF'}</i>
               </button>
+              {/* Handing the screen back is a tap away, for a player who
+                  wants the browser chrome again. */}
               <button
+                className="frame-button"
+                aria-label={full ? '창 모드' : '전체화면'}
+                onClick={() => void fullscreen()}
+              >
+                {full ? <Minimize size={16} /> : <Maximize size={16} />}
+              </button>
+              <button
+                className="frame-button"
                 aria-label="일시정지"
                 onClick={() => {
                   r()?.game.pause();
                   r()?.publish();
                 }}
               >
-                <Pause size={19} />
+                <Pause size={17} />
               </button>
             </div>
             <small>

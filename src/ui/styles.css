@@ -2453,3 +2453,64 @@ kbd {
     text-overflow: ellipsis;
   }
 }
+
+/* --- HUD controls on a phone held sideways ---------------------------- *
+ * The option pair and the frame buttons are drawn for a mouse everywhere
+ * else. On a 600px-tall landscape phone they ate the top of the play field,
+ * so here they shrink to the smallest size a thumb can still hit.
+ */
+@media (max-width: 1050px) and (max-height: 600px) and (orientation: landscape) {
+  .top-right > div {
+    gap: 6px;
+    margin-bottom: 6px;
+  }
+  .top-right button {
+    padding: 4px 5px;
+    gap: 5px;
+    min-height: 0;
+  }
+  .mode-button,
+  .hold-button {
+    font-size: 7px;
+    letter-spacing: 0.5px;
+  }
+  .mode-button svg,
+  .hold-button svg {
+    width: 11px;
+    height: 11px;
+  }
+  .mode-button kbd {
+    padding: 0 2px;
+    font-size: 7px;
+  }
+  .frame-button svg {
+    width: 13px;
+    height: 13px;
+  }
+}
+@media (max-width: 650px) and (max-height: 360px) and (orientation: landscape) {
+  .top-right > div {
+    gap: 4px;
+  }
+  .top-right button {
+    padding: 3px 4px;
+    gap: 4px;
+  }
+  .mode-button,
+  .hold-button {
+    font-size: 6px;
+  }
+  .mode-button svg,
+  .hold-button svg {
+    width: 9px;
+    height: 9px;
+  }
+  .frame-button svg {
+    width: 11px;
+    height: 11px;
+  }
+  /* The keyboard hint is noise on a device with no keyboard. */
+  .mode-button kbd {
+    display: none;
+  }
+}
