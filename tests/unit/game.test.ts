@@ -199,14 +199,15 @@ describe('arcade rules', () => {
     g.tick(dt);
     expect(g.bossPhase).toBe(3);
   });
-  it('allows boss escape after 180 seconds without kill bonus', () => {
+  it('keeps a boss with remaining HP alive after 180 seconds', () => {
     const g = new GameState();
     g.start('LASER', 1, true);
     g.bossTime = 180;
     g.tick(dt);
-    expect(g.status).toBe('clear');
+    expect(g.status).toBe('playing');
     expect(g.bossDefeated).toBe(false);
-    expect(g.score).toBe(80000);
+    expect(g.bossHp).toBeGreaterThan(0);
+    expect(g.bossDying).toBe(false);
   });
   it('stress harness maintains 4000 bullets without overflow', () => {
     const g = new GameState();
@@ -260,6 +261,8 @@ describe('arcade rules', () => {
     g.bossHp = 1;
     g.effects[4] = 1;
     g.tick(dt);
+    expect(g.bossDying).toBe(true);
+    for (let i = 0; i < 420; i++) g.tick(dt);
     expect(g.status).toBe('clear');
     g.start('LASER', 1, false, true);
     expect(g.level).toBe(6);

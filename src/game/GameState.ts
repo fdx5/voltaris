@@ -42,9 +42,9 @@ export class GameState {
   readonly skills = new Int8Array([0, -1, -1]);
   readonly charge = new Float32Array(3);
   readonly effects = new Float32Array(6);
-  readonly partHp = new Float32Array(8);
-  readonly partX = new Float32Array(8);
-  readonly partY = new Float32Array(8);
+  readonly partHp = new Float32Array(10);
+  readonly partX = new Float32Array(10);
+  readonly partY = new Float32Array(10);
   readonly replay = new Float32Array(60 * 600 * 3);
   readonly replayPressed = new Uint16Array(60 * 600);
   replayFrames = 0;
@@ -110,6 +110,9 @@ export class GameState {
   volley = 0;
   bossDefeated = false;
   bossKillTime = 0;
+  bossDying = false;
+  bossDeathTime = 0;
+  bossDeathEvent = 0;
   bonus = 0;
   continueTime = 10;
   notice = '';
@@ -208,6 +211,8 @@ export class GameState {
     this.roll = this.pitch = 0;
     this.boss = false;
     this.bossHp = 0;
+    this.bossDying = false;
+    this.bossDeathTime = 0;
     this.bossPhase = 1;
     this.bossDefeated = false;
     this.bossTime = this.bonus = this.bossKillTime = this.volley = 0;
@@ -268,6 +273,7 @@ export class GameState {
     this.announce('RE-ENTRY / 전투 재개');
   }
   activate(slot: number) {
+    if (this.bossDying) return;
     if (this.status !== 'playing' || this.respawn > 0 || slot < 0 || slot > 2) return;
     const skill = this.skills[slot];
     if (skill < 0 || this.charge[slot] < 0.999 || (!this.skillUnlocked && skill === 0)) return;
@@ -315,6 +321,10 @@ export class GameState {
     this.noticeTime = Math.max(0, this.noticeTime - dt);
     this.shake = Math.max(0, this.shake - dt * 2);
     this.flash = Math.max(0, this.flash - dt * 2);
+    if (this.bossDying) {
+      this.updateBossDeath(dt);
+      return;
+    }
     this.invincible = Math.max(0, this.invincible - dt);
     this.respawn = Math.max(0, this.respawn - dt);
     for (let i = 0; i < 6; i++) this.effects[i] = Math.max(0, this.effects[i] - dt);
@@ -348,6 +358,7 @@ export class GameState {
     this.updateEnemies(enemyDt);
     if (this.terrain) this.updateGround(enemyDt);
     if (this.boss) this.updateBoss(enemyDt);
+    if (this.bossDying) return;
     this.fireTimer -= dt;
     const firing = !this.respawn && (this.autoFire || bits & Key.Fire);
     // Held-fire time must not bank credit: without the clamp a 1.5s respawn
@@ -381,6 +392,7 @@ export class GameState {
     } else this.chargeShot = 0;
     this.updateBullets(dt, enemyDt);
     this.collisions();
+    if (this.bossDying) return;
     this.updateItems(dt);
     this.particles.move(dt);
   }
@@ -558,20 +570,22 @@ export class GameState {
         const g = this.stage.ground[this.groundIndex++];
         const d = emplacements[g.type];
         const roof = 'roof' in g && g.roof === 1;
-        const x = 17.4;
-        const i = this.ground.acquire(
-          x,
-          this.surfaceAt(x, roof),
-          0,
-          0,
-          g.type,
-          1e9,
-          d.radius,
-          Math.max(1, Math.round(d.hp * this.hullScale)),
-        );
-        if (i >= 0) {
-          this.groundFlash[i] = 0;
-          this.ground.aux[i] = roof ? 1 : 0;
+        for (let unit = 0; unit < (this.stageIndex === 2 ? 3 : 1); unit++) {
+          const x = 17.4 + unit * (d.radius * 2 + 1.1);
+          const i = this.ground.acquire(
+            x,
+            this.surfaceAt(x, roof),
+            0,
+            0,
+            g.type,
+            1e9,
+            d.radius,
+            Math.max(1, Math.round(d.hp * this.hullScale)),
+          );
+          if (i >= 0) {
+            this.groundFlash[i] = 0;
+            this.ground.aux[i] = roof ? 1 : 0;
+          }
         }
         this.groundTimer = 0.35;
       }
@@ -591,7 +605,10 @@ export class GameState {
    * takes over. Heavy hulls are authored one or two strong and are unaffected.
    */
   private waveSize(count: number, ordinal: number) {
-    return Math.max(1, Math.min(count, this.stage.firstWave + ordinal * tuning.spawn.growth));
+    return (
+      Math.max(1, Math.min(count, this.stage.firstWave + ordinal * tuning.spawn.growth)) *
+      (this.stageIndex === 2 ? 2 : 1)
+    );
   }
   private spawnEnemy(type: number, x: number, y: number, pattern: number, n: number) {
     const d = defs[type];
@@ -788,6 +805,8 @@ export class GameState {
     return this.stage.boss.parts;
   }
   spawnBoss() {
+    this.bossDying = false;
+    this.bossDeathTime = 0;
     this.boss = true;
     this.bossHp = this.stage.boss.hp;
     this.bossX = 20;
@@ -815,10 +834,6 @@ export class GameState {
       this.partX[p] = this.bossX + Math.cos(a) * ring;
       this.partY[p] = this.bossY + Math.sin(a) * ring;
     }
-    if (this.bossTime > tuning.combat.bossLimit) {
-      this.finish(false);
-      return;
-    }
     const full = this.stage.boss.hp;
     const phase = this.bossHp > full * 0.6 ? 1 : this.bossHp > full * 0.25 ? 2 : 3;
     if (phase !== this.bossPhase) {
@@ -835,9 +850,13 @@ export class GameState {
     }
     this.bossShot -= dt;
     if (this.bossShot <= 0) {
-      this.bossShot = this.bossPhase === 1 ? 1.6 : this.bossPhase === 2 ? 1.25 : 0.9;
+      this.bossShot =
+        (this.bossPhase === 1 ? 1.9 : this.bossPhase === 2 ? 1.55 : 1.2) *
+        [1, 0.88, 0.76, 0.65][this.stageIndex] *
+        (this.bossTime > tuning.combat.bossLimit ? 0.8 : 1);
       if (this.stage.boss.design === 'ares') this.aresVolley();
       else if (this.stage.boss.design === 'nereid') this.nereidVolley();
+      else if (this.stage.boss.design === 'jove') this.joveVolley();
       else this.gatekeeperVolley();
       this.volley++;
     }
@@ -848,7 +867,7 @@ export class GameState {
   }
   /** GATEKEEPER: concentric rings, a sweeping wall, then splitting spokes. */
   private gatekeeperVolley() {
-    const count = this.bossPhase === 3 ? 36 : this.bossPhase === 2 ? 19 : 26;
+    const count = this.bossPhase === 3 ? 28 : this.bossPhase === 2 ? 19 : 20;
     const gap =
       Math.atan2(this.y - this.bossY, this.x - this.bossX) + Math.sin(this.bossTime) * 0.5;
     const ringKind =
@@ -938,6 +957,31 @@ export class GameState {
     const podKind =
       this.bossPhase === 3 ? Shot.SPLIT : this.bossPhase === 2 ? Shot.WAVE : Shot.NEEDLE;
     this.podVolley(podKind, 5.4, 0.1, this.bossPhase === 1 ? 1 : 2);
+  }
+  /** JOVE: alternating rail corridors, spiralling plasma and pursuit missiles. */
+  private joveVolley() {
+    const aim = Math.atan2(this.y - this.bossY, this.x - this.bossX);
+    const opening = Math.sin(this.bossTime * 0.42) * 3.7;
+    for (let j = 0; j < 23; j++) {
+      const y = -7.2 + j * 0.65;
+      if (Math.abs(y - opening) < 1.15) continue;
+      this.hostileShot(
+        this.bossX - 1.8,
+        y,
+        Math.PI,
+        4.5 + this.bossPhase * 0.35,
+        this.volley % 2 ? Shot.ACCEL : Shot.NEEDLE,
+      );
+    }
+    if (this.bossPhase >= 2)
+      for (let j = 0; j < 18; j++) {
+        const a = (j / 18) * Math.PI * 2 + this.volley * 0.31;
+        this.hostileShot(this.bossX, this.bossY, a, 3.3, Shot.PLASMA);
+      }
+    if (this.volley % 2 === 0)
+      for (let j = -this.bossPhase; j <= this.bossPhase; j++)
+        this.hostileShot(this.bossX - 1.4, this.bossY, aim + j * 0.19, 4.2, Shot.HOMING);
+    this.podVolley(this.bossPhase === 3 ? Shot.SPLIT : Shot.WAVE, 5.3, 0.14, 1);
   }
   /**
    * NEREID fights the cave rather than the open field: closing pincers, a
@@ -1327,6 +1371,7 @@ export class GameState {
     e.release(i);
   }
   hit() {
+    if (this.bossDying) return;
     if (this.invincible > 0 || this.respawn > 0) return;
     this.hitEvent++;
     this.shake = 0.8;
@@ -1456,6 +1501,19 @@ export class GameState {
     }
   }
   private finish(defeated: boolean) {
+    if (defeated && !this.bossDying) {
+      this.bossHp = 0;
+      this.bossDying = true;
+      this.bossDeathTime = 0;
+      this.bossKillTime = this.bossTime;
+      this.bossDeathEvent++;
+      this.bullets.clear();
+      this.enemies.clear();
+      this.ground.clear();
+      this.noticeTime = 0;
+      this.shake = 0.5;
+      return;
+    }
     this.bossDefeated = defeated;
     // Whatever the player finishes a stage with is what they start the next
     // one with; a death mid-stage has already taken its cut by now.
@@ -1471,9 +1529,37 @@ export class GameState {
       (defeated ? Math.floor(Math.max(0, 1 - this.bossTime / 180) * 100000) : 0);
     this.score += this.bonus + (defeated ? tuning.score.boss : 0);
     this.bullets.clear();
-    this.explode(this.bossX, this.bossY, 400);
-    this.flash = 1;
+    this.bossDying = false;
     this.status = 'clear';
+  }
+  /** Fixed-step cinematic stays in the replay, with combat frozen for seven seconds. */
+  private updateBossDeath(dt: number) {
+    const before = this.bossDeathTime;
+    this.bossDeathTime = Math.min(7, before + dt);
+    const t = this.bossDeathTime;
+    this.particles.move(dt);
+    // Sweep detonations over the whole silhouette, not just the central reactor.
+    if (Math.floor(t * 9) > Math.floor(before * 9) && t < 6.7) {
+      const n = Math.floor(t * 9);
+      const a = n * 2.399963;
+      const r = 0.6 + (n % 7) * 0.48;
+      this.explode(
+        this.bossX + Math.cos(a) * r,
+        this.bossY + Math.sin(a) * r * 0.85,
+        t > 4.5 ? 65 : 32,
+      );
+      this.shake = t > 4.5 ? 0.55 : 0.22;
+      this.flash = t > 4.5 ? 0.12 : 0.04;
+    }
+    if (before < 6.65 && t >= 6.65) {
+      for (let i = 0; i < 8; i++) {
+        const a = (i / 8) * Math.PI * 2;
+        this.explode(this.bossX + Math.cos(a) * 2.3, this.bossY + Math.sin(a) * 2.3, 110);
+      }
+      this.flash = 0.75;
+      this.shake = 0.9;
+    }
+    if (t >= 7 - 1e-8) this.finish(true);
   }
   startStress() {
     this.status = 'stress';

@@ -783,8 +783,8 @@ kbd {
   color: #a17b78;
 }
 .boss-hud > div {
-  height: 4px;
-  background: #522b2b;
+  height: 7px;
+  background: #202936;
   margin-top: 8px;
   /* The fill is a percentage of this track and nothing may escape it. */
   overflow: hidden;
@@ -793,8 +793,8 @@ kbd {
   display: block;
   height: 100%;
   background: #ff635c;
-  box-shadow: 0 0 10px #ff64535c;
-  transition: width 0.1s;
+  box-shadow: 0 0 10px #ffffff30;
+  transition: background-color 0.15s;
 }
 .boss-hud p {
   font-size: 8px;

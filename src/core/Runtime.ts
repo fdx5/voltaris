@@ -25,6 +25,7 @@ const PICKUP_SAMPLES = [
 const WRECK_LIGHT = '/audio/11_soft_puff.mp3';
 const WRECK_HEAVY = '/audio/04_rumble_break.mp3';
 const PLAYER_DESTROY = '/audio/destroy.mp3';
+const BOSS_KILL = '/audio/bosskill.mp3';
 
 /**
  * Turns a renderer start-up failure into something the player can act on.
@@ -61,7 +62,7 @@ export class Runtime {
   private disposed = false;
   private recorded = false;
   private controller = new AbortController();
-  private sounds = new Uint32Array(6);
+  private sounds = new Uint32Array(7);
   private pickupSounds = new Uint32Array(4);
   private lastStatus = 'menu';
   private bossTrack = false;
@@ -167,6 +168,7 @@ export class Runtime {
         WRECK_LIGHT,
         WRECK_HEAVY,
         PLAYER_DESTROY,
+        BOSS_KILL,
         ...Object.values(FIRE_SAMPLES),
         ...PICKUP_SAMPLES,
       ]);
@@ -296,6 +298,14 @@ export class Runtime {
     }
     const g = this.game;
     const sample = FIRE_SAMPLES[g.weapon];
+    if (useUI.getState().bossHp !== g.bossHp)
+      useUI.setState({ bossHp: Math.max(0, g.bossHp), bossHpFull: g.stage.boss.hp });
+    if (g.bossDeathEvent !== this.sounds[6]) {
+      this.sounds[6] = g.bossDeathEvent;
+      this.audio.stopTrack();
+      void this.audio.jingle(BOSS_KILL, 7);
+      this.publish();
+    }
     // Shield hits increment hitEvent too; only a lost life triggers this cue.
     const destroyed = g.deaths !== this.sounds[5];
     if (destroyed) {
@@ -308,7 +318,8 @@ export class Runtime {
       else this.audio.shot();
     }
     if (g.explosionEvent !== this.sounds[1]) {
-      if (!destroyed) this.audio.impactSample(g.explosionHeavy ? WRECK_HEAVY : WRECK_LIGHT);
+      if (!destroyed && !g.bossDying)
+        this.audio.impactSample(g.explosionHeavy ? WRECK_HEAVY : WRECK_LIGHT);
       this.sounds[1] = g.explosionEvent;
     }
     if (g.pickupEvent !== this.sounds[2]) {
@@ -329,7 +340,7 @@ export class Runtime {
       this.sounds[4] = g.hitEvent;
     }
     // A boss arriving cuts the stage theme over to its own.
-    if (g.boss !== this.bossTrack && g.stage.bossMusic && g.status === 'playing')
+    if (g.boss !== this.bossTrack && g.stage.bossMusic && g.status === 'playing' && !g.bossDying)
       this.playStageTrack();
     if (this.lastStatus !== g.status) {
       if (g.status === 'playing') this.audio.resume();
@@ -340,7 +351,7 @@ export class Runtime {
       if (g.status === 'clear') void this.audio.jingle(STAGE_CLEAR);
       this.lastStatus = g.status;
     }
-    this.audio.tick(g.status === 'playing', g.boss);
+    this.audio.tick(g.status === 'playing' && !g.bossDying, g.boss);
     this.hudTime += dt;
     this.qualityTime += dt;
     if (this.hudTime >= 0.1) {
@@ -394,6 +405,7 @@ export class Runtime {
       kills: g.kills,
       boss: g.boss,
       bossHp: g.bossHp,
+      bossDying: g.bossDying,
       bossHpFull: g.stage.boss.hp,
       bossPhase: g.bossPhase,
       bossTime: g.bossTime,

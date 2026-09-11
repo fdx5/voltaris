@@ -226,6 +226,38 @@ export class ThreeBackend implements IRenderBackend {
   private bloomNode: ReturnType<typeof bloom> | null = null;
   private readonly engineLight = new T.PointLight('#76dfff', 8, 8, 2);
   private readonly explosionLight = new T.PointLight('#ffa872', 0, 15, 2);
+  private readonly bossFire = new T.InstancedMesh(
+    new T.SphereGeometry(1, 16, 12),
+    new T.MeshBasicNodeMaterial({
+      toneMapped: false,
+      transparent: true,
+      opacity: 0.85,
+      blending: T.AdditiveBlending,
+      depthWrite: false,
+    }),
+    24,
+  );
+  private readonly bossSmoke = new T.InstancedMesh(
+    new T.IcosahedronGeometry(1, 2),
+    new T.MeshStandardNodeMaterial({
+      color: '#25232b',
+      roughness: 1,
+      transparent: true,
+      opacity: 0.55,
+      depthWrite: false,
+    }),
+    24,
+  );
+  private readonly bossShockwave = new T.Mesh(
+    new T.TorusGeometry(1, 0.025, 8, 96),
+    new T.MeshBasicNodeMaterial({
+      color: '#ffd8a0',
+      toneMapped: false,
+      transparent: true,
+      blending: T.AdditiveBlending,
+      depthWrite: false,
+    }),
+  );
   private visualTime = 0;
   /**
    * Set once every shader has been compiled. Until then every batch stays in
@@ -263,6 +295,17 @@ export class ThreeBackend implements IRenderBackend {
     this.scene.add(bounceFill);
     this.scene.add(bounce);
     this.scene.add(this.engineLight, this.explosionLight);
+    for (const batch of [this.bossFire, this.bossSmoke]) {
+      batch.count = 0;
+      batch.frustumCulled = false;
+      batch.instanceMatrix.setUsage(T.DynamicDrawUsage);
+      this.scene.add(batch);
+      this.deferred.push(batch);
+    }
+    ThreeBackend.tintable(this.bossFire);
+    this.bossShockwave.visible = false;
+    this.scene.add(this.bossShockwave);
+    this.deferred.push(this.bossShockwave);
     const scenes: SceneName[] = ['earth', 'mars', 'jupiter', 'neptune'];
     for (let i = 0; i < scenes.length; i++)
       this.skies.push(buildBackdrop(this.scene, scenes[i], STAGES[i]?.surface ?? null));
@@ -881,18 +924,60 @@ export class ThreeBackend implements IRenderBackend {
       }
     }
     const boss = this.bosses[this.stage];
-    boss.root.visible = g.boss;
+    boss.root.visible = g.boss && (!g.bossDying || g.bossDeathTime < 6.65);
     boss.root.position.set(g.bossX, g.bossY, 0);
+    boss.root.rotation.z = g.bossDying ? Math.sin(t * 27) * 0.012 * g.bossDeathTime : 0;
     boss.ring.rotation.z = g.bossAngle;
-    boss.core.rotation.set(t * 0.6, t * 0.5, 0);
+    boss.core.rotation.set(0, 0, t * 0.3);
     boss.core.scale.setScalar(g.bossShot < 0.4 ? 1.1 + Math.sin(t * 35) * 0.08 : 1);
     for (let i = 0; i < boss.pods.length; i++) {
       const pod = boss.pods[i];
-      pod.visible = g.boss && i < g.bossParts && g.partHp[i] > 0;
+      pod.visible =
+        g.boss &&
+        i < g.bossParts &&
+        g.partHp[i] > 0 &&
+        (!g.bossDying || g.bossDeathTime < 2.4 + i * 0.35);
       pod.position.set(g.partX[i], g.partY[i], 0.4);
       pod.rotation.z = g.bossAngle + (i / boss.pods.length) * Math.PI * 2;
     }
     this.particles.count = 0;
+    this.bossFire.count = this.bossSmoke.count = 0;
+    const death = g.bossDeathTime;
+    this.bossShockwave.visible = g.bossDying && death > 6.65;
+    if (g.bossDying) {
+      for (let j = 0; j < 24; j++) {
+        const n = Math.floor(death * 9) - j;
+        const age = death - n / 9;
+        if (n < 1 || n / 9 >= 6.65 || age > 2.3) continue;
+        const a = n * 2.399963,
+          r = 0.6 + (n % 7) * 0.48;
+        const x = g.bossX + Math.cos(a) * r,
+          y = g.bossY + Math.sin(a) * r * 0.85;
+        const size = (0.22 + age * 1.3) * (death > 4.5 ? 1.3 : 1);
+        this.push(
+          this.bossSmoke,
+          x + age * 0.15,
+          y + age * 0.6,
+          1.3,
+          size,
+          size * 0.8,
+          size * 0.65,
+        );
+        if (age < 0.65) {
+          const f = (0.18 + Math.sin((age / 0.65) * Math.PI) * 0.53) * (death > 4.5 ? 1.4 : 1);
+          const index = this.bossFire.count;
+          this.push(this.bossFire, x, y, 1.9, f, f, f * 0.8);
+          this.tint.set(age < 0.15 ? '#fff3b3' : age < 0.35 ? '#ffab32' : '#ff4018');
+          this.tint.multiplyScalar(2.2 * (1 - age / 0.65));
+          this.bossFire.setColorAt(index, this.tint);
+        }
+      }
+      this.bossShockwave.position.set(g.bossX, g.bossY, 2.2);
+      this.bossShockwave.scale.setScalar(1 + Math.max(0, death - 6.65) * 26);
+      this.bossShockwave.material.opacity = Math.max(0, 1 - (death - 6.65) / 0.35);
+    }
+    this.commit(this.bossFire);
+    this.commit(this.bossSmoke);
     const p = g.particles;
     const limit = this.quality === 'LOW' ? 1000 : 3000;
     for (let i = 0; i < p.capacity && this.particles.count < limit; i++) {
@@ -900,12 +985,12 @@ export class ThreeBackend implements IRenderBackend {
       const fade = 1 - p.age[i] / p.life[i],
         s = p.radius[i] * fade;
       const idx = this.particles.count++;
-      this.set(idx, this.particles, p.x[i], p.y[i], 0.5, s, s, s);
+      this.set(idx, this.particles, p.x[i], p.y[i], g.bossDying ? 2.1 : 0.5, s, s, s);
       this.tint.set(EMBERS[p.type[i] % EMBERS.length]);
       this.particles.setColorAt(idx, this.tint);
     }
     this.commit(this.particles);
-    this.explosionLight.position.set(g.x, g.y, 3);
+    this.explosionLight.position.set(g.bossDying ? g.bossX : g.x, g.bossDying ? g.bossY : g.y, 3);
     this.explosionLight.intensity = g.flash * 35;
     const shake = this.reducedMotion ? 0 : g.shake;
     this.camera.position.x = Math.sin(t * 73) * shake * 0.12;

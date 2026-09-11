@@ -32,7 +32,7 @@ export default defineConfig({
         maximumFileSizeToCacheInBytes: 4000000,
         globPatterns: [
           '**/*.{js,css,html,ico,png,svg,jpg,webp,webmanifest}',
-          '**/audio/{optionadd,powerup,itemadd,destroy}.mp3',
+          '**/audio/{optionadd,powerup,itemadd,destroy,bosskill,win}.mp3',
         ],
         navigateFallbackDenylist: [/^\/api\//],
         // Stage tracks are far too large to precache, so they are kept out of

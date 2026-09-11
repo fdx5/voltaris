@@ -51,6 +51,8 @@ it('plays full pickup cues even when collection happens during preloading', asyn
   // Both cues reach the independent unity bus, not the 0.5 explosion bus.
   for (const node of pickupGains)
     expect(node.connect).toHaveBeenCalledWith(expect.objectContaining({ gain: { value: 1 } }));
+  await audio.jingle('/audio/optionadd.mp3', 3);
+  expect(start).toHaveBeenLastCalledWith(1, 0, 3);
 });
 
 it('does not reject launch when Web Audio is unavailable', async () => {

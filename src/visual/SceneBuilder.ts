@@ -1759,7 +1759,7 @@ function attachKit(target: T.Group, kit: Kit, metalness = 0.55, roughness = 0.38
     );
 }
 
-/** Three different architectures, with the same gameplay core and orbiting hardpoints. */
+/** Four heavily armoured capital ships with distinct silhouettes and weapon hardpoints. */
 export function makeBoss(design: BossDesign): BossModel {
   const root = new T.Group(),
     ringGroup = new T.Group(),
@@ -1768,216 +1768,305 @@ export function makeBoss(design: BossDesign): BossModel {
   const gate = design === 'gatekeeper',
     ares = design === 'ares',
     nereid = design === 'nereid';
-  const hull = gate ? '#e6e0cc' : ares ? '#ac2940' : nereid ? '#a8cfe4' : '#3a8f9e';
-  const trim = gate ? '#368490' : ares ? '#dbac65' : nereid ? '#2f5f86' : '#b0a3e1';
-  const lamp = gate ? '#64f2df' : ares ? '#ffbb65' : nereid ? '#bfefff' : '#d6a3ff';
-  const dark = gate ? '#26394d' : ares ? '#402437' : nereid ? '#15304a' : '#253a64';
+  const hull = gate ? '#46525a' : ares ? '#63313a' : nereid ? '#597887' : '#43445f';
+  const trim = gate ? '#8f8776' : ares ? '#8d7962' : nereid ? '#91b4bf' : '#8b809d';
+  const lamp = gate ? '#ff733e' : ares ? '#ffb546' : nereid ? '#58d8ff' : '#c589ff';
+  const dark = gate ? '#171e26' : ares ? '#221c23' : nereid ? '#152936' : '#1c1c2c';
   k.hex = hull;
   rotor.hex = trim;
   const plate = (p: number[][], z = 0, d = 0.35, c = hull) => k.add(armour(p, d, z), c);
+  // Recessed structures, overlapping slabs and small service details establish
+  // scale; only reactor slits emit light, so the armour keeps its mass.
   if (gate) {
-    // GATEKEEPER: an open horseshoe citadel, facing the player on the left.
-    const outer: number[][] = [],
-      inner: number[][] = [];
-    for (let i = 0; i <= 24; i++) {
-      const a = -2.25 + (i * 4.5) / 24;
-      outer.push([Math.cos(a) * 3.7, Math.sin(a) * 3.7]);
-      inner.unshift([Math.cos(a) * 2.65, Math.sin(a) * 2.65]);
-    }
-    plate([...outer, ...inner], -0.35, 0.7);
-    for (const side of [-1, 1]) {
-      plate(
-        [
-          [-2.85, side * 2.85],
-          [-1.75, side * 2.8],
-          [-1.3, side * 1.9],
-          [-3.2, side * 1.95],
-        ],
-        0,
-        0.45,
-        trim,
-      );
-      k.add(tube(0.2, 0.35, 1.9, 12, -2.6, side * 2.3, 0.22), dark);
-      k.lit(disc(0.14, 0.1, 12, -3.55, side * 2.3, 0.22), lamp, 1.8);
-      plate(
-        [
-          [0.3, side * 0.4],
-          [2.7, side * 1.6],
-          [2.8, side * 1.3],
-          [0.3, side * 0.1],
-        ],
-        -0.15,
-        0.22,
-        dark,
-      );
-    }
-    for (let i = 0; i < 9; i++) {
-      const a = -1.9 + i * 0.475;
-      k.add(box(0.7, 0.17, 0.16, 3.24 * Math.cos(a), 3.24 * Math.sin(a), 0.45, a), trim);
-      k.lit(box(0.34, 0.045, 0.04, 3.25 * Math.cos(a), 3.25 * Math.sin(a), 0.56, a), lamp, 1.4);
-    }
-    k.add(ring(1.25, 0.13, 48, 0, 0, 0.2), trim);
-    // Delicate gyroscope rather than another outer armour wheel.
-    rotor.add(new T.TorusGeometry(1.65, 0.045, 6, 48).rotateY(0.55), trim);
-  } else if (ares) {
-    // ARES: a massive horizontal siege hammer, angular bow and rear engine banks.
+    // GATEKEEPER: a split-jaw orbital execution fortress.
     plate(
       [
-        [-2.6, -2.5],
-        [-1.2, -2.8],
-        [-0.65, -1.35],
-        [2.45, -1.05],
-        [3, -0.65],
-        [3, 0.65],
-        [2.45, 1.05],
-        [-0.65, 1.35],
-        [-1.2, 2.8],
-        [-2.6, 2.5],
-        [-3, 1.25],
-        [-2.45, 0],
-        [-3, -1.25],
+        [3.5, -1.8],
+        [2.6, -2.8],
+        [0.1, -2.45],
+        [-0.9, -1.05],
+        [-1.4, 0],
+        [-0.9, 1.05],
+        [0.1, 2.45],
+        [2.6, 2.8],
+        [3.5, 1.8],
       ],
-      -0.4,
-      0.85,
+      -0.65,
+      1.2,
+      dark,
     );
     for (const side of [-1, 1]) {
+      const y = (v: number) => v * side;
       plate(
         [
-          [-2.5, side * 1.25],
-          [-1.35, side * 1.1],
-          [-1.1, side * 2.4],
-          [-2.25, side * 2.15],
-        ],
-        0.48,
-        0.25,
-        trim,
-      );
-      plate(
-        [
-          [0.7, side * 0.6],
-          [2.5, side * 0.45],
-          [2.3, side * 0.94],
-          [0.9, side * 1.05],
-        ],
-        0.49,
-        0.18,
-        dark,
-      );
-      k.add(tube(0.2, 0.32, 2.2, 12, -1.6, side * 0.85, 0.64), dark);
-      for (let j = 0; j < 3; j++) {
-        k.add(box(0.17, 0.4, 0.07, 1 + j * 0.43, side * 0.76, 0.75), trim);
-        k.lit(box(0.3, 0.09, 0.04, 2.82, side * (0.24 + j * 0.22), 0.1), lamp, 2);
-      }
-    }
-    k.add(disc(1.1, 0.18, 6, 0, 0, 0.65), dark);
-    rotor.add(ring(0.92, 0.13, 6, 0, 0, 0.9), trim);
-    for (let j = 0; j < 3; j++)
-      rotor.lit(box(0.35, 0.065, 0.045, 0.7, 0, 1.08).rotateZ((j * Math.PI * 2) / 3), lamp, 1.5);
-  } else if (nereid) {
-    // NEREID: an ice leviathan coiled around a frozen heart. Read as a
-    // tapering spine of calving bergs rather than a machine.
-    for (let i = 0; i < 7; i++) {
-      const t = i / 6;
-      const cx = -3.1 + i * 0.95,
-        cy = Math.sin(t * 3.2) * 1.25,
-        r = 1.35 - t * 0.72;
-      plate(
-        [
-          [cx - r, cy],
-          [cx - r * 0.25, cy - r * 0.92],
-          [cx + r * 0.8, cy - r * 0.4],
-          [cx + r * 0.55, cy + r * 0.35],
-          [cx - r * 0.2, cy + r * 0.95],
-        ],
-        -0.2 - t * 0.15,
-        0.55 - t * 0.2,
-        i % 2 ? trim : hull,
-      );
-      if (i % 2 === 0) k.lit(disc(0.16 - t * 0.05, 0.06, 10, cx, cy, 0.42), lamp, 1.7);
-    }
-    // The jaw: a blunt prow of fractured ice.
-    plate(
-      [
-        [-4.5, 0],
-        [-3.4, -1.15],
-        [-2.5, -0.5],
-        [-2.5, 0.5],
-        [-3.4, 1.15],
-      ],
-      -0.25,
-      0.7,
-      hull,
-    );
-    // Shards fanned around the heart.
-    for (let i = 0; i < 7; i++) {
-      const a = (i / 7) * Math.PI * 2;
-      k.add(
-        tube(0.04, 0.22, 1.85, 5, Math.cos(a) * 1.45, Math.sin(a) * 1.45, 0.2).rotateZ(a),
-        i % 2 ? hull : trim,
-      );
-    }
-    k.add(ring(1.2, 0.1, 40, 0, 0, 0.35), dark);
-    // Two shelves, one barely tilted, so the silhouette keeps turning.
-    rotor.add(new T.TorusGeometry(1.75, 0.05, 6, 52).rotateX(0.35), hull);
-    rotor.add(new T.TorusGeometry(1.35, 0.04, 6, 52).rotateY(1.1), trim);
-  } else {
-    // JOVE: a floating manta cathedral with swept sails and long rear tendrils.
-    plate(
-      [
-        [-1.5, 0],
-        [-0.6, -0.9],
-        [0.9, -0.5],
-        [1.7, 0],
-        [0.9, 0.5],
-        [-0.6, 0.9],
-      ],
-      -0.2,
-      0.5,
-    );
-    for (const side of [-1, 1]) {
-      plate(
-        [
-          [-0.8, side * 0.65],
-          [-2, side * 2.9],
-          [-0.6, side * 3.8],
-          [1.9, side * 2.25],
-          [0.6, side * 1.7],
-          [1.2, side * 0.6],
+          [-3.8, y(1.1)],
+          [-2.5, y(2.95)],
+          [0.8, y(3.25)],
+          [2.75, y(2.2)],
+          [1.9, y(1.65)],
+          [-1.3, y(1.6)],
         ],
         -0.1,
-        0.18,
-        trim,
+        0.72,
+        hull,
       );
       plate(
         [
-          [-0.35, side * 0.7],
-          [-0.8, side * 2.8],
-          [0.55, side * 2.28],
-          [0.4, side * 1.1],
+          [-3.7, y(1.1)],
+          [-2.9, y(2.2)],
+          [-0.8, y(2.55)],
+          [0.5, y(2.5)],
+          [-0.3, y(2.07)],
+          [-2.1, y(1.75)],
         ],
-        0.12,
-        0.12,
+        0.65,
+        0.22,
+        trim,
+      );
+      for (let j = 0; j < 7; j++) {
+        const x = -2.2 + j * 0.65;
+        k.add(
+          box(0.33, 0.76, 0.28, x, y(2.55 - j * 0.065), 0.72, -side * 0.18),
+          j % 2 ? dark : hull,
+        );
+        k.lit(box(0.11, 0.28, 0.028, x, y(2.56 - j * 0.065), 0.89), lamp, 1.35);
+      }
+      for (let j = 0; j < 3; j++) {
+        k.add(tube(0.17, 0.28, 1.3, 16, -2.4, y(1.65 + j * 0.35), 0.35), dark);
+        k.add(tube(0.2, 0.22, 0.14, 16, -3.05, y(1.65 + j * 0.35), 0.35), trim);
+      }
+      plate(
+        [
+          [-2.7, y(0.75)],
+          [-1.5, y(1.4)],
+          [-0.9, y(1.25)],
+          [-1.3, y(0.6)],
+        ],
+        0.36,
+        0.4,
         hull,
       );
+      k.lit(box(0.8, 0.065, 0.04, -1.85, y(0.98), 0.82, side * 0.3), '#ff4a25', 2.2);
+    }
+    for (let j = 0; j < 6; j++) k.add(box(0.16, 2.7 - j * 0.13, 0.18, 1 + j * 0.32, 0, 0.75), trim);
+    rotor.add(ring(1.23, 0.13, 12, 0, 0, 0.6), dark);
+  } else if (ares) {
+    // ARES: a brutal siege dreadnought, twin forward mass-driver trenches.
+    plate(
+      [
+        [-3.6, -1.35],
+        [-2.3, -2.8],
+        [0.4, -2.3],
+        [3.6, -1.45],
+        [3.9, 0],
+        [3.6, 1.45],
+        [0.4, 2.3],
+        [-2.3, 2.8],
+        [-3.6, 1.35],
+        [-2.25, 0],
+      ],
+      -0.65,
+      1.1,
+      dark,
+    );
+    for (const side of [-1, 1]) {
+      const y = (v: number) => v * side;
+      plate(
+        [
+          [-3.8, y(1.05)],
+          [-2.6, y(2.75)],
+          [-0.6, y(2.65)],
+          [0.15, y(1.6)],
+          [-1.2, y(0.6)],
+        ],
+        0.1,
+        0.85,
+        hull,
+      );
+      plate(
+        [
+          [0.2, y(0.65)],
+          [3.65, y(0.8)],
+          [3.15, y(1.8)],
+          [0.6, y(2.3)],
+          [-0.3, y(1.55)],
+        ],
+        0.15,
+        0.55,
+        hull,
+      );
+      for (let j = 0; j < 6; j++) {
+        const x = -2.6 + j * 0.88;
+        k.add(box(0.65, 0.56, 0.18, x, y(1.8), 0.95, -side * 0.16), j % 2 ? trim : hull);
+        k.add(box(0.055, 0.51, 0.045, x, y(1.8), 1.06), dark);
+        k.lit(box(0.25, 0.055, 0.03, x, y(1.56), 1.07), lamp, 1.5);
+      }
       for (let j = 0; j < 3; j++) {
-        const y = side * (0.5 + j * 0.62);
-        plate(
-          [
-            [0.8, y],
-            [3.5 - j * 0.35, y + side * 0.7],
-            [2.5 - j * 0.2, y + side * 0.02],
-            [1, y - side * 0.15],
-          ],
-          0,
-          0.09,
-          j % 2 ? trim : hull,
-        );
-        k.lit(box(0.8, 0.045, 0.04, 0.2, y, 0.36, side * 0.5), lamp, 1.5);
+        k.add(tube(0.16, 0.24, 2.7, 16, -2.1, y(0.7 + j * 0.32), 0.62), dark);
+        for (let q = 0; q < 4; q++)
+          k.add(tube(0.2, 0.2, 0.1, 12, -3.3 + q * 0.5, y(0.7 + j * 0.32), 0.62), trim);
+        k.lit(tube(0.12, 0.12, 0.045, 12, -3.5, y(0.7 + j * 0.32), 0.62), lamp, 2);
+      }
+      for (let j = 0; j < 4; j++) {
+        k.add(tube(0.23, 0.3, 0.6, 12, 3.5, y(0.45 + j * 0.35), 0.15), dark);
+        k.lit(tube(0.16, 0.16, 0.08, 12, 3.82, y(0.45 + j * 0.35), 0.15), '#ff6c25', 2);
       }
     }
-    k.add(ring(1.13, 0.08, 6, 0, 0, 0.5), trim);
-    rotor.add(new T.TorusGeometry(1.45, 0.045, 6, 48).rotateX(0.9), hull);
-    rotor.add(new T.TorusGeometry(1.45, 0.045, 6, 48).rotateY(0.9), trim);
+    plate(
+      [
+        [-1, -0.65],
+        [1.9, -0.55],
+        [2.65, 0],
+        [1.9, 0.55],
+        [-1, 0.65],
+      ],
+      0.65,
+      0.42,
+      trim,
+    );
+    for (let j = 0; j < 9; j++) k.add(box(0.065, 0.85, 0.055, 0.3 + j * 0.18, 0, 1.12), dark);
+    rotor.add(ring(1.05, 0.14, 8, 0, 0, 0.8), trim);
+  } else if (nereid) {
+    // NEREID: abyssal biomechanical leviathan, jagged ice plates over a spine.
+    for (let j = 0; j < 9; j++) {
+      const x = -2.7 + j * 0.72,
+        cy = Math.sin(j * 0.42) * 0.45,
+        r = 1.65 - j * 0.105;
+      k.add(orb(1, x, cy, -0.1, 0.58, r, 0.6), dark);
+      for (const side of [-1, 1]) {
+        plate(
+          [
+            [x - 0.48, cy + side * 0.38],
+            [x - 0.6, cy + side * r],
+            [x + 0.18, cy + side * (r + 0.45)],
+            [x + 0.46, cy + side * 0.66],
+          ],
+          0.15,
+          0.44,
+          j % 2 ? hull : trim,
+        );
+        plate(
+          [
+            [x - 0.35, cy + side * r],
+            [x - 0.3, cy + side * (r + 1.15 - j * 0.045)],
+            [x + 0.28, cy + side * (r + 0.15)],
+          ],
+          0.1,
+          0.25,
+          hull,
+        );
+        k.lit(box(0.05, r * 0.58, 0.04, x, cy + side * r * 0.7, 0.67, -side * 0.18), lamp, 1.7);
+      }
+      k.add(box(0.36, 0.58, 0.2, x, cy, 0.56), trim);
+    }
+    for (const side of [-1, 1]) {
+      const y = (v: number) => v * side;
+      plate(
+        [
+          [-4.75, y(0.32)],
+          [-3.85, y(1.62)],
+          [-2.6, y(1.3)],
+          [-2.4, y(0.6)],
+          [-3.4, y(0.7)],
+        ],
+        0.05,
+        0.64,
+        hull,
+      );
+      for (let j = 0; j < 5; j++)
+        plate(
+          [
+            [-4.2 + j * 0.34, y(0.72)],
+            [-4.05 + j * 0.34, y(0.13)],
+            [-3.84 + j * 0.34, y(0.78)],
+          ],
+          0.12,
+          0.2,
+          trim,
+        );
+      k.lit(box(0.65, 0.075, 0.04, -3.2, y(1.05), 0.75, side * 0.23), '#ff584b', 2.2);
+    }
+    rotor.add(ring(1.12, 0.12, 10, 0, 0, 0.72), dark);
+  } else {
+    // JOVE: a cathedral-scale blade carrier, interleaved wings and reactor ribs.
+    plate(
+      [
+        [-2, -0.5],
+        [-0.5, -1.3],
+        [2.85, -0.75],
+        [3.4, 0],
+        [2.85, 0.75],
+        [-0.5, 1.3],
+        [-2, 0.5],
+      ],
+      -0.55,
+      1,
+      dark,
+    );
+    for (const side of [-1, 1]) {
+      const y = (v: number) => v * side;
+      plate(
+        [
+          [-3.1, y(3.6)],
+          [-1.4, y(4.05)],
+          [1.2, y(3.5)],
+          [3.2, y(1.5)],
+          [0.5, y(0.65)],
+          [-1, y(1.2)],
+        ],
+        -0.25,
+        0.52,
+        hull,
+      );
+      for (let j = 0; j < 5; j++) {
+        const y0 = 0.95 + j * 0.53;
+        plate(
+          [
+            [-1.8 - j * 0.2, y(y0)],
+            [0.85, y(y0 + 0.6)],
+            [2.8 - j * 0.22, y(y0 + 0.05)],
+            [0.05, y(y0 - 0.18)],
+          ],
+          0.3 + j * 0.04,
+          0.2,
+          j % 2 ? trim : hull,
+        );
+        k.lit(box(1.1, 0.04, 0.035, -0.6, y(y0 + 0.06), 0.57 + j * 0.04, side * 0.18), lamp, 1.55);
+        k.add(tube(0.08, 0.13, 1.35, 12, -1.7, y(y0), 0.52), dark);
+      }
+      for (let j = 0; j < 4; j++) {
+        plate(
+          [
+            [1.4, y(0.7 + j * 0.5)],
+            [4 - j * 0.25, y(1.1 + j * 0.65)],
+            [2.7, y(0.7 + j * 0.5)],
+          ],
+          -0.2,
+          0.22,
+          trim,
+        );
+        k.add(box(0.28, 0.24, 0.42, 0.5, y(0.65 + j * 0.44), 0.75), dark);
+      }
+    }
+    for (let j = 0; j < 7; j++) {
+      k.add(box(0.14, 1.7, 0.2, 0.7 + j * 0.27, 0, 0.72), trim);
+      k.lit(box(0.045, 0.75, 0.025, 0.7 + j * 0.27, 0, 0.84), lamp, 1.4);
+    }
+    rotor.add(ring(1.2, 0.12, 12, 0, 0, 0.75), dark);
+  }
+  // Raised fasteners and recessed maintenance panels, at a much smaller scale
+  // than the primary armour. Merged into two batches, not individual draw calls.
+  for (let j = 0; j < 32; j++) {
+    const a = (j / 32) * Math.PI * 2,
+      r = 1.65 + (j % 3) * 0.17;
+    k.add(disc(0.047, 0.06, 8, Math.cos(a) * r, Math.sin(a) * r, 0.82), trim);
+  }
+  k.add(disc(1.14, 0.3, 16, 0, 0, 0.45), dark);
+  k.add(ring(1.02, 0.14, 32, 0, 0, 0.78), trim);
+  for (let j = 0; j < 12; j++) {
+    const a = (j / 12) * Math.PI * 2;
+    k.add(box(0.38, 0.1, 0.17, Math.cos(a) * 0.95, Math.sin(a) * 0.95, 0.9, a), hull);
+    rotor.lit(box(0.13, 0.045, 0.035, Math.cos(a) * 1.25, Math.sin(a) * 1.25, 0.94, a), lamp, 1.8);
   }
   attachKit(
     root,
@@ -1988,16 +2077,10 @@ export function makeBoss(design: BossDesign): BossModel {
   attachKit(ringGroup, rotor);
   root.add(ringGroup);
   const core = new T.Mesh(
-    gate
-      ? new T.OctahedronGeometry(0.83)
-      : ares
-        ? new T.IcosahedronGeometry(0.7, 1)
-        : nereid
-          ? new T.IcosahedronGeometry(0.9, 2)
-          : new T.SphereGeometry(0.72, 24, 12),
-    glow(lamp, 1.8),
+    new T.CylinderGeometry(0.68, 0.68, 0.12, 32).rotateX(Math.PI / 2),
+    glow(lamp, 1.55),
   );
-  core.position.z = ares ? 0.94 : nereid ? 0.5 : 0.45;
+  core.position.z = 0.86;
   root.add(core);
   const pods: T.Group[] = [];
   for (let i = 0; i < (gate ? 4 : ares ? 6 : nereid ? 10 : 8); i++) {
@@ -2057,6 +2140,13 @@ export function makeBoss(design: BossDesign): BossModel {
       );
       pk.add(gem(0.22, 0, -0.13, 0, 0.17, 1.6, 0.7, 0.7), hull);
       pk.lit(orb(0.105, -0.28, 0, 0.32), lamp, 1.8);
+    }
+    // Armoured drone gunship with a recessed lens and vented flank.
+    for (const side of [-1, 1]) {
+      pk.add(box(0.5, 0.1, 0.13, 0.05, side * 0.35, 0.4), dark);
+      for (let v = 0; v < 4; v++)
+        pk.add(box(0.04, 0.12, 0.025, -0.2 + v * 0.12, side * 0.35, 0.48), trim);
+      pk.add(tube(0.055, 0.085, 0.55, 10, -0.55, side * 0.24, 0.22), dark);
     }
     attachKit(p, pk);
     pods.push(p);

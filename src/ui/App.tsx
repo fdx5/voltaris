@@ -471,16 +471,30 @@ function GameApp() {
               <small>
                 {ui.bossName}{' '}
                 <span>
-                  PHASE 0{ui.bossPhase} · {clock(180 - ui.bossTime)}
+                  {ui.bossDying
+                    ? 'REACTOR COLLAPSE'
+                    : `PHASE 0${ui.bossPhase} / ${Math.ceil(Math.max(0, ui.bossHp))} / ${ui.bossHpFull} HP`}
                 </span>
               </small>
-              <div>
+              <div
+                role="progressbar"
+                aria-label="Boss HP"
+                aria-valuemin={0}
+                aria-valuemax={ui.bossHpFull}
+                aria-valuenow={Math.max(0, ui.bossHp)}
+              >
                 {/* Against the boss's own hull, not a constant: the later
                     bosses carry several times what the first one did, and a
                     fixed divisor ran the bar off the side of the screen. */}
                 <i
                   style={{
                     width: `${Math.max(0, Math.min(100, (ui.bossHp / Math.max(1, ui.bossHpFull)) * 100))}%`,
+                    background:
+                      ui.bossHp / ui.bossHpFull <= 0.3
+                        ? '#ff3b45'
+                        : ui.bossHp / ui.bossHpFull < 0.7
+                          ? 'linear-gradient(90deg, #ff932d, #ffda45)'
+                          : '#329dff',
                   }}
                 />
               </div>

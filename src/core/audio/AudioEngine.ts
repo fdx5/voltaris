@@ -120,11 +120,11 @@ export class AudioEngine {
    * is never truncated and never refused for polyphony, because there is only
    * ever one of it.
    */
-  async jingle(url: string) {
+  async jingle(url: string, duration?: number) {
     // A cue fires once, so it cannot afford to be skipped while its sample
     // decodes the way a repeating combat voice can.
     if (!this.samples.has(url)) await this.loadSample(url);
-    this.playSample(url, 'impact', true);
+    this.playSample(url, 'impact', true, 1, duration);
   }
   /** Pickups use their own bus so the quiet option cue is audible over combat. */
   async pickupSample(url: string, volume = 1) {
@@ -142,7 +142,13 @@ export class AudioEngine {
   preload(urls: readonly string[]) {
     for (const url of urls) if (!this.samples.has(url)) void this.loadSample(url);
   }
-  private playSample(url: string, bus: 'weapon' | 'impact' | 'pickup', whole = false, volume = 1) {
+  private playSample(
+    url: string,
+    bus: 'weapon' | 'impact' | 'pickup',
+    whole = false,
+    volume = 1,
+    duration?: number,
+  ) {
     const entry = this.samples.get(url);
     if (!entry) {
       void this.loadSample(url);
@@ -175,9 +181,11 @@ export class AudioEngine {
       node.disconnect();
       gain?.disconnect();
     };
-    const remaining = entry.buffer.duration - entry.onset;
+    // Timed cinematics keep the file's leading silence to preserve their timeline.
+    const onset = duration === undefined ? entry.onset : 0;
+    const remaining = entry.buffer.duration - onset;
     const length = whole ? remaining : Math.min(remaining, weapon ? 0.4 : 1.6);
-    node.start(this.ctx.currentTime, entry.onset, length);
+    node.start(this.ctx.currentTime, onset, Math.min(length, duration ?? length));
   }
   private loadSample(url: string): Promise<void> {
     const pending = this.sampleLoads.get(url);
