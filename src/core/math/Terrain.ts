@@ -33,6 +33,18 @@ export class Terrain {
     /** How far the far range climbs past the relief. */
     readonly reach = 0.35,
     readonly depthSlope = 0,
+    /**
+     * How fast the field peels away from the play lane behind it, in world
+     * units per z squared. A camera at lane height sees any surface that runs
+     * on to the horizon fill the screen up to eye level, so a cave whose deck
+     * and vault stay parallel swallows the corridor however far apart they
+     * are set. Flaring them open past the play plane keeps the terrain at the
+     * edges of the frame: negative for a deck, positive for a vault. It is
+     * zero in front of the plane, so the near strip still runs off the bottom
+     * (or the top) of the frame with no visible lip, and zero at the plane
+     * itself, so emplacements sit exactly where they always did.
+     */
+    readonly flare = 0,
   ) {
     const rng = new Random(seed);
     const waves = [1, 2, 3, 5, 8, 13];
@@ -71,7 +83,8 @@ export class Terrain {
       this.base +
       rolling * this.relief * lane +
       range * range * this.relief * this.reach +
-      z * this.depthSlope
+      z * this.depthSlope +
+      this.flare * Math.min(0, z) ** 2
     );
   }
 }

@@ -2151,6 +2151,8 @@ export type GroundConfig = {
   far: number;
   base: number;
   relief: number;
+  /** How fast the deck peels away from the play plane behind it. */
+  flare?: number;
   /** World units per second the surface slides past. */
   speed: number;
   seed: number;
@@ -2175,6 +2177,7 @@ export type GroundConfig = {
     near?: number;
     far?: number;
     depthSlope?: number;
+    flare?: number;
   } | null;
   valley: string;
   crest: string;
@@ -2213,7 +2216,10 @@ function buildStrip(cfg: GroundConfig, terrain: Terrain, flip: boolean) {
     // Height paints the rock, depth washes it out towards the horizon.
     const from = flip ? cfg.roof!.base : cfg.base;
     const span = flip ? -cfg.roof!.relief : cfg.relief;
-    const lift = Math.min(1, Math.max(0, (y - z * terrain.depthSlope - from) / span));
+    const lift = Math.min(
+      1,
+      Math.max(0, (y - z * terrain.depthSlope - terrain.flare * Math.min(0, z) ** 2 - from) / span),
+    );
     const away = Math.min(1, Math.max(0, (near - z) / depth));
     shade.copy(valley).lerp(crest, Math.pow(lift, 0.75));
     // Topographic banding: a soft line at every contour interval, so the
@@ -2272,7 +2278,16 @@ function buildStrip(cfg: GroundConfig, terrain: Terrain, flip: boolean) {
 }
 
 function buildGround(cfg: GroundConfig) {
-  const terrain = new Terrain(cfg.span, cfg.base, cfg.relief, cfg.seed);
+  const terrain = new Terrain(
+    cfg.span,
+    cfg.base,
+    cfg.relief,
+    cfg.seed,
+    undefined,
+    undefined,
+    0,
+    cfg.flare,
+  );
   const vault = cfg.roof
     ? new Terrain(
         cfg.span,
@@ -2282,6 +2297,7 @@ function buildGround(cfg: GroundConfig) {
         cfg.roof.lane,
         cfg.roof.reach,
         cfg.roof.depthSlope,
+        cfg.roof.flare,
       )
     : null;
   const mesh = buildStrip(cfg, terrain, false);

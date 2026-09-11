@@ -18,6 +18,7 @@
     "far": -46,
     "base": -6.4,
     "relief": 2.6,
+    "flare": -0.024,
     "speed": 6.5,
     "seed": 41219,
     "texture": "surfaces/ice_color.jpg",
@@ -26,14 +27,15 @@
     "crest": "#ecfaff",
     "haze": "#325f78",
     "roof": {
-      "base": 7.95,
+      "base": 8.25,
       "relief": 0.95,
       "seed": 88123,
       "lane": 0.78,
       "reach": 0.1,
       "near": 30,
       "far": -26,
-      "depthSlope": -0.134
+      "depthSlope": -0.134,
+      "flare": 0.02
     },
     "normal": "surfaces/ice_normal.jpg",
     "roughness": "surfaces/ice_roughness.jpg"

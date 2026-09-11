@@ -160,7 +160,16 @@ export class GameState {
     this.groundTimer = 0;
     const surface = this.stage.surface;
     this.terrain = surface
-      ? new Terrain(surface.span, surface.base, surface.relief, surface.seed)
+      ? new Terrain(
+          surface.span,
+          surface.base,
+          surface.relief,
+          surface.seed,
+          undefined,
+          undefined,
+          0,
+          'flare' in surface ? surface.flare : 0,
+        )
       : null;
     this.roof =
       surface && surface.roof
@@ -172,6 +181,7 @@ export class GameState {
             surface.roof.lane,
             surface.roof.reach,
             'depthSlope' in surface.roof ? surface.roof.depthSlope : 0,
+            'flare' in surface.roof ? surface.roof.flare : 0,
           )
         : null;
     this.rng.seed = 0x1a2b3c4d;
