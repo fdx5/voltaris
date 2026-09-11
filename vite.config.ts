@@ -30,7 +30,10 @@ export default defineConfig({
       // glob the backdrop loses its maps as soon as the app runs offline.
       workbox: {
         maximumFileSizeToCacheInBytes: 4000000,
-        globPatterns: ['**/*.{js,css,html,ico,png,svg,jpg,webp,webmanifest}'],
+        globPatterns: [
+          '**/*.{js,css,html,ico,png,svg,jpg,webp,webmanifest}',
+          '**/audio/{optionadd,powerup,itemadd}.mp3',
+        ],
         navigateFallbackDenylist: [/^\/api\//],
         // Stage tracks are far too large to precache, so they are kept out of
         // the install payload and cached the first time they stream.

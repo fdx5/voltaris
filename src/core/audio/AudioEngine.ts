@@ -99,6 +99,7 @@ export class AudioEngine {
   private weaponVoices = 0;
   private impactBus: GainNode | null = null;
   private impactVoices = 0;
+  private pickupBus: GainNode | null = null;
 
   /**
    * Fires one voice of a weapon sample. Called once per shot, so at a laser's
@@ -125,18 +126,30 @@ export class AudioEngine {
     if (!this.samples.has(url)) await this.loadSample(url);
     this.playSample(url, 'impact', true);
   }
+  /** Pickups use their own bus so the quiet option cue is audible over combat. */
+  async pickupSample(url: string, volume = 1) {
+    await this.unlock();
+    if (!this.samples.has(url)) await this.loadSample(url);
+    if (!this.ctx || !this.master) return;
+    if (!this.pickupBus) {
+      this.pickupBus = this.ctx.createGain();
+      this.pickupBus.gain.value = 1;
+      this.pickupBus.connect(this.master);
+    }
+    this.playSample(url, 'pickup', true, volume);
+  }
   /** Decodes samples up front so the first use of each is not silent. */
   preload(urls: readonly string[]) {
     for (const url of urls) if (!this.samples.has(url)) void this.loadSample(url);
   }
-  private playSample(url: string, bus: 'weapon' | 'impact', whole = false) {
+  private playSample(url: string, bus: 'weapon' | 'impact' | 'pickup', whole = false, volume = 1) {
     const entry = this.samples.get(url);
     if (!entry) {
       void this.loadSample(url);
       return;
     }
     const weapon = bus === 'weapon';
-    const output = weapon ? this.weaponBus : this.impactBus;
+    const output = bus === 'pickup' ? this.pickupBus : weapon ? this.weaponBus : this.impactBus;
     // Wrecks come in waves, so both buses cap their polyphony rather than
     // letting a big formation stack into a wall of noise.
     const busy = weapon ? this.weaponVoices : this.impactVoices;
@@ -148,13 +161,19 @@ export class AudioEngine {
     node.playbackRate.value = whole
       ? 1
       : (weapon ? 0.97 : 0.9) + Math.random() * (weapon ? 0.06 : 0.22);
-    node.connect(output);
+    const gain = bus === 'pickup' ? this.ctx.createGain() : null;
+    if (gain) {
+      gain.gain.value = volume;
+      node.connect(gain);
+      gain.connect(output);
+    } else node.connect(output);
     if (weapon) this.weaponVoices++;
-    else this.impactVoices++;
+    else if (bus === 'impact') this.impactVoices++;
     node.onended = () => {
       if (weapon) this.weaponVoices--;
-      else this.impactVoices--;
+      else if (bus === 'impact') this.impactVoices--;
       node.disconnect();
+      gain?.disconnect();
     };
     const remaining = entry.buffer.duration - entry.onset;
     const length = whole ? remaining : Math.min(remaining, weapon ? 0.4 : 1.6);

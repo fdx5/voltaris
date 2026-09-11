@@ -26,6 +26,17 @@ export function makeShip() {
   type Finish = keyof typeof materials;
   const parts = new Map<Finish, T.BufferGeometry[]>();
   const add = (g: T.BufferGeometry, finish: Finish) => {
+    // Compress the forebody in thickness as well as width. Extruding a
+    // pointed planform alone leaves a blunt vertical edge in side elevation.
+    const positions = g.getAttribute('position');
+    for (let i = 0; i < positions.count; i++) {
+      const x = positions.getX(i);
+      if (x <= 0.6) continue;
+      const taper = Math.max(0.025, 1 - (x - 0.6) / 1.075);
+      positions.setZ(i, positions.getZ(i) * taper);
+      positions.setX(i, 0.6 + (x - 0.6) * 1.15);
+    }
+    g.computeVertexNormals();
     const list = parts.get(finish) ?? [];
     list.push(g);
     parts.set(finish, list);
@@ -183,10 +194,11 @@ export function makeShip() {
     exhaust.userData.phase = side * 1.8;
     // Every layer starts at the nozzle; changing length never opens a gap.
     for (const [radius, length, color, opacity] of [
-      [0.205, 1.85, '#5c60ff', 0.16],
-      [0.16, 1.5, '#278dff', 0.25],
-      [0.115, 1.1, '#4ddfff', 0.48],
-      [0.062, 0.65, '#e7fbff', 0.9],
+      [0.23, 2.05, '#ff3020', 0.24],
+      [0.185, 1.7, '#ff7b18', 0.34],
+      [0.14, 1.3, '#ffd34a', 0.46],
+      [0.105, 0.92, '#278dff', 0.6],
+      [0.052, 0.57, '#f4fbff', 0.9],
     ] as const) {
       const geometry = new T.ConeGeometry(radius, length, 20, 1, true)
         .rotateZ(Math.PI / 2)
@@ -206,9 +218,9 @@ export function makeShip() {
         ),
       );
     }
-    // Compressed shock diamonds inside the blue plume, like an afterburner.
+    // White-hot compression diamonds inside the warm outer flame.
     const diamondMaterial = new T.MeshBasicNodeMaterial({
-      color: '#b9f7ff',
+      color: '#fff0c2',
       transparent: true,
       opacity: 0.7,
       blending: T.AdditiveBlending,
@@ -240,5 +252,9 @@ export function animateShip(ship: T.Group, time: number, thrust: number) {
     const phase = engine.userData.phase as number;
     const flutter = Math.sin(time * 43 + phase) * 0.045 + Math.sin(time * 71 + phase) * 0.025;
     engine.scale.set(0.9 + thrust * 0.25 + flutter, 1 + flutter * 0.6, 1 + flutter * 0.6);
+    for (let i = 0; i < 5; i++) {
+      const layer = engine.children[i];
+      layer.scale.x = 1 + Math.sin(time * (29 + i * 7) + phase + i) * (0.045 + i * 0.008);
+    }
   }
 }

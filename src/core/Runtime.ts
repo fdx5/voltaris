@@ -307,7 +307,7 @@ export class Runtime {
       for (let type = 0; type < PICKUP_SAMPLES.length; type++) {
         const count = g.pickupEventsByType[type];
         for (let n = this.pickupSounds[type]; n < count; n++)
-          void this.audio.jingle(PICKUP_SAMPLES[type]);
+          void this.audio.pickupSample(PICKUP_SAMPLES[type], type === 1 ? 2.4 : 1);
         this.pickupSounds[type] = count;
       }
       this.sounds[2] = g.pickupEvent;

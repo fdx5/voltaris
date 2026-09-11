@@ -12,7 +12,12 @@ it('plays full pickup cues even when collection happens during preloading', asyn
         finishFetch = resolve;
       }),
   );
-  const gain = () => ({ gain: { value: 0 }, connect: vi.fn() });
+  const gains: { gain: { value: number }; connect: ReturnType<typeof vi.fn> }[] = [];
+  const gain = () => {
+    const node = { gain: { value: 0 }, connect: vi.fn() };
+    gains.push(node);
+    return node;
+  };
   vi.stubGlobal('fetch', fetchSample);
   vi.stubGlobal(
     'AudioContext',
@@ -33,14 +38,19 @@ it('plays full pickup cues even when collection happens during preloading', asyn
   const audio = new AudioEngine();
   await audio.unlock();
   audio.preload(['/audio/optionadd.mp3']);
-  const first = audio.jingle('/audio/optionadd.mp3');
-  const second = audio.jingle('/audio/optionadd.mp3');
+  const first = audio.pickupSample('/audio/optionadd.mp3', 2.4);
+  const second = audio.pickupSample('/audio/optionadd.mp3', 2.4);
   expect(start).not.toHaveBeenCalled();
   finishFetch({ ok: true, arrayBuffer: async () => new ArrayBuffer(0) });
   await Promise.all([first, second]);
   expect(fetchSample).toHaveBeenCalledTimes(1);
   expect(start).toHaveBeenCalledTimes(2);
   expect(start).toHaveBeenCalledWith(1, 0.2, 2.8);
+  const pickupGains = gains.filter((node) => node.gain.value === 2.4);
+  expect(pickupGains).toHaveLength(2);
+  // Both cues reach the independent unity bus, not the 0.5 explosion bus.
+  for (const node of pickupGains)
+    expect(node.connect).toHaveBeenCalledWith(expect.objectContaining({ gain: { value: 1 } }));
 });
 
 it('does not reject launch when Web Audio is unavailable', async () => {
