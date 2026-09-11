@@ -24,6 +24,7 @@ const PICKUP_SAMPLES = [
 /** Wreck samples, chosen by how much hull came apart. */
 const WRECK_LIGHT = '/audio/11_soft_puff.mp3';
 const WRECK_HEAVY = '/audio/04_rumble_break.mp3';
+const PLAYER_DESTROY = '/audio/destroy.mp3';
 
 /**
  * Turns a renderer start-up failure into something the player can act on.
@@ -60,7 +61,7 @@ export class Runtime {
   private disposed = false;
   private recorded = false;
   private controller = new AbortController();
-  private sounds = new Uint32Array(5);
+  private sounds = new Uint32Array(6);
   private pickupSounds = new Uint32Array(4);
   private lastStatus = 'menu';
   private bossTrack = false;
@@ -165,6 +166,7 @@ export class Runtime {
         STAGE_CLEAR,
         WRECK_LIGHT,
         WRECK_HEAVY,
+        PLAYER_DESTROY,
         ...Object.values(FIRE_SAMPLES),
         ...PICKUP_SAMPLES,
       ]);
@@ -294,13 +296,19 @@ export class Runtime {
     }
     const g = this.game;
     const sample = FIRE_SAMPLES[g.weapon];
+    // Shield hits increment hitEvent too; only a lost life triggers this cue.
+    const destroyed = g.deaths !== this.sounds[5];
+    if (destroyed) {
+      void this.audio.jingle(PLAYER_DESTROY);
+      this.sounds[5] = g.deaths;
+    }
     if (g.shotEvent !== this.sounds[0]) {
       this.sounds[0] = g.shotEvent;
       if (sample) this.audio.fireSample(sample);
       else this.audio.shot();
     }
     if (g.explosionEvent !== this.sounds[1]) {
-      this.audio.impactSample(g.explosionHeavy ? WRECK_HEAVY : WRECK_LIGHT);
+      if (!destroyed) this.audio.impactSample(g.explosionHeavy ? WRECK_HEAVY : WRECK_LIGHT);
       this.sounds[1] = g.explosionEvent;
     }
     if (g.pickupEvent !== this.sounds[2]) {
@@ -317,7 +325,7 @@ export class Runtime {
       this.sounds[3] = g.warningEvent;
     }
     if (g.hitEvent !== this.sounds[4]) {
-      this.audio.explosion();
+      if (!destroyed) this.audio.explosion();
       this.sounds[4] = g.hitEvent;
     }
     // A boss arriving cuts the stage theme over to its own.
