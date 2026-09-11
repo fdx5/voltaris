@@ -46,6 +46,23 @@ afterEach(() => {
   vi.unstubAllGlobals();
 });
 describe('flight pointer ownership and recovery', () => {
+  it('scales steering against the safe game viewport after a toolbar resize', () => {
+    input.dispose();
+    let height = 369;
+    input = new InputManager(
+      surface as unknown as HTMLElement,
+      () => true,
+      () => ({ width: 750, height }),
+    );
+    pointer(surface, 'pointerdown', 1, 100, 100);
+    pointer(win, 'pointermove', 1, 120, 100);
+    input.flush();
+    expect(input.dx).toBeCloseTo((20 * 18) / 369);
+    height = 259;
+    pointer(win, 'pointermove', 1, 140, 100);
+    input.flush();
+    expect(input.dx).toBeCloseTo((20 * 18) / 259);
+  });
   it('accepts canvas descendants and the right side of the screen', () => {
     pointer(surface, 'pointerdown', 1, 800, 100, { closest: () => null });
     pointer(win, 'pointermove', 1, 820, 120);

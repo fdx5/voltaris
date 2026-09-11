@@ -32,6 +32,7 @@ export class Terrain {
     readonly lane = 0.45,
     /** How far the far range climbs past the relief. */
     readonly reach = 0.35,
+    readonly depthSlope = 0,
   ) {
     const rng = new Random(seed);
     const waves = [1, 2, 3, 5, 8, 13];
@@ -66,6 +67,11 @@ export class Terrain {
     // The far range is capped: an uncapped ramp put the horizon in the middle
     // of the play field instead of behind it.
     const range = Math.min(1, Math.max(0, (-z - 12) / 30));
-    return this.base + rolling * this.relief * lane + range * range * this.relief * this.reach;
+    return (
+      this.base +
+      rolling * this.relief * lane +
+      range * range * this.relief * this.reach +
+      z * this.depthSlope
+    );
   }
 }

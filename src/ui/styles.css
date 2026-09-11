@@ -87,7 +87,7 @@ kbd {
 }
 .app {
   width: 100%;
-  height: 100dvh;
+  height: calc(var(--viewport-height) * 1);
   position: relative;
   isolation: isolate;
   min-height: 430px;
@@ -225,7 +225,7 @@ kbd {
 .title {
   display: flex;
   flex-direction: column;
-  font-size: clamp(70px, 8.2vw, 142px);
+  font-size: clamp(70px, calc(var(--viewport-width) * 0.08199999999999999), 142px);
   font-weight: 900;
   line-height: 0.83;
   letter-spacing: -0.06em;
@@ -541,8 +541,8 @@ kbd {
 }
 .play-frame {
   position: absolute;
-  width: min(100vw, 177.7778dvh);
-  height: min(100dvh, 56.25vw);
+  width: min(calc(var(--viewport-width) * 1), calc(var(--viewport-height) * 1.777778));
+  height: min(calc(var(--viewport-height) * 1), calc(var(--viewport-width) * 0.5625));
   top: 50%;
   left: 50%;
   transform: translate(-50%, -50%);
@@ -855,7 +855,7 @@ kbd {
 .modal {
   width: 480px;
   max-width: 100%;
-  max-height: 90dvh;
+  max-height: calc(var(--viewport-height) * 0.9);
   overflow: auto;
   background: linear-gradient(135deg, #12212a, #09131c);
   border: 1px solid #607b8a55;
@@ -1186,7 +1186,7 @@ kbd {
   background: #07131bef;
   border: 1px solid #53758066;
   z-index: 20;
-  max-height: 88dvh;
+  max-height: calc(var(--viewport-height) * 0.88);
   overflow: auto;
 }
 .lab-head {
@@ -1348,7 +1348,7 @@ kbd {
     top: 17%;
   }
   .title {
-    font-size: clamp(65px, 7.8vw, 105px);
+    font-size: clamp(65px, calc(var(--viewport-width) * 0.078), 105px);
     margin-top: 19px;
     margin-bottom: 16px;
   }
@@ -1474,7 +1474,7 @@ kbd {
     font-size: 6px;
   }
   .title {
-    font-size: clamp(52px, 9.8vh, 75px);
+    font-size: clamp(52px, calc(var(--viewport-height) * 0.098), 75px);
     margin: 16px 0 12px;
   }
   .tagline {
@@ -1599,7 +1599,7 @@ kbd {
     padding: 12px;
   }
   .modal {
-    max-height: 94dvh;
+    max-height: calc(var(--viewport-height) * 0.94);
     padding: 22px;
   }
   .modal-heading {
@@ -1697,7 +1697,7 @@ kbd {
   }
   .lab {
     top: 4%;
-    max-height: 92dvh;
+    max-height: calc(var(--viewport-height) * 0.92);
     width: 310px;
     padding: 18px;
   }
@@ -1768,16 +1768,16 @@ kbd {
     touch-action: none;
   }
   .header {
-    padding-left: max(4%, env(safe-area-inset-left));
-    padding-right: max(4%, env(safe-area-inset-right));
+    padding-left: max(4%, var(--safe-left));
+    padding-right: max(4%, var(--safe-right));
   }
   .hud.top-left,
   .hud.bottom-left {
-    left: max(3.5%, env(safe-area-inset-left));
+    left: max(3.5%, var(--safe-left));
   }
   .hud.top-right,
   .skills {
-    right: max(3.5%, env(safe-area-inset-right));
+    right: max(3.5%, var(--safe-right));
   }
 }
 @media (orientation: portrait) {
@@ -1822,7 +1822,7 @@ kbd {
   }
 }
 .login-screen {
-  min-height: 100dvh;
+  min-height: calc(var(--viewport-height) * 1);
   display: grid;
   place-items: center;
   padding: 24px;
@@ -1887,7 +1887,7 @@ kbd {
   left: 50%;
   bottom: 16px;
   transform: translateX(-50%);
-  max-width: 90vw;
+  max-width: calc(var(--viewport-width) * 0.9);
   background: #132739;
   border: 1px solid #6aa6b1;
   color: #e2f6ff;
@@ -1919,7 +1919,7 @@ kbd {
 }
 .history-scroll {
   overflow: auto;
-  max-height: 48vh;
+  max-height: calc(var(--viewport-height) * 0.48);
 }
 .online-history table {
   width: 100%;
@@ -1967,12 +1967,12 @@ kbd {
 @media (max-width: 1050px) and (max-height: 950px) {
   .app:not(.in-flight) {
     min-height: 0;
-    height: 100dvh;
+    height: calc(var(--viewport-height) * 1);
     display: grid;
     grid-template-rows: 48px minmax(0, 1fr) auto 28px;
     gap: 8px;
-    padding: env(safe-area-inset-top) max(12px, env(safe-area-inset-right))
-      env(safe-area-inset-bottom) max(12px, env(safe-area-inset-left));
+    padding: var(--safe-top) max(12px, var(--safe-right)) var(--safe-bottom)
+      max(12px, var(--safe-left));
   }
   .app:not(.in-flight) .header {
     position: static;
@@ -2010,7 +2010,7 @@ kbd {
   .command .title {
     grid-row: span 2;
     align-self: center;
-    font-size: clamp(38px, 13dvh, 76px);
+    font-size: clamp(38px, calc(var(--viewport-height) * 0.13), 76px);
     margin: 0;
   }
   .command .main-actions {
@@ -2098,12 +2098,12 @@ kbd {
     display: none;
   }
   .modal-backdrop {
-    padding: max(8px, env(safe-area-inset-top)) max(10px, env(safe-area-inset-right))
-      max(8px, env(safe-area-inset-bottom)) max(10px, env(safe-area-inset-left));
+    padding: max(8px, var(--safe-top)) max(10px, var(--safe-right)) max(8px, var(--safe-bottom))
+      max(10px, var(--safe-left));
   }
   .modal {
     max-height: calc(
-      100dvh - max(8px, env(safe-area-inset-top)) - max(8px, env(safe-area-inset-bottom))
+      calc(var(--viewport-height) * 1) - max(8px, var(--safe-top)) - max(8px, var(--safe-bottom))
     );
     padding: 12px;
     overscroll-behavior: contain;
@@ -2167,10 +2167,10 @@ kbd {
     line-height: 1.5;
   }
   .history-scroll {
-    max-height: 40dvh;
+    max-height: calc(var(--viewport-height) * 0.4);
   }
   .login-screen {
-    height: 100dvh;
+    height: calc(var(--viewport-height) * 1);
     min-height: 0;
     padding: 12px;
   }
@@ -2311,7 +2311,7 @@ kbd {
     display: none;
   }
   .command .title {
-    font-size: clamp(36px, 10vw, 58px);
+    font-size: clamp(36px, calc(var(--viewport-width) * 0.1), 58px);
   }
   .command .secondary {
     gap: 10px;
@@ -2330,7 +2330,7 @@ kbd {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
   .mission {
-    height: clamp(68px, 11dvh, 90px);
+    height: clamp(68px, calc(var(--viewport-height) * 0.11), 90px);
   }
   .mission-visual {
     width: 40px;
@@ -2512,5 +2512,201 @@ kbd {
   /* The keyboard hint is noise on a device with no keyboard. */
   .mode-button kbd {
     display: none;
+  }
+}
+/* Safe-area variables can be overridden in device-layout regression tests. */
+:root {
+  --viewport-width: 100vw;
+  --viewport-height: 100dvh;
+  --viewport-top: 0px;
+  --viewport-left: 0px;
+  --safe-top: env(safe-area-inset-top, 0px);
+  --safe-right: env(safe-area-inset-right, 0px);
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+  --safe-left: env(safe-area-inset-left, 0px);
+  --flight-width: calc(var(--viewport-width) - var(--safe-left) - var(--safe-right));
+  --flight-height: calc(var(--viewport-height) - var(--safe-top) - var(--safe-bottom));
+}
+html,
+body {
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  overscroll-behavior: none;
+}
+#root {
+  position: fixed;
+  top: var(--viewport-top);
+  left: var(--viewport-left);
+  width: var(--viewport-width);
+  height: var(--viewport-height);
+  overflow: hidden;
+}
+.app,
+.app.in-flight {
+  min-height: 0;
+  height: var(--viewport-height);
+}
+.in-flight .render-host {
+  inset: var(--safe-top) var(--safe-right) var(--safe-bottom) var(--safe-left);
+}
+.play-frame {
+  width: min(var(--flight-width), calc(var(--flight-height) * 16 / 9));
+  height: min(var(--flight-height), calc(var(--flight-width) * 9 / 16));
+  left: calc(var(--safe-left) + var(--flight-width) / 2);
+  top: calc(var(--safe-top) + var(--flight-height) / 2);
+}
+.modal-backdrop,
+.rotate-overlay {
+  position: absolute;
+}
+.modal-backdrop {
+  height: var(--viewport-height);
+  width: var(--viewport-width);
+}
+.modal {
+  max-height: calc(var(--flight-height) - 16px);
+}
+.in-flight .hud.top-left,
+.in-flight .hud.bottom-left {
+  left: 3%;
+}
+.in-flight .hud.top-right,
+.in-flight .skills {
+  right: 3%;
+}
+.login-screen {
+  padding: max(12px, var(--safe-top)) max(12px, var(--safe-right)) max(12px, var(--safe-bottom))
+    max(12px, var(--safe-left));
+}
+@media (any-pointer: coarse) and (orientation: landscape) {
+  .in-flight .top-right button {
+    min-width: 44px;
+    min-height: 44px;
+    padding: 6px;
+    border-radius: 8px;
+  }
+  .in-flight .top-right > div {
+    gap: 5px;
+  }
+  .in-flight .mode-button,
+  .in-flight .hold-button {
+    font-size: 9px;
+  }
+  .in-flight .mode-button kbd {
+    display: none;
+  }
+  .in-flight .frame-button svg {
+    width: 18px;
+    height: 18px;
+  }
+  .in-flight .top-left > strong {
+    font-size: 20px;
+  }
+  .in-flight .top-left p {
+    max-width: 155px;
+    font-size: 7px;
+  }
+  .in-flight .top-right > small {
+    font-size: 8px;
+    letter-spacing: 0;
+  }
+  .skills {
+    bottom: 3%;
+    gap: 5px;
+  }
+  .skills button {
+    width: clamp(68px, 10vw, 96px);
+    min-height: 52px;
+    border-radius: 8px;
+    background: #071723ed;
+  }
+  .skills button > span {
+    margin-bottom: 3px;
+  }
+  .skills small {
+    font-size: 7px;
+    line-height: 1.35;
+  }
+  .touch-controls > span {
+    bottom: 27%;
+    max-width: 45%;
+    font-size: 8px;
+    opacity: 0.8;
+  }
+  .touch-controls button {
+    top: 25%;
+    min-height: 44px;
+    padding: 10px;
+  }
+  .boss-hud {
+    top: 25%;
+    left: 35%;
+    width: 42%;
+    max-width: 44%;
+  }
+  .boss-hud p {
+    display: none;
+  }
+  .bottom-left {
+    padding: 5px 7px;
+    border-radius: 6px;
+    background: #071723ba;
+  }
+}
+.login-screen {
+  overflow: auto;
+  overscroll-behavior: contain;
+}
+.login-card {
+  flex-shrink: 0;
+}
+.modal {
+  -webkit-overflow-scrolling: touch;
+}
+button:focus-visible,
+select:focus-visible,
+input:focus-visible {
+  outline: 2px solid var(--mint);
+  outline-offset: 3px;
+}
+@media (max-height: 300px) and (orientation: landscape) {
+  .app:not(.in-flight) {
+    grid-template-rows: 40px minmax(70px, 1fr) auto 20px;
+    gap: 4px;
+  }
+  .command .title {
+    font-size: 32px;
+  }
+  .mission {
+    height: 58px;
+  }
+  .mission-visual {
+    height: 42px;
+  }
+  .command .secondary {
+    gap: 7px;
+  }
+  .command .launch {
+    min-height: 40px;
+  }
+  .touch-controls > span,
+  .in-flight .hud p,
+  .in-flight .top-right > small {
+    display: none;
+  }
+  .in-flight .skills button {
+    min-height: 46px;
+    padding: 5px;
+  }
+  .in-flight .skills small {
+    display: none;
+  }
+  .in-flight .bottom-left {
+    bottom: 3%;
+  }
+  .in-flight .power {
+    margin-top: 3px;
+    gap: 5px;
   }
 }

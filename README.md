@@ -182,4 +182,12 @@ render.yaml     Render Blueprint
 
 기존 Sites용 `worker/`와 `tools/build-hosting.mjs`는 정적 프런트용 보조 도구입니다. 현재 기본 배포는 Render의 `server/index.mjs`이며 해당 Worker만 배포해서는 로그인 API가 제공되지 않습니다.
 
-메뉴 사진 출처: [`public/images/missions/CREDITS.md`](public/images/missions/CREDITS.md). 행성 텍스처는 NASA / Three.js 예제 및 [Solar System Scope](https://www.solarsystemscope.com/textures)(CC BY 4.0), 암석·얼음 텍스처는 [Poly Haven](https://polyhaven.com/)(CC0) 자료를 사용합니다. 별하늘은 내려받지 않고 `tools/fetch-textures.mjs`가 직접 그립니다. `tools/fetch-textures.mjs`에 원본 경로가 있습니다. `public/audio/`는 프로젝트에서 제공한 게임 오디오입니다. 이 저장소는 제3자 에셋의 별도 이용 조건을 대체하지 않습니다.
+메뉴 사진 출처: [`public/images/missions/CREDITS.md`](public/images/missions/CREDITS.md). 행성 텍스처는 NASA / Three.js 예제 및 [Solar System Scope](https://www.solarsystemscope.com/textures)(CC BY 4.0), 암석·얼음 텍스처는 [Poly Haven](https://polyhaven.com/)(CC0) 자료를 사용합니다. 레벨 4의 2K 얼음 PBR 재질은 [ambientCG Ice 004](https://ambientcg.com/view?id=Ice004)(CC0)입니다. 별하늘은 내려받지 않고 `tools/fetch-textures.mjs`가 직접 그립니다. `tools/fetch-textures.mjs`에 원본 경로가 있습니다. `public/audio/`는 프로젝트에서 제공한 게임 오디오입니다. 이 저장소는 제3자 에셋의 별도 이용 조건을 대체하지 않습니다.
+
+## 아이폰 화면 회귀 검사
+
+`tests/e2e/iphone.spec.ts`는 전체화면 API가 없는 환경, 노치·홈 표시줄 안전영역,
+주소창에 따른 표시 높이 변화, 터치 가능한 HUD와 일시정지를 검사합니다.
+`npx playwright install webkit` 후 `npx playwright test --config playwright.webkit.config.ts`로
+WebKit에서도 실행할 수 있습니다. Windows WebKit/Chromium 자동 검사는 실제 iPhone 하드웨어,
+iOS Safari의 주소창 애니메이션 또는 홈 화면 설치 검증을 대체하지 않습니다.

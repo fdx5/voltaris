@@ -50,6 +50,10 @@ export class InputManager {
   constructor(
     private element: HTMLElement,
     private canMove: () => boolean = () => true,
+    private bounds: () => { width: number; height: number } = () => ({
+      width: innerWidth,
+      height: innerHeight,
+    }),
   ) {
     const signal = this.controller.signal;
     window.addEventListener(
@@ -188,7 +192,8 @@ export class InputManager {
     this.pressed = (this.bits & ~this.last) | this.pending;
     this.pending = 0;
     this.last = this.bits;
-    const scale = 18 / Math.min(innerHeight, (innerWidth * 9) / 16);
+    const { width, height } = this.bounds();
+    const scale = 18 / Math.max(1, Math.min(height, (width * 9) / 16));
     this.dx = Math.max(-32, Math.min(32, this.mx * scale * this.sensitivity));
     this.dy = Math.max(-18, Math.min(18, -this.my * scale * this.sensitivity));
     this.mx = this.my = 0;

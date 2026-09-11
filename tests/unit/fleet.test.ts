@@ -9,6 +9,7 @@ import {
   makeBoss,
   makeShip,
   ENEMY_CORE,
+  GROUND_TYPES,
 } from '../../src/visual/SceneBuilder';
 import { Mesh } from 'three/webgpu';
 
@@ -44,7 +45,7 @@ describe('fleet refit', () => {
   it('builds valid indexed attributes for every enemy and ground unit', () => {
     for (const geometry of [
       ...defs.map((_, i) => enemyGeometry(i)),
-      ...Array.from({ length: 4 }, (_, i) => groundGeometry(i)),
+      ...Array.from({ length: GROUND_TYPES }, (_, i) => groundGeometry(i)),
     ]) {
       for (const part of [geometry.hull!, geometry.accent!]) {
         expect(part.attributes.color.count).toBe(part.attributes.position.count);

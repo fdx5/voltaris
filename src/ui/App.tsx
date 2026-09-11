@@ -132,6 +132,9 @@ function GameApp() {
   }, [panel]);
   const r = () => runtime.current;
   const enterFullscreen = async () => {
+    if (!document.documentElement.requestFullscreen) {
+      throw new Error('Fullscreen is unavailable');
+    }
     await document.documentElement.requestFullscreen();
     const o = screen.orientation as ScreenOrientation & { lock?: (s: string) => Promise<void> };
     await o.lock?.('landscape').catch(() => {});
@@ -548,7 +551,7 @@ function GameApp() {
                         ? 'STAGE REWARD'
                         : ui.charge[i] >= 0.999
                           ? ui.skills[i] === 0
-                            ? 'READY ? 3s INVINCIBLE'
+                            ? 'READY · 3s INVINCIBLE'
                             : 'READY'
                           : `${Math.floor(ui.charge[i] * 100)}%`}
                 </small>

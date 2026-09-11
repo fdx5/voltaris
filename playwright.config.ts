@@ -7,6 +7,8 @@ export default defineConfig({
     baseURL: 'http://127.0.0.1:4179',
     viewport: { width: 1440, height: 900 },
     channel: 'chromium',
+    // Mock API routes must not be bypassed by the production service worker.
+    serviceWorkers: 'block',
     launchOptions: {
       args: process.platform === 'win32' ? ['--enable-gpu', '--use-angle=d3d11'] : ['--enable-gpu'],
     },

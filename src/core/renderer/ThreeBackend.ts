@@ -554,8 +554,8 @@ export class ThreeBackend implements IRenderBackend {
     this.showStage(active);
   }
   resize() {
-    const w = this.host.clientWidth,
-      h = this.host.clientHeight;
+    const w = Math.max(1, this.host.clientWidth),
+      h = Math.max(1, this.host.clientHeight);
     this.camera.aspect = w / h;
     const height = Math.max(18, 32 / this.camera.aspect);
     this.camera.position.set(0, 0, height / 2 / Math.tan(Math.PI / 12));

@@ -22,7 +22,17 @@ export class AudioEngine {
   muted = false;
   async unlock() {
     if (!this.ctx) {
-      this.ctx = new AudioContext({ latencyHint: 'interactive' });
+      const Context =
+        globalThis.AudioContext ??
+        (globalThis as typeof globalThis & { webkitAudioContext?: typeof AudioContext })
+          .webkitAudioContext;
+      if (!Context) return;
+      try {
+        this.ctx = new Context({ latencyHint: 'interactive' });
+      } catch {
+        // Audio device/session availability must not prevent a sortie.
+        return;
+      }
       this.master = this.ctx.createGain();
       this.master.gain.value = this.volume;
       this.master.connect(this.ctx.destination);
@@ -39,7 +49,7 @@ export class AudioEngine {
       }
       this.nextBeat = this.ctx.currentTime;
     }
-    if (this.ctx.state === 'suspended') await this.ctx.resume();
+    if (this.ctx.state === 'suspended') await this.ctx.resume().catch(() => {});
   }
   setVolume(volume: number) {
     this.volume = volume;
@@ -223,18 +233,18 @@ export class AudioEngine {
     this.beat++;
   }
   suspend() {
-    void this.ctx?.suspend();
+    void this.ctx?.suspend().catch(() => {});
     this.music?.pause();
   }
   resume() {
     if (this.ctx) {
       this.nextBeat = this.ctx.currentTime;
-      void this.ctx.resume();
+      void this.ctx.resume().catch(() => {});
     }
     if (this.trackWanted) void this.music?.play().catch(() => {});
   }
   dispose() {
-    void this.ctx?.close();
+    void this.ctx?.close().catch(() => {});
     this.stopTrack();
     this.music?.removeAttribute('src');
     this.music = null;

@@ -3,6 +3,7 @@ dist/
 .env
 .env.local
 test-results/
+test-results-webkit/
 playwright-report/
 *.log
 .env.*

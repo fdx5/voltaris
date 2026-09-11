@@ -171,6 +171,7 @@ export class GameState {
             surface.roof.seed,
             surface.roof.lane,
             surface.roof.reach,
+            'depthSlope' in surface.roof ? surface.roof.depthSlope : 0,
           )
         : null;
     this.rng.seed = 0x1a2b3c4d;

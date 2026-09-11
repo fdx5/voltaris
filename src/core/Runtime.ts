@@ -58,12 +58,22 @@ export class Runtime {
   private lastStatus = 'menu';
   private bossTrack = false;
   private portrait = false;
+  private resizeObserver: ResizeObserver;
   constructor(host: HTMLElement) {
     const flags = new URLSearchParams(location.search);
     this.visual = new ThreeBackend(host, flags.has('webgl'), flags.has('rendererfail'));
     // Bound to the frame, not to the canvas: a failed WebGPU start swaps the
     // canvas for a WebGL 2 one, and touch controls must survive that.
-    this.input = new InputManager(host.parentElement ?? host, () => this.game.status === 'playing');
+    this.input = new InputManager(
+      host.parentElement ?? host,
+      () => this.game.status === 'playing',
+      () => host.getBoundingClientRect(),
+    );
+    this.resizeObserver = new ResizeObserver(() => {
+      if (this.initialized) this.visual.resize();
+      this.checkOrientation();
+    });
+    this.resizeObserver.observe(host);
     this.loop = new GameLoop(this.tick, this.render);
     const signal = this.controller.signal;
     window.addEventListener(
@@ -114,7 +124,8 @@ export class Runtime {
     }
   }
   private checkOrientation() {
-    this.portrait = innerHeight > innerWidth;
+    const host = this.visual.canvas.parentElement;
+    this.portrait = !!host && host.clientHeight > host.clientWidth;
     if (this.portrait && this.game.status === 'playing') {
       this.game.status = 'paused';
       this.input.clear();
@@ -380,6 +391,7 @@ export class Runtime {
   }
   dispose() {
     this.disposed = true;
+    this.resizeObserver.disconnect();
     this.loop.stop();
     this.controller.abort();
     this.input.dispose();

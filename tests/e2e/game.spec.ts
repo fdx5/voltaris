@@ -240,7 +240,8 @@ test.describe('phone held sideways', () => {
     // And the player can hand the screen back.
     await expect(page.getByRole('button', { name: /전체화면|창 모드/ })).toBeVisible();
     const strip = await page.locator('.hud.top-right > div').boundingBox();
-    expect(strip!.height).toBeLessThanOrEqual(26);
+    expect(strip!.height).toBeGreaterThanOrEqual(44);
+    expect(strip!.height).toBeLessThanOrEqual(46);
     expect(strip!.width).toBeLessThanOrEqual(300);
   });
 });

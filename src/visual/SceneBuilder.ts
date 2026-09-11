@@ -1564,6 +1564,22 @@ export const GROUND_CORE = [
 ];
 export function groundGeometry(type: number): EnemyHulls {
   const k = new Kit();
+  if (type >= 4) {
+    // Separate ice-white armour from recessed machinery and anchoring feet.
+    // Merged into the existing two instance batches: detail adds no draw calls.
+    const light = GROUND_CORE[type].hex;
+    for (const side of [-1, 1]) {
+      k.add(box(0.26, 0.28, 1.04, side * 0.65, 0.16, 0), '#273e54');
+      k.add(box(0.18, 0.08, 1.12, side * 0.65, 0.3, 0), '#e8f5fc');
+      k.add(rod(0.055, 0.58, side * 0.48, 0.5, 0.46, side * 0.34), '#7796aa');
+      k.lit(box(0.22, 0.045, 0.025, side * 0.62, 0.34, 0.58), light, 1.8);
+      for (let vent = 0; vent < 3; vent++) {
+        k.add(box(0.055, 0.16, 0.025, side * (0.34 + vent * 0.1), 0.47, 0.53), '#263e51');
+      }
+    }
+    k.add(ring(0.24, 0.045, 16, 0, 0.55, 0.55), '#7997ae');
+    k.lit(disc(0.12, 0.025, 12, 0, 0.55, 0.59), light, 1.4);
+  }
   switch (type) {
     case 0: // Sandstone tracked artillery, wide low tread silhouette.
       k.add(
@@ -2141,6 +2157,7 @@ export type GroundConfig = {
   texture: string;
   /** Tangent-space normal map for the surface, if the stage ships one. */
   normal?: string;
+  roughness?: string;
   /** Height between topographic bands. */
   contour: number;
   /**
@@ -2157,6 +2174,7 @@ export type GroundConfig = {
     reach?: number;
     near?: number;
     far?: number;
+    depthSlope?: number;
   } | null;
   valley: string;
   crest: string;
@@ -2195,7 +2213,7 @@ function buildStrip(cfg: GroundConfig, terrain: Terrain, flip: boolean) {
     // Height paints the rock, depth washes it out towards the horizon.
     const from = flip ? cfg.roof!.base : cfg.base;
     const span = flip ? -cfg.roof!.relief : cfg.relief;
-    const lift = Math.min(1, Math.max(0, (y - from) / span));
+    const lift = Math.min(1, Math.max(0, (y - z * terrain.depthSlope - from) / span));
     const away = Math.min(1, Math.max(0, (near - z) / depth));
     shade.copy(valley).lerp(crest, Math.pow(lift, 0.75));
     // Topographic banding: a soft line at every contour interval, so the
@@ -2203,22 +2221,25 @@ function buildStrip(cfg: GroundConfig, terrain: Terrain, flip: boolean) {
     // The distance is taken as an absolute: the vault hangs *below* its base,
     // so a signed offset sent the band term negative, and a negative fifth
     // power multiplied whole stretches of ceiling down past black.
-    const band = Math.abs(y - from) / cfg.contour;
-    const contour = Math.pow(1 - Math.abs((band % 1) * 2 - 1), 5);
+    const band = cfg.contour > 0 ? Math.abs(y - from) / cfg.contour : 0;
+    const contour = cfg.contour > 0 ? Math.pow(1 - Math.abs((band % 1) * 2 - 1), 5) : 0;
     shade.multiplyScalar(1 + contour * 0.45);
     // The vault ends closer to the camera than the deck does, so its far
     // edge dissolves into the haze rather than stopping at a visible lip.
     shade.lerp(haze, Math.pow(away, flip ? 1.35 : 1.6) * (flip ? 0.8 : 0.45));
     // The vault only ever catches bounced light, so its albedo carries more
     // of the work than the deck's does.
-    if (flip) shade.multiplyScalar(1.75);
+    if (flip) shade.multiplyScalar(cfg.roughness ? 1.1 : 1.75);
     colors[i * 3] = shade.r;
     colors[i * 3 + 1] = shade.g;
     colors[i * 3 + 2] = shade.b;
     // The vault is nearer the camera than the deck, so it tiles tighter:
     // matching scales would magnify the same grain twice as much up there.
-    const tile = flip ? 6.5 : 9;
-    uv.setXY(i, (x / tile) % 1024, (z / tile + (flip ? 0.37 : 0)) % 1024);
+    const tile = cfg.roughness ? 12 : flip ? 6.5 : 9;
+    // Shear and gently warp the photographic grain, keeping x periodic at
+    // the scrolling seam. Large fractures no longer form a checkerboard.
+    const warp = cfg.roughness ? Math.sin((x * Math.PI * 2) / cfg.span) * 0.24 : 0;
+    uv.setXY(i, x / tile + (cfg.roughness ? z * 0.017 : 0), z / tile + warp + (flip ? 0.37 : 0));
   }
   geometry.setAttribute('color', new T.BufferAttribute(colors, 3));
   geometry.computeVertexNormals();
@@ -2231,12 +2252,13 @@ function buildStrip(cfg: GroundConfig, terrain: Terrain, flip: boolean) {
     new T.MeshStandardNodeMaterial({
       map: loadTexture(cfg.texture, true, true),
       normalMap: cfg.normal ? loadTexture(cfg.normal, false, true) : null,
+      roughnessMap: cfg.roughness ? loadTexture(cfg.roughness, false, true) : null,
       // Ice is not rock: a little sheen, and enough normal relief that the
       // grain survives being magnified across a whole stage floor.
-      normalScale: new T.Vector2(1.35, 1.35),
+      normalScale: new T.Vector2(cfg.roughness ? 0.7 : 1.35, cfg.roughness ? 0.7 : 1.35),
       vertexColors: true,
-      roughness: cfg.normal ? 0.78 : 0.95,
-      metalness: 0.04,
+      roughness: cfg.roughness ? 0.58 : cfg.normal ? 0.78 : 0.95,
+      metalness: 0,
       // A cave has no light from above and the hemisphere light hands a
       // down-facing normal its ground colour, so the vault gets a dim self-lit
       // floor keyed to its own map: the grain stays readable everywhere.
@@ -2259,6 +2281,7 @@ function buildGround(cfg: GroundConfig) {
         cfg.roof.seed,
         cfg.roof.lane,
         cfg.roof.reach,
+        cfg.roof.depthSlope,
       )
     : null;
   const mesh = buildStrip(cfg, terrain, false);
