@@ -94,7 +94,7 @@ export class AudioEngine {
    * a shot is heard the instant it is fired.
    */
   private readonly samples = new Map<string, { buffer: AudioBuffer; onset: number }>();
-  private readonly sampleBusy = new Set<string>();
+  private readonly sampleLoads = new Map<string, Promise<void>>();
   private weaponBus: GainNode | null = null;
   private weaponVoices = 0;
   private impactBus: GainNode | null = null;
@@ -160,11 +160,20 @@ export class AudioEngine {
     const length = whole ? remaining : Math.min(remaining, weapon ? 0.4 : 1.6);
     node.start(this.ctx.currentTime, entry.onset, length);
   }
-  private async loadSample(url: string) {
-    if (!this.ctx || !this.master || this.sampleBusy.has(url)) return;
-    this.sampleBusy.add(url);
+  private loadSample(url: string): Promise<void> {
+    const pending = this.sampleLoads.get(url);
+    if (pending) return pending;
+    if (!this.ctx || !this.master || this.samples.has(url)) return Promise.resolve();
+    const loading = this.decodeSample(url).finally(() => this.sampleLoads.delete(url));
+    this.sampleLoads.set(url, loading);
+    return loading;
+  }
+  private async decodeSample(url: string) {
+    if (!this.ctx || !this.master) return;
     try {
-      const bytes = await (await fetch(url)).arrayBuffer();
+      const response = await fetch(url);
+      if (!response.ok) return;
+      const bytes = await response.arrayBuffer();
       const buffer = await this.ctx.decodeAudioData(bytes);
       const data = buffer.getChannelData(0);
       const scan = Math.min(data.length, buffer.sampleRate);
@@ -186,8 +195,6 @@ export class AudioEngine {
       this.samples.set(url, { buffer, onset });
     } catch {
       // A missing or undecodable sample just leaves that weapon on the synth.
-    } finally {
-      this.sampleBusy.delete(url);
     }
   }
   private tone(f: number, duration: number, gain: number, end = f, voice = -1) {

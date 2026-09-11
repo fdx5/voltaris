@@ -126,6 +126,7 @@ export class GameState {
   /** Set with each explosion: true for a heavy hull, false for a light one. */
   explosionHeavy = false;
   pickupEvent = 0;
+  readonly pickupEventsByType = new Uint32Array(4);
   warningEvent = 0;
   hitEvent = 0;
   /**
@@ -1405,6 +1406,7 @@ export class GameState {
           this.announce('OVERDRIVE 획득 / [1] 발동', 3);
         }
         this.pickupEvent++;
+        this.pickupEventsByType[type]++;
         a.release(i);
       } else if (a.x[i] < -18 || a.age[i] > 15) {
         this.score = Math.max(0, this.score - 500);

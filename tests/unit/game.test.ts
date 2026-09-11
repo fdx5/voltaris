@@ -48,6 +48,22 @@ describe('fixed pools and collision broadphase', () => {
   });
 });
 describe('arcade rules', () => {
+  it('records every pickup type when several are collected in the same tick', () => {
+    const g = new GameState();
+    g.start('LASER', 3);
+    g.respawn = 0;
+    const level = g.level;
+    const options = g.optionCount;
+    for (const type of [0, 1, 2, 3, 0]) g.items.acquire(g.x, g.y, 0, 0, type, 12, 0.5);
+    g.tick(dt);
+    expect(Array.from(g.pickupEventsByType)).toEqual([2, 1, 1, 1]);
+    expect(g.pickupEvent).toBe(5);
+    expect(g.items.count).toBe(0);
+    expect(g.level).toBe(level + 2);
+    expect(g.optionCount).toBe(options + 1);
+    expect(g.shield).toBe(3);
+    expect(g.skillUnlocked).toBe(true);
+  });
   it('clamps diagonal movement and records replay input', () => {
     const g = new GameState();
     g.start('LASER', 3);

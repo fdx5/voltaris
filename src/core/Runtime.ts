@@ -15,6 +15,12 @@ const FIRE_SAMPLES: Record<Weapon, string> = {
 };
 /** Played once when a sector is secured. */
 const STAGE_CLEAR = '/audio/win.mp3';
+const PICKUP_SAMPLES = [
+  '/audio/powerup.mp3',
+  '/audio/optionadd.mp3',
+  '/audio/itemadd.mp3',
+  '/audio/itemadd.mp3',
+] as const;
 /** Wreck samples, chosen by how much hull came apart. */
 const WRECK_LIGHT = '/audio/11_soft_puff.mp3';
 const WRECK_HEAVY = '/audio/04_rumble_break.mp3';
@@ -55,6 +61,7 @@ export class Runtime {
   private recorded = false;
   private controller = new AbortController();
   private sounds = new Uint32Array(5);
+  private pickupSounds = new Uint32Array(4);
   private lastStatus = 'menu';
   private bossTrack = false;
   private portrait = false;
@@ -154,8 +161,16 @@ export class Runtime {
       });
       this.input.clear();
       void this.audio.unlock();
-      this.audio.preload([STAGE_CLEAR, WRECK_LIGHT, WRECK_HEAVY, ...Object.values(FIRE_SAMPLES)]);
+      this.audio.preload([
+        STAGE_CLEAR,
+        WRECK_LIGHT,
+        WRECK_HEAVY,
+        ...Object.values(FIRE_SAMPLES),
+        ...PICKUP_SAMPLES,
+      ]);
       this.game = new GameState();
+      this.pickupSounds.fill(0);
+      this.sounds.fill(0);
       if (run.config.loadout) Object.assign(this.game.loadout, run.config.loadout);
       this.game.start(weapon, credits, practice, !!run.config.loadout, stageIndex);
       this.game.autoFire = autoFire;
@@ -289,7 +304,12 @@ export class Runtime {
       this.sounds[1] = g.explosionEvent;
     }
     if (g.pickupEvent !== this.sounds[2]) {
-      this.audio.pickup();
+      for (let type = 0; type < PICKUP_SAMPLES.length; type++) {
+        const count = g.pickupEventsByType[type];
+        for (let n = this.pickupSounds[type]; n < count; n++)
+          void this.audio.jingle(PICKUP_SAMPLES[type]);
+        this.pickupSounds[type] = count;
+      }
       this.sounds[2] = g.pickupEvent;
     }
     if (g.warningEvent !== this.sounds[3]) {

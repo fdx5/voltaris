@@ -6,6 +6,7 @@ import type { GameState } from '../../game/GameState';
 
 import {
   makeShip,
+  animateShip,
   makeBoss,
   buildBackdrop,
   enemyGeometry,
@@ -21,6 +22,7 @@ import {
 } from '../../visual/SceneBuilder';
 import { STAGES } from '../../game/stages';
 import { ObjectPool } from '../pool/ObjectPool';
+import { itemMaterial } from '../../visual/ItemDesign';
 
 /**
  * Debris colours, indexed by a particle's type. Saturated on purpose: the
@@ -412,19 +414,8 @@ export class ThreeBackend implements IRenderBackend {
       this.options.push(option);
       this.deferred.push(option);
       this.scene.add(option);
-      const mat = glow(
-        i === 0 ? '#ffd24a' : i === 1 ? '#8bd9ff' : i === 2 ? '#83edb3' : '#f6aeff',
-        2,
-      );
-      const g =
-        i === 0
-          ? new T.OctahedronGeometry(0.34)
-          : i === 1
-            ? new T.TorusGeometry(0.3, 0.075, 6, 16)
-            : i === 2
-              ? new T.CylinderGeometry(0.32, 0.32, 0.12, 6).rotateX(Math.PI / 2)
-              : new T.IcosahedronGeometry(0.35);
-      const items = new T.InstancedMesh(g, mat, 64);
+      const items = new T.InstancedMesh(new T.PlaneGeometry(1.2, 1.2), itemMaterial(i), 64);
+      items.instanceMatrix.setUsage(T.DynamicDrawUsage);
       items.count = 0;
       items.frustumCulled = false;
       this.itemBatches.push(items);
@@ -826,7 +817,7 @@ export class ThreeBackend implements IRenderBackend {
     if (inactive) {
       this.ship.position.set(5.5, Math.sin(t * 0.6) * 0.28, 0);
       this.ship.scale.setScalar(3.05);
-      this.ship.rotation.set(0.22 + Math.sin(t * 0.3) * 0.08, -0.22, -0.09);
+      this.ship.rotation.set(0.38 + Math.sin(t * 0.3) * 0.08, -0.22, -0.09);
       this.ship.visible = true;
     } else {
       this.ship.position.set(
@@ -835,11 +826,12 @@ export class ThreeBackend implements IRenderBackend {
         0,
       );
       this.ship.scale.setScalar(0.7);
-      this.ship.rotation.set(g.roll, 0, g.pitch);
+      this.ship.rotation.set(-g.roll * 0.8, 0, g.pitch * 0.55, 'ZXY');
       this.ship.visible =
         g.respawn <= 0 &&
         (g.effects[0] > 0 || g.invincible <= 0 || Math.floor(g.time * 15) % 2 === 0);
     }
+    animateShip(this.ship, t, inactive ? 0.35 : Math.min(1, Math.abs(g.roll) + Math.abs(g.pitch)));
     this.engineLight.position.copy(this.ship.position);
     this.engineLight.position.x -= 1;
     this.engineLight.intensity = inactive ? 12 : 5;
@@ -859,7 +851,7 @@ export class ThreeBackend implements IRenderBackend {
       surface.mesh.position.x = shift;
       if (surface.roof) surface.roof.position.x = shift;
     }
-    this.syncPool(g.items, this.itemBatches, alpha, true);
+    this.syncPool(g.items, this.itemBatches, alpha, false);
     if (g.status === 'stress') {
       for (const b of this.enemyHulls) b.count = 0;
       for (const b of this.enemyAccents) if (b) b.count = 0;
@@ -936,6 +928,8 @@ export class ThreeBackend implements IRenderBackend {
     return this.renderer.info.memory.geometries;
   }
   dispose() {
+    for (const batch of this.itemBatches)
+      (batch.material as T.MeshBasicNodeMaterial).map?.dispose();
     this.scene.traverse((obj) => {
       if (obj instanceof T.Mesh) {
         obj.geometry.dispose();
