@@ -65,6 +65,23 @@ test('registration, password hashing, duplicate ID, session restore and logout',
   await request('/auth/logout', {}, login.cookie);
   assert.equal((await request('/auth/me', undefined, login.cookie)).status, 401);
 });
+test('accepts a four character password and still rejects a shorter one', async (t) => {
+  const { request } = await fixture(t);
+  assert.equal(
+    (await request('/auth/register', { username: 'short_pw', password: 'ab' })).status,
+    400,
+  );
+  const made = await request('/auth/register', { username: 'short_pw', password: '1234' });
+  assert.equal(made.status, 201);
+  assert.equal(
+    (await request('/auth/login', { username: 'short_pw', password: '1234' })).status,
+    200,
+  );
+  assert.equal(
+    (await request('/auth/login', { username: 'short_pw', password: '12345' })).status,
+    401,
+  );
+});
 test('auth, expiry, cross-origin protection and locked practice stages are enforced', async (t) => {
   const { db, request, register } = await fixture(t);
   assert.equal((await request('/history')).status, 401);

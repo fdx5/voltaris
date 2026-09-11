@@ -90,10 +90,10 @@ export async function createApp(
       typeof username !== 'string' ||
       !/^[a-zA-Z0-9_]{3,24}$/.test(username) ||
       typeof password !== 'string' ||
-      password.length < 10 ||
+      password.length < 4 ||
       password.length > 128
     )
-      throw fail(400, 'ID는 영문·숫자·_ 3~24자, 비밀번호는 10~128자로 입력하세요.');
+      throw fail(400, 'ID는 영문·숫자·_ 3~24자, 비밀번호는 4~128자로 입력하세요.');
     return { username: username.toLowerCase(), password };
   };
   app.post('/api/auth/register', authLimit, async (req, res) => {

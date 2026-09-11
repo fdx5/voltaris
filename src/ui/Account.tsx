@@ -63,10 +63,10 @@ export function LoginScreen() {
               autoComplete={register ? 'new-password' : 'current-password'}
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              minLength={10}
+              minLength={4}
               maxLength={128}
               required
-              placeholder="10자 이상"
+              placeholder="4자 이상"
             />
           </label>
           {account.error && (
