@@ -25,8 +25,9 @@ Basilisk, Anvil, Chimera, Obelisk, Leviathan, Calving and Glacier. Their radii a
 Stage difficulty still scales actual HP. Every medium burst has more projectiles
 and firing steps than a small burst, using its own weapon layout.
 
-Authored spawns target 30% medium per stage. After opening wave caps and the
-stage-three multiplier, scheduled shares are 30.2%, 29.5%, 29.7% and 29.5%.
+Medium hulls fly alone rather than in dense formations: every medium wave launches
+one ship in stages one to three (stage three's doubling makes that two) and two in
+stage four. Scheduled medium totals are 7, 12, 34 and 18 per stage.
 Wave timing and level progression are preserved.
 
 ## Bosses and weapons

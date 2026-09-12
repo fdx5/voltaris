@@ -949,7 +949,7 @@
       "time": 45,
       "type": 41,
       "y": 2,
-      "count": 29,
+      "count": 2,
       "pattern": 0
     },
     {
@@ -998,7 +998,7 @@
       "time": 61,
       "type": 43,
       "y": 0,
-      "count": 10,
+      "count": 2,
       "pattern": 0
     },
     {
@@ -1040,7 +1040,7 @@
       "time": 80,
       "type": 41,
       "y": 0,
-      "count": 29,
+      "count": 2,
       "pattern": 0
     },
     {
@@ -1089,7 +1089,7 @@
       "time": 100,
       "type": 43,
       "y": 0,
-      "count": 9,
+      "count": 2,
       "pattern": 0
     },
     {
@@ -1103,7 +1103,7 @@
       "time": 105,
       "type": 41,
       "y": 2,
-      "count": 29,
+      "count": 2,
       "pattern": 0
     },
     {
@@ -1159,7 +1159,7 @@
       "time": 129,
       "type": 41,
       "y": 1,
-      "count": 38,
+      "count": 2,
       "pattern": 0
     },
     {
@@ -1201,7 +1201,7 @@
       "time": 147,
       "type": 43,
       "y": 1,
-      "count": 9,
+      "count": 2,
       "pattern": 0
     },
     {
@@ -1222,7 +1222,7 @@
       "time": 156,
       "type": 41,
       "y": 2,
-      "count": 38,
+      "count": 2,
       "pattern": 0
     },
     {
@@ -1271,7 +1271,7 @@
       "time": 176,
       "type": 43,
       "y": 0,
-      "count": 19,
+      "count": 2,
       "pattern": 0
     }
   ],

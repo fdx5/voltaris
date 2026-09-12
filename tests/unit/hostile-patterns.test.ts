@@ -2,7 +2,6 @@ import { describe, expect, it } from 'vitest';
 import designs from '../../data/enemies/fleet-designs.json';
 import defs from '../../data/enemies/enemy-defs.json';
 import mounts from '../../data/enemies/fleet-hardpoints.json';
-import tuning from '../../data/tuning.json';
 import { enemySalvo, bossSalvo, groundSalvo } from '../../src/game/HostilePatterns';
 import { STAGES } from '../../src/game/stages';
 import { GameState } from '../../src/game/GameState';
@@ -43,22 +42,16 @@ describe('independent fleet designs and armaments', () => {
       Math.max(...small.map((d) => enemySalvo(d.id, Math.PI, 0).length)),
     );
   });
-  it.each([0, 1, 2, 3])(
-    'keeps stage %i actual scheduled medium share near 30%% after caps',
-    (stageIndex) => {
-      const stage = STAGES[stageIndex];
-      let total = 0,
-        medium = 0;
-      for (const [i, wave] of stage.spawns.entries()) {
-        const count =
-          Math.min(wave.count, stage.firstWave + i * tuning.spawn.growth) *
-          (stageIndex === 2 ? 2 : 1);
-        total += count;
-        if (defs[wave.type].sizeClass === 'medium') medium += count;
-      }
-      expect(Math.abs(medium / total - 0.3)).toBeLessThan(0.006);
-    },
-  );
+  it.each([
+    [0, 1],
+    [1, 1],
+    [2, 1],
+    [3, 2],
+  ])('flies stage %i medium hulls in formations of %i', (stageIndex, size) => {
+    const waves = STAGES[stageIndex].spawns.filter((w) => defs[w.type].sizeClass === 'medium');
+    expect(waves.length).toBeGreaterThan(0);
+    for (const wave of waves) expect(wave.count).toBe(size);
+  });
   it('has twelve unique boss phases and twelve separate emplacement recipes', () => {
     const boss = [0, 1, 2, 3].flatMap((s) =>
       [1, 2, 3].map((p) => JSON.stringify(bossSalvo(s, p, 2, 2.8))),

@@ -69,40 +69,16 @@ for (const d of catalog) {
 }
 fs.writeFileSync('data/enemies/enemy-defs.json', JSON.stringify(defs, null, 2) + '\n');
 
-function allocate(waves, total) {
-  const weight = waves.reduce((n, w) => n + w.count, 0);
-  const fractions = waves
-    .map((w, i) => {
-      const exact = (total * w.count) / weight;
-      w.count = Math.max(1, Math.floor(exact));
-      return { i, remainder: exact - Math.floor(exact) };
-    })
-    .sort((a, b) => b.remainder - a.remainder);
-  let delta = total - waves.reduce((n, w) => n + w.count, 0);
-  for (let k = 0; delta !== 0; k++) {
-    const wave = waves[fractions[k % fractions.length].i];
-    if (delta > 0) {
-      wave.count++;
-      delta--;
-    } else if (wave.count > 1) {
-      wave.count--;
-      delta++;
-    }
-  }
-}
+// Medium hulls fly alone or in pairs: each one is a heavy, many-shot gunship, so
+// a wave of them is sized by ships, not by a share of the stage's traffic.
+// Stage three doubles every formation at spawn time, so it is authored at one.
+const mediumPerWave = [1, 1, 1, 2];
 for (let i = 1; i <= 4; i++) {
   const path = `data/stages/stage-0${i}.json`;
   const stage = JSON.parse(fs.readFileSync(path, 'utf8'));
-  const total = stage.spawns.reduce((n, w) => n + w.count, 0);
-  const mid = Math.round(total * 0.3);
-  allocate(
-    stage.spawns.filter((w) => medium.has(w.type)),
-    mid,
-  );
-  allocate(
-    stage.spawns.filter((w) => !medium.has(w.type)),
-    total - mid,
-  );
+  const waves = stage.spawns.filter((w) => medium.has(w.type));
+  for (const w of waves) w.count = mediumPerWave[i - 1];
   fs.writeFileSync(path, JSON.stringify(stage, null, 2) + '\n');
-  console.log(`Stage ${i}: ${mid}/${total} medium (${((100 * mid) / total).toFixed(1)}%)`);
+  const mid = waves.reduce((n, w) => n + w.count, 0);
+  console.log(`Stage ${i}: ${mid} medium across ${waves.length} waves`);
 }

@@ -117,7 +117,7 @@
       "time": 39,
       "type": 18,
       "y": 0,
-      "count": 26,
+      "count": 1,
       "pattern": 0
     },
     {
@@ -152,7 +152,7 @@
       "time": 52,
       "type": 17,
       "y": 1,
-      "count": 5,
+      "count": 1,
       "pattern": 0
     },
     {
@@ -180,7 +180,7 @@
       "time": 61,
       "type": 15,
       "y": 0,
-      "count": 5,
+      "count": 1,
       "pattern": 0
     },
     {
@@ -194,7 +194,7 @@
       "time": 69,
       "type": 18,
       "y": -2,
-      "count": 26,
+      "count": 1,
       "pattern": 0
     },
     {
@@ -271,7 +271,7 @@
       "time": 100,
       "type": 15,
       "y": 0,
-      "count": 10,
+      "count": 1,
       "pattern": 0
     },
     {
@@ -285,14 +285,14 @@
       "time": 105,
       "type": 17,
       "y": 3,
-      "count": 5,
+      "count": 1,
       "pattern": 0
     },
     {
       "time": 109,
       "type": 18,
       "y": 2,
-      "count": 31,
+      "count": 1,
       "pattern": 0
     },
     {
@@ -341,7 +341,7 @@
       "time": 129,
       "type": 11,
       "y": 1,
-      "count": 10,
+      "count": 1,
       "pattern": 0
     },
     {
@@ -355,14 +355,14 @@
       "time": 135,
       "type": 18,
       "y": 3,
-      "count": 31,
+      "count": 1,
       "pattern": 0
     },
     {
       "time": 137,
       "type": 15,
       "y": -2,
-      "count": 10,
+      "count": 1,
       "pattern": 0
     },
     {
@@ -383,7 +383,7 @@
       "time": 147,
       "type": 17,
       "y": 2,
-      "count": 5,
+      "count": 1,
       "pattern": 0
     },
     {
@@ -446,7 +446,7 @@
       "time": 173,
       "type": 18,
       "y": -1,
-      "count": 36,
+      "count": 1,
       "pattern": 0
     },
     {

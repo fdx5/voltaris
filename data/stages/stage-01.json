@@ -180,7 +180,7 @@
       "time": 61,
       "type": 3,
       "y": 0,
-      "count": 26,
+      "count": 1,
       "pattern": 0
     },
     {
@@ -222,7 +222,7 @@
       "time": 80,
       "type": 10,
       "y": 0,
-      "count": 53,
+      "count": 1,
       "pattern": 0
     },
     {
@@ -271,7 +271,7 @@
       "time": 100,
       "type": 11,
       "y": 0,
-      "count": 52,
+      "count": 1,
       "pattern": 0
     },
     {
@@ -285,7 +285,7 @@
       "time": 105,
       "type": 3,
       "y": 3,
-      "count": 26,
+      "count": 1,
       "pattern": 0
     },
     {
@@ -341,7 +341,7 @@
       "time": 129,
       "type": 10,
       "y": 1,
-      "count": 52,
+      "count": 1,
       "pattern": 0
     },
     {
@@ -362,7 +362,7 @@
       "time": 137,
       "type": 3,
       "y": -2,
-      "count": 26,
+      "count": 1,
       "pattern": 0
     },
     {
@@ -383,7 +383,7 @@
       "time": 147,
       "type": 11,
       "y": 2,
-      "count": 52,
+      "count": 1,
       "pattern": 0
     },
     {
