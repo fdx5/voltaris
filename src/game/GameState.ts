@@ -1,4 +1,14 @@
 import { formationPosition } from './formations';
+import {
+  bossSalvo,
+  enemyRotation,
+  enemySalvo,
+  groundSalvo,
+  type SalvoShot,
+} from './HostilePatterns';
+import fleetDesigns from '../../data/enemies/fleet-designs.json';
+import fleetHardpoints from '../../data/enemies/fleet-hardpoints.json';
+import groundHardpoints from '../../data/enemies/ground-hardpoints.json';
 import tuning from '../../data/tuning.json';
 import defs from '../../data/enemies/enemy-defs.json';
 import emplacements from '../../data/enemies/ground-defs.json';
@@ -18,7 +28,17 @@ export const MODES: Mode[] = ['TRAIL', 'FREEZE', 'DIRECTIONAL', 'ROTATE'];
 export const MODE_NOTE = ['밀착 대형', '위치 고정', '진행 방향 조준', '기체 공전'];
 /** Frames an option lags behind the ship's path, per option, while trailing. */
 const TRAIL_LAG = 22;
+type PendingSalvo = {
+  shot: SalvoShot;
+  source: 'enemy' | 'ground' | 'boss';
+  index: number;
+  generation: number;
+  remaining: number;
+  speed: number;
+  tint: number;
+};
 export class GameState {
+  private pendingSalvos: PendingSalvo[] = [];
   readonly bullets = new BulletPool(tuning.pools.bullets);
   readonly enemies = new ObjectPool(tuning.pools.enemies);
   readonly particles = new ObjectPool(tuning.pools.particles);
@@ -154,6 +174,7 @@ export class GameState {
     this.stageIndex = clamp(stageIndex, 0, STAGES.length - 1);
     this.stage = STAGES[this.stageIndex];
     this.bullets.clear();
+    this.pendingSalvos.length = 0;
     this.enemies.clear();
     this.particles.clear();
     this.items.clear();
@@ -269,6 +290,7 @@ export class GameState {
     this.invincible = 2;
     this.respawn = 0;
     this.bullets.clear();
+    this.pendingSalvos.length = 0;
     this.status = 'playing';
     this.announce('RE-ENTRY / 전투 재개');
   }
@@ -355,6 +377,7 @@ export class GameState {
     const enemyDt = dt * (this.effects[0] > 0 ? 0.6 : 1);
     if (this.stage.surface) this.scroll += this.stage.surface.speed * dt;
     this.spawn(dt);
+    this.advanceSalvos(enemyDt);
     this.updateEnemies(enemyDt);
     if (this.terrain) this.updateGround(enemyDt);
     if (this.boss) this.updateBoss(enemyDt);
@@ -643,7 +666,17 @@ export class GameState {
       }
       const period = this.firePeriod(e.type[i]);
       if (a > 0.45 && a % period >= period - dt && e.x[i] < 16.5)
-        this.fireVolley(e.x[i] - 0.4, e.y[i], a, d.fire);
+        this.queueSalvo(
+          enemySalvo(
+            e.type[i],
+            Math.atan2(this.y - e.y[i], this.x - e.x[i]),
+            Math.floor(a / period),
+          ),
+          'enemy',
+          i,
+          tuning.combat.enemyBulletSpeed * d.fire.speed * (1 + this.rank * 0.0035),
+          parseInt(fleetDesigns[e.type[i]].palette[1].slice(1), 16),
+        );
     }
   }
   /**
@@ -670,11 +703,21 @@ export class GameState {
       // A roof mount's muzzle hangs below its footing, not above it.
       const muzzle = g.aux[i] === 1 ? -d.radius : d.radius;
       if (g.age[i] > 0.6 && g.age[i] % period >= period - dt && g.x[i] < 15)
-        this.fireVolley(g.x[i], g.y[i] + muzzle, g.age[i], d.fire);
+        this.queueSalvo(
+          groundSalvo(
+            g.type[i],
+            Math.atan2(this.y - g.y[i] - muzzle, this.x - g.x[i]),
+            Math.floor(g.age[i] / period),
+          ),
+          'ground',
+          i,
+          tuning.combat.enemyBulletSpeed * d.fire.speed,
+          0,
+        );
     }
   }
   /** Launches one hostile shot and seeds the scratch its flight rule needs. */
-  private hostileShot(x: number, y: number, angle: number, speed: number, kind: number) {
+  private hostileShot(x: number, y: number, angle: number, speed: number, kind: number, tint = 0) {
     const param =
       kind === Shot.WAVE
         ? speed
@@ -687,7 +730,7 @@ export class GameState {
               : kind === Shot.HOMING
                 ? 2.6
                 : 0;
-    return this.bullets.fire(
+    const index = this.bullets.fire(
       x,
       y,
       Math.cos(angle) * speed,
@@ -699,82 +742,68 @@ export class GameState {
       kind,
       param,
     );
+    if (index >= 0) this.bullets.tint[index] = tint;
+    return index;
   }
-  private fireVolley(x: number, y: number, a: number, f: (typeof defs)[number]['fire']) {
-    const speed = tuning.combat.enemyBulletSpeed * f.speed * (1 + this.rank * 0.0035);
-    // Volley size is scaled per stage too, never below a single shot.
-    const count = Math.max(1, Math.round(f.count * this.stage.volley));
-    const mid = (count - 1) / 2;
-    const aim = Math.atan2(this.y - y, this.x - x);
-    switch (f.pattern) {
-      case 'ring':
-        for (let j = 0; j < count; j++)
-          this.hostileShot(x, y, (j / count) * Math.PI * 2 + a * 0.6, speed, f.kind);
-        break;
-      case 'spiral':
-        for (let j = 0; j < count; j++)
-          this.hostileShot(x, y, (j / count) * Math.PI * 2 + a * 2.1, speed, f.kind);
-        break;
-      case 'cross':
-        for (let j = 0; j < count; j++)
-          this.hostileShot(
-            x,
-            y,
-            (j / count) * Math.PI * 2 + Math.sin(a * 0.5) * 0.4,
-            speed,
-            f.kind,
-          );
-        break;
-      // A tight stream down one line: the tail catches up with the head.
-      case 'burst':
-        for (let j = 0; j < count; j++)
-          this.hostileShot(x, y, aim + (j - mid) * f.spread, speed * (1 + j * 0.16), f.kind);
-        break;
-      // Slow shells thrown flat that pick up speed on the way in.
-      case 'lob':
-        for (let j = 0; j < count; j++)
-          this.hostileShot(x, y, Math.PI + (j - mid) * f.spread, speed, f.kind);
-        break;
-      // Two parallel streams off the wingtips, tail catching the head.
-      case 'twin':
-        for (let j = 0; j < count; j++)
-          for (const side of [-1, 1])
-            this.hostileShot(x, y + side * f.spread, aim, speed * (1 + j * 0.13), f.kind);
-        break;
-      // A rosette: petals of three, the whole flower turning between volleys.
-      case 'petal':
-        for (let j = 0; j < count; j++) {
-          const base = (j / count) * Math.PI * 2 + a * 0.8;
-          for (let k = -1; k <= 1; k++) this.hostileShot(x, y, base + k * f.spread, speed, f.kind);
-        }
-        break;
-      // A fan that swings across the field like a searchlight.
-      case 'sweep': {
-        const centre = Math.PI + Math.sin(a * 0.9) * 1.05;
-        for (let j = 0; j < count; j++)
-          this.hostileShot(x, y, centre + (j - mid) * f.spread, speed, f.kind);
-        break;
-      }
-      // Shells rolled off a column, each falling away at its own angle.
-      case 'rain':
-        for (let j = 0; j < count; j++)
-          this.hostileShot(
-            x,
-            y + (j - mid) * f.spread,
-            Math.PI - 0.85 + (j / (count - 1 || 1)) * 1.7,
-            speed,
-            f.kind,
-          );
-        break;
-      // A rank of shots abreast, advancing as one line.
-      case 'wall':
-        for (let j = 0; j < count; j++)
-          this.hostileShot(x, y + (j - mid) * f.spread, Math.PI, speed, f.kind);
-        break;
-      default:
-        for (let j = 0; j < count; j++)
-          this.hostileShot(x, y, aim + (j - mid) * f.spread, speed, f.kind);
+  private queueSalvo(
+    plan: SalvoShot[],
+    source: PendingSalvo['source'],
+    index: number,
+    speed: number,
+    tint: number,
+  ) {
+    const pool = source === 'ground' ? this.ground : this.enemies;
+    const generation = source === 'boss' ? this.bossPhase : pool.generation[index];
+    for (const shot of plan) {
+      if (this.pendingSalvos.length >= 2048) break;
+      const entry = { shot, source, index, generation, remaining: shot.delay, speed, tint };
+      if (shot.delay <= 0) this.launchSalvoShot(entry);
+      else this.pendingSalvos.push(entry);
     }
+  }
+  private launchSalvoShot(entry: PendingSalvo) {
+    const { shot, source, index, generation } = entry;
+    let x: number, y: number;
+    if (source === 'boss') {
+      if (
+        !this.boss ||
+        this.bossDying ||
+        this.bossPhase !== generation ||
+        (index >= 0 && this.partHp[index] <= 0)
+      )
+        return;
+      x = index < 0 ? this.bossX : this.partX[index];
+      y = index < 0 ? this.bossY : this.partY[index];
+      x += shot.dx;
+      y += shot.dy;
+    } else {
+      const pool = source === 'ground' ? this.ground : this.enemies;
+      if (!pool.active[index] || pool.generation[index] !== generation) return;
+      const type = pool.type[index];
+      if (source === 'enemy') {
+        const mounts = fleetHardpoints[type].muzzles;
+        const mount = mounts[shot.mount % mounts.length];
+        const angle = enemyRotation(type, pool.age[index], this.time);
+        x = pool.x[index] + mount[0] * Math.cos(angle) - mount[1] * Math.sin(angle) + shot.dx;
+        y = pool.y[index] + mount[0] * Math.sin(angle) + mount[1] * Math.cos(angle) + shot.dy;
+      } else {
+        const sign = pool.aux[index] === 1 ? -1 : 1;
+        const mounts = groundHardpoints[type].muzzles;
+        const mount = mounts[shot.mount % mounts.length];
+        x = pool.x[index] + (mount[0] + shot.dx) * sign;
+        y = pool.y[index] + (mount[1] + shot.dy) * sign;
+      }
+    }
+    this.hostileShot(x, y, shot.angle, entry.speed * shot.speed, shot.kind, entry.tint);
+  }
+  private advanceSalvos(dt: number) {
+    let write = 0;
+    for (const entry of this.pendingSalvos) {
+      entry.remaining -= dt;
+      if (entry.remaining <= 0) this.launchSalvoShot(entry);
+      else this.pendingSalvos[write++] = entry;
+    }
+    this.pendingSalvos.length = write;
   }
   /**
    * Seconds between one hull's volleys. Rank tightens it; a low-powered ship
@@ -840,6 +869,7 @@ export class GameState {
       this.bossPhase = phase;
       this.bossTransition = 2;
       this.bullets.clear();
+      this.pendingSalvos.length = 0;
       this.shake = 0.4;
       this.announce('PHASE 0' + phase + ' / 패턴 변경', 2);
       this.warningEvent++;
@@ -854,194 +884,71 @@ export class GameState {
         (this.bossPhase === 1 ? 1.9 : this.bossPhase === 2 ? 1.55 : 1.2) *
         [1, 0.88, 0.76, 0.65][this.stageIndex] *
         (this.bossTime > tuning.combat.bossLimit ? 0.8 : 1);
-      if (this.stage.boss.design === 'ares') this.aresVolley();
-      else if (this.stage.boss.design === 'nereid') this.nereidVolley();
-      else if (this.stage.boss.design === 'jove') this.joveVolley();
-      else this.gatekeeperVolley();
+      const aim = Math.atan2(this.y - this.bossY, this.x - this.bossX);
+      const colors = [0xff9a70, 0xffd377, 0xd1b2ff, 0x80efe4];
+      this.queueSalvo(
+        bossSalvo(this.stageIndex, this.bossPhase, this.volley, aim),
+        'boss',
+        -1,
+        4.4,
+        colors[this.stageIndex],
+      );
+      for (let pod = 0; pod < this.bossParts; pod++) {
+        if (this.partHp[pod] <= 0) continue;
+        const angle = Math.atan2(this.y - this.partY[pod], this.x - this.partX[pod]);
+        const plan: SalvoShot[] = [];
+        if (this.stageIndex === 0) {
+          for (const side of [-1, 1])
+            plan.push({
+              mount: 0,
+              dx: 0,
+              dy: side * 0.17,
+              angle: angle + side * 0.13,
+              speed: 0.85,
+              kind: Shot.ORB,
+              delay: 0.2,
+            });
+        } else if (this.stageIndex === 1) {
+          for (let j = 0; j < 3; j++)
+            plan.push({
+              mount: 0,
+              dx: 0,
+              dy: 0,
+              angle,
+              speed: 1.0 + j * 0.1,
+              kind: Shot.NEEDLE,
+              delay: j * 0.12,
+            });
+        } else if (this.stageIndex === 2) {
+          for (let j = 0; j < 3; j++)
+            plan.push({
+              mount: 0,
+              dx: 0,
+              dy: 0,
+              angle: angle + (j - 1) * 0.32,
+              speed: 0.7,
+              kind: Shot.PLASMA,
+              delay: j * 0.15,
+            });
+        } else {
+          for (let j = 0; j < 2; j++)
+            plan.push({
+              mount: 0,
+              dx: 0,
+              dy: 0,
+              angle: angle + (j ? 0.21 : -0.21),
+              speed: 0.8,
+              kind: Shot.WAVE,
+              delay: pod * 0.055 + j * 0.22,
+            });
+        }
+        this.queueSalvo(plan, 'boss', pod, 4.6, colors[this.stageIndex]);
+      }
       this.volley++;
     }
     if (this.effects[4] > 0) {
       this.bossHp -= 90 * dt;
       if (this.bossHp <= 0) this.finish(true);
-    }
-  }
-  /** GATEKEEPER: concentric rings, a sweeping wall, then splitting spokes. */
-  private gatekeeperVolley() {
-    const count = this.bossPhase === 3 ? 28 : this.bossPhase === 2 ? 19 : 20;
-    const gap =
-      Math.atan2(this.y - this.bossY, this.x - this.bossX) + Math.sin(this.bossTime) * 0.5;
-    const ringKind =
-      this.bossPhase === 3 ? Shot.SHARD : this.volley % 3 === 2 ? Shot.PULSE : Shot.ORB;
-    for (let j = 0; j < count; j++) {
-      // Phase 2: a sweeping wall of darts with a moving, traversable opening.
-      if (this.bossPhase === 2) {
-        const y = -7.2 + j * 0.8;
-        const opening = Math.sin(this.bossTime * 0.55) * 4.5;
-        if (Math.abs(y - opening) < 1.3) continue;
-        this.hostileShot(this.bossX - 1.4, y, Math.PI, 5.3, Shot.NEEDLE);
-        continue;
-      }
-      const angle = (j / count) * Math.PI * 2 + this.bossTime * 0.13;
-      const diff = Math.atan2(Math.sin(angle - gap), Math.cos(angle - gap));
-      if (Math.abs(diff) < 0.23) continue;
-      // Phase 3 alternates spoke speeds; phase 1 uses concentric rings.
-      const speed = this.bossPhase === 3 ? 3.8 + (j % 3) * 0.8 : 3.95;
-      this.hostileShot(
-        this.bossX + Math.cos(angle) * 1.4,
-        this.bossY + Math.sin(angle) * 1.4,
-        angle,
-        speed,
-        ringKind,
-      );
-    }
-    // Every fourth volley the ring is laced with weaving shots.
-    if (this.bossPhase !== 2 && this.volley % 4 === 3)
-      for (let j = 0; j < 10; j++)
-        this.hostileShot(
-          this.bossX,
-          this.bossY,
-          (j / 10) * Math.PI * 2 - this.bossTime * 0.4,
-          3.1,
-          Shot.WAVE,
-        );
-    const partKind =
-      this.bossPhase === 3 ? Shot.HOMING : this.bossPhase === 2 ? Shot.SPLIT : Shot.NEEDLE;
-    this.podVolley(partKind, 5, 0.13, 1);
-  }
-  /** ARES CROWN: counter-rotating arms, closing walls, then a turning flower. */
-  private aresVolley() {
-    const t = this.bossTime;
-    const aim = Math.atan2(this.y - this.bossY, this.x - this.bossX);
-    if (this.bossPhase === 1) {
-      for (let arm = 0; arm < 2; arm++) {
-        const spin = arm === 0 ? t * 1.5 : -t * 1.5;
-        for (let j = 0; j < 6; j++) {
-          const angle = spin + (j / 6) * Math.PI * 2 + arm * Math.PI;
-          this.hostileShot(
-            this.bossX + Math.cos(angle) * 1.9,
-            this.bossY + Math.sin(angle) * 1.9,
-            angle,
-            4.2,
-            Shot.ORB,
-          );
-        }
-      }
-      if (this.volley % 3 === 2)
-        for (let j = 0; j < 14; j++)
-          this.hostileShot(this.bossX, this.bossY, (j / 14) * Math.PI * 2, 2.4, Shot.PULSE);
-    } else if (this.bossPhase === 2) {
-      // A full-height curtain whose gap walks, plus a homing fan through it.
-      const gap = Math.sin(t * 0.7) * 4.2;
-      for (let j = 0; j < 20; j++) {
-        const y = -7.4 + j * 0.78;
-        if (Math.abs(y - gap) < 1.5) continue;
-        this.hostileShot(this.bossX - 1.8, y, Math.PI, 5.6, Shot.NEEDLE);
-      }
-      for (let k = -2; k <= 2; k++)
-        this.hostileShot(this.bossX, this.bossY, aim + k * 0.2, 4.6, Shot.HOMING);
-    } else {
-      for (let j = 0; j < 9; j++) {
-        const base = (j / 9) * Math.PI * 2 + t * 0.9;
-        for (let k = -1; k <= 1; k++)
-          this.hostileShot(
-            this.bossX,
-            this.bossY,
-            base + k * 0.13,
-            4.4 + Math.abs(k) * 0.7,
-            Shot.SHARD,
-          );
-      }
-      for (let j = 0; j < 6; j++)
-        this.hostileShot(this.bossX, this.bossY, aim + (j - 2.5) * 0.26, 2.6, Shot.ACCEL);
-    }
-    const podKind =
-      this.bossPhase === 3 ? Shot.SPLIT : this.bossPhase === 2 ? Shot.WAVE : Shot.NEEDLE;
-    this.podVolley(podKind, 5.4, 0.1, this.bossPhase === 1 ? 1 : 2);
-  }
-  /** JOVE: alternating rail corridors, spiralling plasma and pursuit missiles. */
-  private joveVolley() {
-    const aim = Math.atan2(this.y - this.bossY, this.x - this.bossX);
-    const opening = Math.sin(this.bossTime * 0.42) * 3.7;
-    for (let j = 0; j < 23; j++) {
-      const y = -7.2 + j * 0.65;
-      if (Math.abs(y - opening) < 1.15) continue;
-      this.hostileShot(
-        this.bossX - 1.8,
-        y,
-        Math.PI,
-        4.5 + this.bossPhase * 0.35,
-        this.volley % 2 ? Shot.ACCEL : Shot.NEEDLE,
-      );
-    }
-    if (this.bossPhase >= 2)
-      for (let j = 0; j < 18; j++) {
-        const a = (j / 18) * Math.PI * 2 + this.volley * 0.31;
-        this.hostileShot(this.bossX, this.bossY, a, 3.3, Shot.PLASMA);
-      }
-    if (this.volley % 2 === 0)
-      for (let j = -this.bossPhase; j <= this.bossPhase; j++)
-        this.hostileShot(this.bossX - 1.4, this.bossY, aim + j * 0.19, 4.2, Shot.HOMING);
-    this.podVolley(this.bossPhase === 3 ? Shot.SPLIT : Shot.WAVE, 5.3, 0.14, 1);
-  }
-  /**
-   * NEREID fights the cave rather than the open field: closing pincers, a
-   * drifting lattice you have to thread, then ice shed from both surfaces at
-   * once. Nothing it throws is a ring or a spoke.
-   */
-  private nereidVolley() {
-    const t = this.bossTime;
-    const aim = Math.atan2(this.y - this.bossY, this.x - this.bossX);
-    if (this.bossPhase === 1) {
-      // Pincers: two arcs sweeping in from the roof and the deck together.
-      const close = Math.sin(t * 0.5) * 0.6;
-      for (const side of [-1, 1])
-        for (let j = 0; j < 9; j++) {
-          const a = Math.PI + side * (0.28 + j * 0.1 + close);
-          this.hostileShot(this.bossX - 1.2, this.bossY + side * 1.4, a, 4.4, Shot.SHARD);
-        }
-      if (this.volley % 3 === 2)
-        for (let j = 0; j < 5; j++)
-          this.hostileShot(this.bossX, this.bossY, aim + (j - 2) * 0.16, 3.2, Shot.WAVE);
-    } else if (this.bossPhase === 2) {
-      // A lattice: slow columns crossed by slow rows, leaving gaps that move.
-      const drift = (t * 0.9) % 2.4;
-      for (let j = 0; j < 9; j++) {
-        const y = -6.6 + j * 1.65 + drift;
-        if (Math.abs(y) > 7.4) continue;
-        this.hostileShot(this.bossX - 1.6, y, Math.PI, 2.9, Shot.PULSE);
-      }
-      for (let j = 0; j < 4; j++)
-        this.hostileShot(
-          this.bossX - 1.6,
-          this.bossY,
-          Math.PI + (j - 1.5) * 0.42,
-          3.6,
-          Shot.BOUNCE,
-        );
-      for (let k = -1; k <= 1; k++)
-        this.hostileShot(this.bossX, this.bossY, aim + k * 0.22, 4.4, Shot.HOMING);
-    } else {
-      // Calving: ice falls from the vault and rises off the deck at once,
-      // accelerating as it crosses the corridor.
-      for (let j = 0; j < 7; j++) {
-        const x = this.bossX - 2 - j * 1.9;
-        this.hostileShot(x, 7.2, -Math.PI / 2 - 0.16, 2.6, Shot.ACCEL);
-        this.hostileShot(x, -7.2, Math.PI / 2 - 0.16, 2.6, Shot.ACCEL);
-      }
-      for (let j = 0; j < 8; j++)
-        this.hostileShot(this.bossX, this.bossY, aim + (j - 3.5) * 0.13, 4.8, Shot.SPLIT);
-    }
-    const podKind =
-      this.bossPhase === 3 ? Shot.PLASMA : this.bossPhase === 2 ? Shot.NEEDLE : Shot.ORB;
-    this.podVolley(podKind, 5.2, 0.11, this.bossPhase === 1 ? 1 : 2);
-  }
-  /** Aimed fan from every pod still standing. */
-  private podVolley(kind: number, speed: number, spread: number, wing: number) {
-    for (let p = 0; p < this.bossParts; p++) {
-      if (this.partHp[p] <= 0) continue;
-      const a = Math.atan2(this.y - this.partY[p], this.x - this.partX[p]);
-      for (let k = -wing; k <= wing; k++)
-        this.hostileShot(this.partX[p], this.partY[p], a + k * spread, speed, kind);
     }
   }
   private updateBullets(dt: number, enemyDt: number) {
@@ -1138,9 +1045,10 @@ export class GameState {
             a = b.heading[i],
             x = b.x[i],
             y = b.y[i];
+          const tint = b.tint[i];
           b.release(i);
           for (let k = -1; k <= 1; k++)
-            this.hostileShot(x, y, a + k * 0.44, speed * 0.92, Shot.ORB);
+            this.hostileShot(x, y, a + k * 0.44, speed * 0.92, Shot.ORB, tint);
           return true;
         }
         break;
@@ -1508,6 +1416,7 @@ export class GameState {
       this.bossKillTime = this.bossTime;
       this.bossDeathEvent++;
       this.bullets.clear();
+      this.pendingSalvos.length = 0;
       this.enemies.clear();
       this.ground.clear();
       this.noticeTime = 0;
@@ -1529,6 +1438,7 @@ export class GameState {
       (defeated ? Math.floor(Math.max(0, 1 - this.bossTime / 180) * 100000) : 0);
     this.score += this.bonus + (defeated ? tuning.score.boss : 0);
     this.bullets.clear();
+    this.pendingSalvos.length = 0;
     this.bossDying = false;
     this.status = 'clear';
   }
@@ -1564,6 +1474,7 @@ export class GameState {
   startStress() {
     this.status = 'stress';
     this.bullets.clear();
+    this.pendingSalvos.length = 0;
     this.enemies.clear();
     this.items.clear();
     this.particles.clear();
@@ -1573,6 +1484,7 @@ export class GameState {
   setStressCount(count: number) {
     this.stressCount = count;
     this.bullets.clear();
+    this.pendingSalvos.length = 0;
     for (let i = 0; i < count; i++) {
       const a = this.rng.next() * Math.PI * 2;
       this.bullets.fire(

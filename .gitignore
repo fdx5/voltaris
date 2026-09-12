@@ -17,3 +17,4 @@ sound/
 doc/validation/
 .openai/
 *.tmp
+*.blend1

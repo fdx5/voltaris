@@ -28,6 +28,7 @@ export class BulletPool extends ObjectPool {
   readonly heading: Float32Array;
   /** Per-kind scratch: cruise speed, split timer, bounces left, spin rate. */
   readonly param: Float32Array;
+  readonly tint: Uint32Array;
   constructor(capacity = 4096) {
     super(capacity);
     this.grazed = new Uint8Array(capacity);
@@ -35,6 +36,7 @@ export class BulletPool extends ObjectPool {
     this.kind = new Uint8Array(capacity);
     this.heading = new Float32Array(capacity);
     this.param = new Float32Array(capacity);
+    this.tint = new Uint32Array(capacity);
   }
   fire(
     x: number,
@@ -56,6 +58,7 @@ export class BulletPool extends ObjectPool {
       this.kind[i] = kind;
       this.heading[i] = Math.atan2(vy, vx);
       this.param[i] = param;
+      this.tint[i] = 0;
     }
     return i;
   }

@@ -2,8 +2,10 @@ import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 import tailwindcss from '@tailwindcss/vite';
 import { VitePWA } from 'vite-plugin-pwa';
+import { threeWGSLCompat, threeWGSLCompatOptimizer } from './tools/three-wgsl-compat';
 export default defineConfig({
   plugins: [
+    threeWGSLCompat(),
     react(),
     tailwindcss(),
     VitePWA({
@@ -39,6 +41,15 @@ export default defineConfig({
         // the install payload and cached the first time they stream.
         runtimeCaching: [
           {
+            urlPattern: /\/models\/.*\.glb(?:\?|$)/,
+            handler: 'StaleWhileRevalidate',
+            options: {
+              cacheName: 'voltaris-blender-fleet',
+              expiration: { maxEntries: 2 },
+              cacheableResponse: { statuses: [0, 200] },
+            },
+          },
+          {
             urlPattern: /\/audio\/.*\.mp3$/,
             handler: 'CacheFirst',
             options: {
@@ -57,5 +68,6 @@ export default defineConfig({
     chunkSizeWarningLimit: 1500,
     rollupOptions: { output: { manualChunks: { three: ['three/webgpu', 'three/tsl'] } } },
   },
+  optimizeDeps: { esbuildOptions: { plugins: [threeWGSLCompatOptimizer()] } },
   server: { port: 5173, strictPort: true, proxy: { '/api': 'http://127.0.0.1:3001' } },
 });

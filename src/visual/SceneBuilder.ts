@@ -15,6 +15,9 @@ import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import { Random } from '../core/math/Random';
 import { Terrain } from '../core/math/Terrain';
 import enemyDefs from '../../data/enemies/enemy-defs.json';
+import fleetDesigns from '../../data/enemies/fleet-designs.json';
+import fleetHardpoints from '../../data/enemies/fleet-hardpoints.json';
+import groundHardpoints from '../../data/enemies/ground-hardpoints.json';
 
 const metal = (c: string, roughness = 0.4) =>
   new T.MeshStandardNodeMaterial({ color: c, metalness: 0.8, roughness });
@@ -28,7 +31,14 @@ export function glow(c: string, intensity = 2) {
 /* ------------------------------------------------------------------ *
  * Player ship
  * ------------------------------------------------------------------ */
-export { makeShip, animateShip } from './PlayerShip';
+export { animateShip } from './PlayerShip';
+export {
+  loadBlenderFleet,
+  makeBlenderShip as makeShip,
+  makeBlenderBoss as makeBoss,
+  blenderEnemyGeometry as enemyGeometry,
+  blenderGroundGeometry as groundGeometry,
+} from './BlenderFleet';
 
 /* ------------------------------------------------------------------ *
  * Enemy fleet - 34 individually fitted hulls
@@ -136,53 +146,9 @@ const gem = (r: number, detail: number, x = 0, y = 0, z = 0, sx = 1, sy = 1, sz 
 export type EnemyHulls = { hull: T.BufferGeometry | null; accent: T.BufferGeometry | null };
 
 // Every entry has its own topology, palette and surface finish.
-export const FLEET_STYLE = [
-  ['SKIFF', '#f2eee0', '#d34226', '#8aefff', 0.35, 0.48],
-  ['LANCER', '#a82145', '#eac67a', '#ffbb55', 0.8, 0.28],
-  ['CARRIER', '#e2ac32', '#284659', '#a9f5c2', 0.45, 0.62],
-  ['WARDEN', '#284b88', '#c1d4df', '#ff735b', 0.75, 0.34],
-  ['WASP', '#ded749', '#252439', '#ff62e5', 0.3, 0.45],
-  ['SPINNER', '#41b994', '#edfaf1', '#c6ff76', 0.65, 0.22],
-  ['MORTAR', '#ba5a27', '#e9c8a0', '#ffc15d', 0.65, 0.65],
-  ['SHARD', '#6ecbde', '#346095', '#e5faff', 0.9, 0.13],
-  ['SENTRY', '#e7ddd1', '#783d52', '#ff4479', 0.25, 0.6],
-  ['RAVEN', '#564683', '#b794dc', '#63ffd5', 0.55, 0.3],
-  ['HYDRA', '#55a579', '#d6bc75', '#e5ff82', 0.3, 0.52],
-  ['BULWARK', '#d5aa70', '#5b443b', '#6febff', 0.55, 0.7],
-  ['SEEKER', '#ec7254', '#f3e2ce', '#ffed87', 0.2, 0.4],
-  ['MANTIS', '#89bd4b', '#37534d', '#dcff98', 0.4, 0.44],
-  ['DRILL', '#a8bbc8', '#e77c24', '#fff0a5', 0.95, 0.25],
-  ['MONOLITH', '#484461', '#d6bfdc', '#cb7bff', 0.75, 0.2],
-  ['SWARMER', '#c7529a', '#f3c7d8', '#ffe2a0', 0.25, 0.55],
-  ['ARBITER', '#e3d29a', '#437b94', '#92f8ff', 0.8, 0.3],
-  ['SCOURGE', '#8c3048', '#cd8966', '#ffad78', 0.45, 0.65],
-  ['HALBERD', '#5c94ce', '#e3eaf3', '#a9dfff', 0.85, 0.22],
-  ['CINDER', '#e35728', '#592d4b', '#fff19a', 0.2, 0.75],
-  ['TALON', '#2ab7c4', '#f4d29e', '#a1ffff', 0.7, 0.32],
-  ['VULTURE', '#b9a981', '#4d7369', '#ffc65c', 0.3, 0.72],
-  ['SIREN', '#a688e2', '#ebdff4', '#ffb1e7', 0.55, 0.18],
-  ['BASILISK', '#25776f', '#bccf86', '#ceff77', 0.35, 0.57],
-  ['COMET', '#f8cc70', '#e97381', '#fff8d0', 0.6, 0.3],
-  ['GORGON', '#c07cba', '#574577', '#99ffc4', 0.3, 0.43],
-  ['ANVIL', '#7d869b', '#f4af46', '#ffdda2', 0.85, 0.6],
-  ['WRAITH', '#396b89', '#c3ede9', '#72ffdc', 0.6, 0.15],
-  ['TEMPEST', '#789aea', '#dceaff', '#c3bdff', 0.75, 0.2],
-  ['CHIMERA', '#d19450', '#448f9c', '#f7ffa8', 0.55, 0.48],
-  ['OBELISK', '#cec5ad', '#81674b', '#79dfff', 0.4, 0.72],
-  ['NOVA', '#db78a8', '#f7d9b0', '#fff3c9', 0.65, 0.24],
-  ['LEVIATHAN', '#315b78', '#7dccbc', '#ff9575', 0.5, 0.4],
-  // Stage 4: the ice cave wing. Small, medium and heavy, in that order.
-  ['SLEET', '#cfe9f5', '#3f6d8c', '#9df3ff', 0.55, 0.2],
-  ['GLIMMER', '#9fe3d8', '#2f5d6b', '#b6fff0', 0.65, 0.18],
-  ['SHIVER', '#7fb4e0', '#26405c', '#d8f2ff', 0.5, 0.24],
-  ['RIME', '#e6f2ff', '#547b9a', '#a8e0ff', 0.45, 0.42],
-  ['FLOE', '#8fc4d6', '#31586e', '#c4fbff', 0.6, 0.46],
-  ['CRYSTAL', '#b6d8ff', '#3a4f8c', '#8fb0ff', 0.8, 0.3],
-  ['HOARFROST', '#dce9ef', '#4a6a7c', '#7fffe0', 0.4, 0.5],
-  ['CALVING', '#6f9fc4', '#22384f', '#a6d8ff', 0.55, 0.66],
-  ['MORAINE', '#a9b8c4', '#3d4a58', '#ffd88f', 0.5, 0.7],
-  ['GLACIER', '#8fb8d4', '#20344a', '#bfefff', 0.6, 0.85],
-] as const;
+export const FLEET_STYLE = fleetDesigns.map(
+  (unit) => [unit.name, unit.palette[0], unit.palette[1], unit.palette[3], 0.55, 0.42] as const,
+);
 
 /** Mechanical ribs, recessed armour and lenses follow the authored shape. */
 function uniqueHull(k: Kit, type: number) {
@@ -1096,11 +1062,11 @@ function uniqueHull(k: Kit, type: number) {
 
 /** Radius, colour and nose offset of the charge lamp drawn over each hull. */
 export const ENEMY_CORE = FLEET_STYLE.map((style, type) => ({
-  size: Math.min(0.16, enemyDefs[type].radius * 0.17),
+  size: Math.min(0.075, enemyDefs[type].radius * 0.1),
   hex: style[3],
-  x: 0,
-  y: 0,
-  z: 0,
+  x: fleetHardpoints[type].muzzles[0][0],
+  y: fleetHardpoints[type].muzzles[0][1],
+  z: fleetHardpoints[type].muzzles[0][2],
 }));
 
 /** Bevelled armour plate, authored in the camera-facing XY plane. */
@@ -1118,7 +1084,7 @@ function armour(points: number[][], depth: number, z = 0) {
   }).translate(0, 0, z);
 }
 
-export function enemyGeometry(type: number): EnemyHulls {
+export function legacyEnemyGeometry(type: number): EnemyHulls {
   const kit = new Kit();
   uniqueHull(kit, type);
   const geometry = kit.build();
@@ -1485,8 +1451,14 @@ export const GROUND_CORE = [
   { size: 0.14, hex: '#7fffe0', x: 0, y: 1.45 },
   { size: 0.12, hex: '#c4fbff', x: -0.46, y: 1.0 },
   { size: 0.17, hex: '#bfefff', x: 0, y: 1.8 },
-];
-export function groundGeometry(type: number): EnemyHulls {
+].map((core, i) => ({
+  ...core,
+  size: 0.07,
+  x: groundHardpoints[i].muzzles[0][0],
+  y: groundHardpoints[i].muzzles[0][1],
+  z: groundHardpoints[i].muzzles[0][2],
+}));
+export function legacyGroundGeometry(type: number): EnemyHulls {
   const k = new Kit();
   if (type >= 4) {
     // Separate ice-white armour from recessed machinery and anchoring feet.
@@ -1760,7 +1732,7 @@ function attachKit(target: T.Group, kit: Kit, metalness = 0.55, roughness = 0.38
 }
 
 /** Four heavily armoured capital ships with distinct silhouettes and weapon hardpoints. */
-export function makeBoss(design: BossDesign): BossModel {
+export function legacyMakeBoss(design: BossDesign): BossModel {
   const root = new T.Group(),
     ringGroup = new T.Group(),
     k = new Kit(),

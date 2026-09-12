@@ -444,17 +444,17 @@ describe('arcade rules', () => {
       expect(g.surfaceAt(x, true)).toBeGreaterThan(g.stage.maxY);
     }
   });
-  it('fields ten new mid-air hulls in three weight classes', () => {
+  it('fields ten exclusive stage-four hulls with stronger medium craft', () => {
     const roster = [...new Set(STAGES[3].spawns.map((w) => w.type))];
     expect(roster.length).toBe(10);
     const earlier = new Set(
       [...STAGES[0].spawns, ...STAGES[1].spawns, ...STAGES[2].spawns].map((w) => w.type),
     );
     expect(roster.some((t) => earlier.has(t))).toBe(false);
-    const hp = roster.map((t) => defs[t].hp).sort((a, b) => a - b);
-    // Small, medium and heavy: the spread is wide and every value differs.
-    expect(new Set(hp).size).toBe(hp.length);
-    expect(hp[hp.length - 1] / hp[0]).toBeGreaterThan(8);
+    const small = roster.filter((t) => defs[t].sizeClass === 'small').map((t) => defs[t].hp);
+    const medium = roster.filter((t) => defs[t].sizeClass === 'medium').map((t) => defs[t].hp);
+    expect(medium.length).toBeGreaterThan(0);
+    expect(Math.min(...medium)).toBeGreaterThan(Math.max(...small) * 4);
   });
   it('gives every stage four hull its own pattern and projectile', () => {
     const roster = [...new Set(STAGES[3].spawns.map((w) => w.type))];

@@ -1,16 +1,16 @@
 [
   {
     "name": "SKIFF",
-    "hp": 3,
-    "radius": 0.48,
+    "hp": 4,
+    "radius": 0.43,
     "speed": 4,
-    "score": 100,
-    "period": 1.5,
+    "score": 120,
+    "period": 1.7,
     "amp": 1,
     "freq": 1,
     "hover": -99,
     "fire": {
-      "pattern": "aimed",
+      "pattern": "crescent-pair",
       "count": 1,
       "spread": 0.2,
       "speed": 1,
@@ -18,27 +18,32 @@
     },
     "burst": {
       "count": 12,
-      "speed": 4.0,
-      "spread": 6.0,
+      "speed": 4,
+      "spread": 6,
       "life": 0.28,
       "size": 0.08,
       "ring": 0,
       "shake": 0.05,
-      "palette": [6, 2, 0]
-    }
+      "palette": [
+        6,
+        2,
+        0
+      ]
+    },
+    "sizeClass": "small"
   },
   {
     "name": "LANCER",
-    "hp": 15,
-    "radius": 0.7,
+    "hp": 7,
+    "radius": 0.46499999999999997,
     "speed": 1.7,
-    "score": 350,
-    "period": 1.5,
+    "score": 190,
+    "period": 1.88,
     "amp": 0.9,
     "freq": 1,
     "hover": -99,
     "fire": {
-      "pattern": "aimed",
+      "pattern": "rail-train",
       "count": 3,
       "spread": 0.2,
       "speed": 1.15,
@@ -46,27 +51,32 @@
     },
     "burst": {
       "count": 22,
-      "speed": 3.0,
-      "spread": 7.0,
+      "speed": 3,
+      "spread": 7,
       "life": 0.42,
       "size": 0.12,
       "ring": 0,
       "shake": 0.1,
-      "palette": [1, 0, 3]
-    }
+      "palette": [
+        1,
+        0,
+        3
+      ]
+    },
+    "sizeClass": "small"
   },
   {
     "name": "CARRIER",
-    "hp": 9,
-    "radius": 0.65,
+    "hp": 10,
+    "radius": 0.5,
     "speed": 2.2,
-    "score": 500,
-    "period": 2.0,
+    "score": 260,
+    "period": 2.06,
     "amp": 0.8,
     "freq": 0.9,
     "hover": -99,
     "fire": {
-      "pattern": "aimed",
+      "pattern": "bay-stagger",
       "count": 1,
       "spread": 0.2,
       "speed": 1,
@@ -75,26 +85,31 @@
     "burst": {
       "count": 26,
       "speed": 2.5,
-      "spread": 6.0,
+      "spread": 6,
       "life": 0.55,
       "size": 0.13,
       "ring": 0,
       "shake": 0.12,
-      "palette": [3, 0, 2]
-    }
+      "palette": [
+        3,
+        0,
+        2
+      ]
+    },
+    "sizeClass": "small"
   },
   {
     "name": "WARDEN",
-    "hp": 140,
-    "radius": 1.65,
+    "hp": 104,
+    "radius": 1.28,
     "speed": 1,
-    "score": 2500,
-    "period": 1.2,
+    "score": 1880,
+    "period": 2.5,
     "amp": 1.5,
     "freq": 1,
     "hover": -99,
     "fire": {
-      "pattern": "aimed",
+      "pattern": "shield-slots",
       "count": 11,
       "spread": 0.15,
       "speed": 1,
@@ -102,27 +117,32 @@
     },
     "burst": {
       "count": 90,
-      "speed": 3.0,
-      "spread": 11.0,
+      "speed": 3,
+      "spread": 11,
       "life": 0.75,
       "size": 0.18,
       "ring": 0,
       "shake": 0.45,
-      "palette": [1, 0, 7]
-    }
+      "palette": [
+        1,
+        0,
+        7
+      ]
+    },
+    "sizeClass": "medium"
   },
   {
     "name": "WASP",
-    "hp": 6,
-    "radius": 0.42,
+    "hp": 4,
+    "radius": 0.5700000000000001,
     "speed": 6.2,
-    "score": 260,
-    "period": 0.9,
+    "score": 400,
+    "period": 1.7,
     "amp": 2.1,
     "freq": 2.2,
     "hover": -99,
     "fire": {
-      "pattern": "aimed",
+      "pattern": "sting-braid",
       "count": 2,
       "spread": 0.34,
       "speed": 1.5,
@@ -130,27 +150,32 @@
     },
     "burst": {
       "count": 10,
-      "speed": 5.0,
-      "spread": 7.0,
+      "speed": 5,
+      "spread": 7,
       "life": 0.24,
       "size": 0.07,
       "ring": 0,
       "shake": 0.05,
-      "palette": [4, 2, 6]
-    }
+      "palette": [
+        4,
+        2,
+        6
+      ]
+    },
+    "sizeClass": "small"
   },
   {
     "name": "SPINNER",
-    "hp": 28,
-    "radius": 0.62,
+    "hp": 7,
+    "radius": 0.43,
     "speed": 2.4,
-    "score": 620,
-    "period": 1.5,
+    "score": 120,
+    "period": 1.88,
     "amp": 1.4,
     "freq": 0.7,
     "hover": -99,
     "fire": {
-      "pattern": "ring",
+      "pattern": "rotor-pinwheel",
       "count": 8,
       "spread": 0,
       "speed": 0.72,
@@ -164,21 +189,26 @@
       "size": 0.1,
       "ring": 1,
       "shake": 0.1,
-      "palette": [5, 6, 2]
-    }
+      "palette": [
+        5,
+        6,
+        2
+      ]
+    },
+    "sizeClass": "small"
   },
   {
     "name": "MORTAR",
-    "hp": 54,
-    "radius": 0.8,
+    "hp": 10,
+    "radius": 0.46499999999999997,
     "speed": 1.5,
-    "score": 900,
-    "period": 1.8,
+    "score": 190,
+    "period": 2.06,
     "amp": 0.5,
     "freq": 0.6,
     "hover": -99,
     "fire": {
-      "pattern": "lob",
+      "pattern": "mortar-stair",
       "count": 3,
       "spread": 0.46,
       "speed": 0.55,
@@ -186,27 +216,32 @@
     },
     "burst": {
       "count": 36,
-      "speed": 2.0,
-      "spread": 5.0,
+      "speed": 2,
+      "spread": 5,
       "life": 0.8,
       "size": 0.16,
       "ring": 0,
       "shake": 0.22,
-      "palette": [1, 3, 0]
-    }
+      "palette": [
+        1,
+        3,
+        0
+      ]
+    },
+    "sizeClass": "small"
   },
   {
     "name": "SHARD",
-    "hp": 12,
+    "hp": 13,
     "radius": 0.5,
     "speed": 3.4,
-    "score": 480,
-    "period": 1.3,
+    "score": 260,
+    "period": 2.24,
     "amp": 1.7,
     "freq": 1.6,
     "hover": -99,
     "fire": {
-      "pattern": "burst",
+      "pattern": "shard-triplet",
       "count": 4,
       "spread": 0.09,
       "speed": 1.55,
@@ -214,27 +249,32 @@
     },
     "burst": {
       "count": 16,
-      "speed": 7.0,
-      "spread": 6.0,
+      "speed": 7,
+      "spread": 6,
       "life": 0.3,
       "size": 0.09,
       "ring": 0,
       "shake": 0.07,
-      "palette": [6, 2, 4]
-    }
+      "palette": [
+        6,
+        2,
+        4
+      ]
+    },
+    "sizeClass": "small"
   },
   {
     "name": "SENTRY",
-    "hp": 45,
-    "radius": 0.75,
+    "hp": 4,
+    "radius": 0.535,
     "speed": 2.6,
-    "score": 1100,
-    "period": 1.2,
+    "score": 330,
+    "period": 1.7,
     "amp": 0.3,
     "freq": 0.5,
     "hover": 8.5,
     "fire": {
-      "pattern": "cross",
+      "pattern": "binocular-cross",
       "count": 8,
       "spread": 0,
       "speed": 0.85,
@@ -243,26 +283,31 @@
     "burst": {
       "count": 40,
       "speed": 3.5,
-      "spread": 8.0,
+      "spread": 8,
       "life": 0.5,
       "size": 0.13,
       "ring": 0,
       "shake": 0.25,
-      "palette": [7, 1, 2]
-    }
+      "palette": [
+        7,
+        1,
+        2
+      ]
+    },
+    "sizeClass": "small"
   },
   {
     "name": "RAVEN",
-    "hp": 24,
-    "radius": 0.68,
+    "hp": 7,
+    "radius": 0.5700000000000001,
     "speed": 2.9,
-    "score": 780,
-    "period": 1.9,
+    "score": 400,
+    "period": 1.88,
     "amp": 1.2,
     "freq": 1.1,
     "hover": -99,
     "fire": {
-      "pattern": "aimed",
+      "pattern": "raven-feather",
       "count": 1,
       "spread": 0,
       "speed": 0.72,
@@ -270,27 +315,32 @@
     },
     "burst": {
       "count": 20,
-      "speed": 6.0,
-      "spread": 8.0,
+      "speed": 6,
+      "spread": 8,
       "life": 0.35,
       "size": 0.1,
       "ring": 0,
       "shake": 0.09,
-      "palette": [5, 2, 0]
-    }
+      "palette": [
+        5,
+        2,
+        0
+      ]
+    },
+    "sizeClass": "small"
   },
   {
     "name": "HYDRA",
-    "hp": 68,
-    "radius": 0.9,
+    "hp": 116,
+    "radius": 1.2,
     "speed": 1.8,
-    "score": 1450,
-    "period": 1.5,
+    "score": 2040,
+    "period": 2.72,
     "amp": 0.9,
     "freq": 0.8,
     "hover": 9.5,
     "fire": {
-      "pattern": "spiral",
+      "pattern": "hydra-converge",
       "count": 5,
       "spread": 0,
       "speed": 0.62,
@@ -298,27 +348,32 @@
     },
     "burst": {
       "count": 44,
-      "speed": 5.0,
-      "spread": 5.0,
+      "speed": 5,
+      "spread": 5,
       "life": 0.5,
       "size": 0.12,
       "ring": 1,
       "shake": 0.26,
-      "palette": [4, 7, 5]
-    }
+      "palette": [
+        4,
+        7,
+        5
+      ]
+    },
+    "sizeClass": "medium"
   },
   {
     "name": "BULWARK",
-    "hp": 92,
-    "radius": 1.1,
+    "hp": 128,
+    "radius": 1.28,
     "speed": 1.3,
-    "score": 1700,
-    "period": 2.0,
+    "score": 2200,
+    "period": 2.94,
     "amp": 0.6,
     "freq": 0.5,
     "hover": -99,
     "fire": {
-      "pattern": "wall",
+      "pattern": "bunker-comb",
       "count": 7,
       "spread": 1.5,
       "speed": 0.78,
@@ -327,26 +382,31 @@
     "burst": {
       "count": 50,
       "speed": 2.2,
-      "spread": 6.0,
+      "spread": 6,
       "life": 0.85,
       "size": 0.17,
       "ring": 0,
       "shake": 0.3,
-      "palette": [3, 1, 2]
-    }
+      "palette": [
+        3,
+        1,
+        2
+      ]
+    },
+    "sizeClass": "medium"
   },
   {
     "name": "SEEKER",
-    "hp": 18,
-    "radius": 0.38,
+    "hp": 4,
+    "radius": 0.5,
     "speed": 4.6,
-    "score": 540,
-    "period": 1.6,
+    "score": 260,
+    "period": 1.7,
     "amp": 1.9,
     "freq": 1.9,
     "hover": -99,
     "fire": {
-      "pattern": "aimed",
+      "pattern": "seeker-comet",
       "count": 3,
       "spread": 0.28,
       "speed": 0.9,
@@ -354,27 +414,32 @@
     },
     "burst": {
       "count": 14,
-      "speed": 6.0,
-      "spread": 7.0,
+      "speed": 6,
+      "spread": 7,
       "life": 0.26,
       "size": 0.08,
       "ring": 0,
       "shake": 0.06,
-      "palette": [7, 1, 4]
-    }
+      "palette": [
+        7,
+        1,
+        4
+      ]
+    },
+    "sizeClass": "small"
   },
   {
     "name": "MANTIS",
-    "hp": 22,
-    "radius": 0.55,
+    "hp": 7,
+    "radius": 0.535,
     "speed": 4.2,
-    "score": 700,
-    "period": 1.2,
+    "score": 330,
+    "period": 1.88,
     "amp": 1.6,
     "freq": 1.7,
     "hover": -99,
     "fire": {
-      "pattern": "twin",
+      "pattern": "mantis-pincer",
       "count": 3,
       "spread": 0.42,
       "speed": 1.3,
@@ -382,27 +447,32 @@
     },
     "burst": {
       "count": 20,
-      "speed": 5.0,
-      "spread": 7.0,
+      "speed": 5,
+      "spread": 7,
       "life": 0.32,
       "size": 0.1,
       "ring": 0,
       "shake": 0.09,
-      "palette": [5, 2, 0]
-    }
+      "palette": [
+        5,
+        2,
+        0
+      ]
+    },
+    "sizeClass": "small"
   },
   {
     "name": "DRILL",
-    "hp": 40,
-    "radius": 0.62,
+    "hp": 10,
+    "radius": 0.5700000000000001,
     "speed": 5.2,
-    "score": 950,
-    "period": 1.4,
+    "score": 400,
+    "period": 2.06,
     "amp": 0.4,
     "freq": 0.6,
     "hover": -99,
     "fire": {
-      "pattern": "burst",
+      "pattern": "drill-corkscrew",
       "count": 5,
       "spread": 0.06,
       "speed": 1.5,
@@ -410,27 +480,32 @@
     },
     "burst": {
       "count": 30,
-      "speed": 4.0,
-      "spread": 8.0,
+      "speed": 4,
+      "spread": 8,
       "life": 0.4,
       "size": 0.12,
       "ring": 0,
       "shake": 0.16,
-      "palette": [3, 1, 2]
-    }
+      "palette": [
+        3,
+        1,
+        2
+      ]
+    },
+    "sizeClass": "small"
   },
   {
     "name": "MONOLITH",
-    "hp": 130,
-    "radius": 1.25,
+    "hp": 104,
+    "radius": 1.28,
     "speed": 1.1,
-    "score": 2200,
-    "period": 2.2,
+    "score": 1880,
+    "period": 2.5,
     "amp": 0.3,
     "freq": 0.4,
     "hover": -99,
     "fire": {
-      "pattern": "wall",
+      "pattern": "monolith-window",
       "count": 9,
       "spread": 1.35,
       "speed": 0.8,
@@ -438,27 +513,32 @@
     },
     "burst": {
       "count": 60,
-      "speed": 2.0,
-      "spread": 5.0,
+      "speed": 2,
+      "spread": 5,
       "life": 0.9,
       "size": 0.18,
       "ring": 0,
       "shake": 0.34,
-      "palette": [2, 6, 3]
-    }
+      "palette": [
+        2,
+        6,
+        3
+      ]
+    },
+    "sizeClass": "medium"
   },
   {
     "name": "SWARMER",
-    "hp": 34,
-    "radius": 0.7,
+    "hp": 4,
+    "radius": 0.46499999999999997,
     "speed": 2.6,
-    "score": 880,
-    "period": 1.5,
+    "score": 190,
+    "period": 1.7,
     "amp": 1.1,
     "freq": 0.9,
     "hover": -99,
     "fire": {
-      "pattern": "petal",
+      "pattern": "swarm-cluster",
       "count": 4,
       "spread": 0.3,
       "speed": 0.85,
@@ -467,26 +547,31 @@
     "burst": {
       "count": 34,
       "speed": 5.5,
-      "spread": 4.0,
+      "spread": 4,
       "life": 0.45,
       "size": 0.11,
       "ring": 1,
       "shake": 0.16,
-      "palette": [4, 7, 2]
-    }
+      "palette": [
+        4,
+        7,
+        2
+      ]
+    },
+    "sizeClass": "small"
   },
   {
     "name": "ARBITER",
-    "hp": 90,
-    "radius": 0.95,
+    "hp": 128,
+    "radius": 1.12,
     "speed": 1.9,
-    "score": 1800,
-    "period": 1.6,
+    "score": 2200,
+    "period": 2.94,
     "amp": 0.5,
     "freq": 0.5,
-    "hover": 9.0,
+    "hover": 9,
     "fire": {
-      "pattern": "sweep",
+      "pattern": "arbiter-balance",
       "count": 7,
       "spread": 0.17,
       "speed": 0.7,
@@ -495,26 +580,31 @@
     "burst": {
       "count": 55,
       "speed": 3.5,
-      "spread": 7.0,
+      "spread": 7,
       "life": 0.6,
       "size": 0.15,
       "ring": 0,
       "shake": 0.3,
-      "palette": [3, 0, 1]
-    }
+      "palette": [
+        3,
+        0,
+        1
+      ]
+    },
+    "sizeClass": "medium"
   },
   {
     "name": "SCOURGE",
-    "hp": 60,
-    "radius": 0.8,
+    "hp": 68,
+    "radius": 1.2,
     "speed": 2.2,
-    "score": 1300,
-    "period": 1.8,
+    "score": 1400,
+    "period": 2.5,
     "amp": 0.8,
     "freq": 0.7,
     "hover": -99,
     "fire": {
-      "pattern": "rain",
+      "pattern": "scourge-hook",
       "count": 6,
       "spread": 1.15,
       "speed": 0.6,
@@ -522,27 +612,32 @@
     },
     "burst": {
       "count": 42,
-      "speed": 6.0,
-      "spread": 6.0,
+      "speed": 6,
+      "spread": 6,
       "life": 0.5,
       "size": 0.13,
       "ring": 1,
       "shake": 0.24,
-      "palette": [1, 7, 0]
-    }
+      "palette": [
+        1,
+        7,
+        0
+      ]
+    },
+    "sizeClass": "medium"
   },
   {
     "name": "HALBERD",
-    "hp": 110,
-    "radius": 1.0,
+    "hp": 13,
+    "radius": 0.5700000000000001,
     "speed": 2.4,
-    "score": 2000,
-    "period": 1.3,
+    "score": 400,
+    "period": 2.24,
     "amp": 0.7,
     "freq": 0.8,
     "hover": -99,
     "fire": {
-      "pattern": "aimed",
+      "pattern": "halberd-cut",
       "count": 5,
       "spread": 0.11,
       "speed": 1.6,
@@ -551,54 +646,64 @@
     "burst": {
       "count": 52,
       "speed": 4.5,
-      "spread": 9.0,
+      "spread": 9,
       "life": 0.55,
       "size": 0.14,
       "ring": 0,
       "shake": 0.28,
-      "palette": [6, 2, 5]
-    }
+      "palette": [
+        6,
+        2,
+        5
+      ]
+    },
+    "sizeClass": "small"
   },
   {
     "name": "CINDER",
-    "hp": 46,
-    "radius": 0.6,
+    "hp": 4,
+    "radius": 0.43,
     "speed": 3.6,
-    "score": 1050,
-    "period": 1.5,
+    "score": 120,
+    "period": 1.7,
     "amp": 1.5,
     "freq": 1.4,
     "hover": -99,
     "fire": {
-      "pattern": "ring",
+      "pattern": "cinder-embers",
       "count": 6,
-      "spread": 0.0,
+      "spread": 0,
       "speed": 0.75,
       "kind": 6
     },
     "burst": {
       "count": 28,
       "speed": 6.5,
-      "spread": 8.0,
+      "spread": 8,
       "life": 0.38,
       "size": 0.12,
       "ring": 0,
       "shake": 0.14,
-      "palette": [1, 0, 7]
-    }
+      "palette": [
+        1,
+        0,
+        7
+      ]
+    },
+    "sizeClass": "small"
   },
   {
     "name": "TALON",
-    "hp": 16,
-    "radius": 0.55,
+    "hp": 7,
+    "radius": 0.46499999999999997,
     "speed": 4.6,
-    "score": 820,
-    "period": 1.3,
+    "score": 190,
+    "period": 1.88,
     "amp": 1.7,
     "freq": 1.6,
     "hover": -99,
     "fire": {
-      "pattern": "aimed",
+      "pattern": "talon-rake",
       "count": 3,
       "spread": 0.2,
       "speed": 1.4,
@@ -612,21 +717,26 @@
       "size": 0.1,
       "ring": 0,
       "shake": 0.09,
-      "palette": [6, 2, 0]
-    }
+      "palette": [
+        6,
+        2,
+        0
+      ]
+    },
+    "sizeClass": "small"
   },
   {
     "name": "VULTURE",
-    "hp": 42,
-    "radius": 1.0,
+    "hp": 10,
+    "radius": 0.5,
     "speed": 1.7,
-    "score": 1500,
-    "period": 1.9,
+    "score": 260,
+    "period": 2.06,
     "amp": 0.5,
     "freq": 0.5,
     "hover": -99,
     "fire": {
-      "pattern": "lob",
+      "pattern": "vulture-scatter",
       "count": 5,
       "spread": 0.34,
       "speed": 0.6,
@@ -640,21 +750,26 @@
       "size": 0.16,
       "ring": 0,
       "shake": 0.26,
-      "palette": [1, 3, 2]
-    }
+      "palette": [
+        1,
+        3,
+        2
+      ]
+    },
+    "sizeClass": "small"
   },
   {
     "name": "SIREN",
-    "hp": 30,
-    "radius": 0.68,
+    "hp": 13,
+    "radius": 0.535,
     "speed": 2.8,
-    "score": 950,
-    "period": 1.5,
+    "score": 330,
+    "period": 2.24,
     "amp": 1.2,
-    "freq": 1.0,
+    "freq": 1,
     "hover": -99,
     "fire": {
-      "pattern": "sweep",
+      "pattern": "siren-duet",
       "count": 9,
       "spread": 0.15,
       "speed": 0.75,
@@ -662,27 +777,32 @@
     },
     "burst": {
       "count": 26,
-      "speed": 5.0,
+      "speed": 5,
       "spread": 6,
       "life": 0.42,
       "size": 0.11,
       "ring": 0,
       "shake": 0.13,
-      "palette": [4, 5, 2]
-    }
+      "palette": [
+        4,
+        5,
+        2
+      ]
+    },
+    "sizeClass": "small"
   },
   {
     "name": "BASILISK",
-    "hp": 52,
-    "radius": 0.95,
-    "speed": 2.0,
-    "score": 1650,
-    "period": 1.6,
+    "hp": 68,
+    "radius": 1.04,
+    "speed": 2,
+    "score": 1400,
+    "period": 2.5,
     "amp": 0.7,
     "freq": 0.6,
     "hover": -99,
     "fire": {
-      "pattern": "ring",
+      "pattern": "basilisk-scales",
       "count": 10,
       "spread": 0,
       "speed": 0.8,
@@ -696,21 +816,26 @@
       "size": 0.14,
       "ring": 1,
       "shake": 0.27,
-      "palette": [5, 0, 2]
-    }
+      "palette": [
+        5,
+        0,
+        2
+      ]
+    },
+    "sizeClass": "medium"
   },
   {
     "name": "COMET",
     "hp": 7,
-    "radius": 0.4,
+    "radius": 0.43,
     "speed": 7.4,
-    "score": 380,
-    "period": 1.1,
+    "score": 120,
+    "period": 1.88,
     "amp": 2.3,
     "freq": 2.4,
     "hover": -99,
     "fire": {
-      "pattern": "burst",
+      "pattern": "comet-tail",
       "count": 4,
       "spread": 0.07,
       "speed": 1.8,
@@ -718,27 +843,32 @@
     },
     "burst": {
       "count": 12,
-      "speed": 7.0,
+      "speed": 7,
       "spread": 7,
       "life": 0.24,
       "size": 0.08,
       "ring": 0,
       "shake": 0.06,
-      "palette": [0, 3, 6]
-    }
+      "palette": [
+        0,
+        3,
+        6
+      ]
+    },
+    "sizeClass": "small"
   },
   {
     "name": "GORGON",
-    "hp": 50,
-    "radius": 0.82,
+    "hp": 10,
+    "radius": 0.46499999999999997,
     "speed": 2.3,
-    "score": 1250,
-    "period": 2.0,
+    "score": 190,
+    "period": 2.06,
     "amp": 0.9,
     "freq": 0.8,
     "hover": -99,
     "fire": {
-      "pattern": "petal",
+      "pattern": "gorgon-gaze",
       "count": 5,
       "spread": 0.26,
       "speed": 0.72,
@@ -746,27 +876,32 @@
     },
     "burst": {
       "count": 40,
-      "speed": 5.0,
+      "speed": 5,
       "spread": 5,
       "life": 0.5,
       "size": 0.13,
       "ring": 1,
       "shake": 0.22,
-      "palette": [7, 4, 2]
-    }
+      "palette": [
+        7,
+        4,
+        2
+      ]
+    },
+    "sizeClass": "small"
   },
   {
     "name": "ANVIL",
-    "hp": 64,
-    "radius": 1.1,
+    "hp": 104,
+    "radius": 1.28,
     "speed": 3.1,
-    "score": 1900,
-    "period": 1.7,
+    "score": 1880,
+    "period": 2.5,
     "amp": 0.4,
     "freq": 0.5,
     "hover": -99,
     "fire": {
-      "pattern": "cross",
+      "pattern": "anvil-press",
       "count": 6,
       "spread": 0,
       "speed": 0.9,
@@ -774,27 +909,32 @@
     },
     "burst": {
       "count": 56,
-      "speed": 3.0,
+      "speed": 3,
       "spread": 7,
       "life": 0.7,
       "size": 0.17,
       "ring": 0,
       "shake": 0.32,
-      "palette": [1, 0, 2]
-    }
+      "palette": [
+        1,
+        0,
+        2
+      ]
+    },
+    "sizeClass": "medium"
   },
   {
     "name": "WRAITH",
-    "hp": 20,
-    "radius": 0.5,
+    "hp": 4,
+    "radius": 0.535,
     "speed": 5.4,
-    "score": 700,
-    "period": 1.2,
-    "amp": 2.0,
+    "score": 330,
+    "period": 1.7,
+    "amp": 2,
     "freq": 1.9,
     "hover": -99,
     "fire": {
-      "pattern": "twin",
+      "pattern": "wraith-aperture",
       "count": 4,
       "spread": 0.4,
       "speed": 1.5,
@@ -808,21 +948,26 @@
       "size": 0.09,
       "ring": 0,
       "shake": 0.08,
-      "palette": [6, 5, 2]
-    }
+      "palette": [
+        6,
+        5,
+        2
+      ]
+    },
+    "sizeClass": "small"
   },
   {
     "name": "TEMPEST",
-    "hp": 38,
-    "radius": 0.72,
+    "hp": 7,
+    "radius": 0.5700000000000001,
     "speed": 3.2,
-    "score": 1080,
-    "period": 1.4,
+    "score": 400,
+    "period": 1.88,
     "amp": 1.3,
     "freq": 1.2,
     "hover": -99,
     "fire": {
-      "pattern": "spiral",
+      "pattern": "tempest-vortex",
       "count": 7,
       "spread": 0,
       "speed": 0.8,
@@ -836,23 +981,28 @@
       "size": 0.12,
       "ring": 0,
       "shake": 0.16,
-      "palette": [6, 2, 4]
-    }
+      "palette": [
+        6,
+        2,
+        4
+      ]
+    },
+    "sizeClass": "small"
   },
   {
     "name": "CHIMERA",
-    "hp": 44,
-    "radius": 0.78,
+    "hp": 68,
+    "radius": 1.2,
     "speed": 2.5,
-    "score": 1180,
-    "period": 1.8,
-    "amp": 1.0,
+    "score": 1400,
+    "period": 2.5,
+    "amp": 1,
     "freq": 0.9,
     "hover": -99,
     "fire": {
-      "pattern": "rain",
+      "pattern": "chimera-duality",
       "count": 7,
-      "spread": 1.0,
+      "spread": 1,
       "speed": 0.7,
       "kind": 3
     },
@@ -864,21 +1014,26 @@
       "size": 0.13,
       "ring": 0,
       "shake": 0.19,
-      "palette": [3, 1, 2]
-    }
+      "palette": [
+        3,
+        1,
+        2
+      ]
+    },
+    "sizeClass": "medium"
   },
   {
     "name": "OBELISK",
-    "hp": 78,
-    "radius": 1.25,
+    "hp": 80,
+    "radius": 1.28,
     "speed": 1.4,
-    "score": 2400,
-    "period": 2.1,
+    "score": 1560,
+    "period": 2.72,
     "amp": 0.3,
     "freq": 0.4,
     "hover": -99,
     "fire": {
-      "pattern": "wall",
+      "pattern": "obelisk-runes",
       "count": 11,
       "spread": 1.25,
       "speed": 0.85,
@@ -892,21 +1047,26 @@
       "size": 0.18,
       "ring": 0,
       "shake": 0.36,
-      "palette": [2, 6, 3]
-    }
+      "palette": [
+        2,
+        6,
+        3
+      ]
+    },
+    "sizeClass": "medium"
   },
   {
     "name": "NOVA",
-    "hp": 26,
-    "radius": 0.62,
-    "speed": 3.0,
-    "score": 900,
-    "period": 2.4,
+    "hp": 4,
+    "radius": 0.5,
+    "speed": 3,
+    "score": 260,
+    "period": 1.7,
     "amp": 1.1,
-    "freq": 1.0,
+    "freq": 1,
     "hover": -99,
     "fire": {
-      "pattern": "ring",
+      "pattern": "nova-bloom",
       "count": 14,
       "spread": 0,
       "speed": 0.7,
@@ -920,21 +1080,26 @@
       "size": 0.15,
       "ring": 1,
       "shake": 0.28,
-      "palette": [1, 7, 0]
-    }
+      "palette": [
+        1,
+        7,
+        0
+      ]
+    },
+    "sizeClass": "small"
   },
   {
     "name": "LEVIATHAN",
-    "hp": 132,
-    "radius": 1.85,
-    "speed": 1.0,
-    "score": 4200,
-    "period": 1.5,
+    "hp": 104,
+    "radius": 1.12,
+    "speed": 1,
+    "score": 1880,
+    "period": 2.5,
     "amp": 1.4,
     "freq": 0.9,
     "hover": -99,
     "fire": {
-      "pattern": "aimed",
+      "pattern": "leviathan-spine",
       "count": 9,
       "spread": 0.13,
       "speed": 0.9,
@@ -948,21 +1113,26 @@
       "size": 0.2,
       "ring": 0,
       "shake": 0.5,
-      "palette": [1, 0, 7]
-    }
+      "palette": [
+        1,
+        0,
+        7
+      ]
+    },
+    "sizeClass": "medium"
   },
   {
     "name": "SLEET",
     "hp": 10,
-    "radius": 0.42,
+    "radius": 0.5700000000000001,
     "speed": 6.4,
-    "score": 420,
-    "period": 1.1,
+    "score": 400,
+    "period": 2.06,
     "amp": 2.2,
     "freq": 2.1,
     "hover": -99,
     "fire": {
-      "pattern": "aimed",
+      "pattern": "sleet-fork",
       "count": 2,
       "spread": 0.24,
       "speed": 1.5,
@@ -976,21 +1146,26 @@
       "size": 0.08,
       "ring": 0,
       "shake": 0.05,
-      "palette": [6, 2, 0]
-    }
+      "palette": [
+        6,
+        2,
+        0
+      ]
+    },
+    "sizeClass": "small"
   },
   {
     "name": "GLIMMER",
     "hp": 13,
-    "radius": 0.48,
+    "radius": 0.43,
     "speed": 4.8,
-    "score": 560,
-    "period": 1.4,
+    "score": 120,
+    "period": 2.24,
     "amp": 1.8,
     "freq": 1.6,
     "hover": -99,
     "fire": {
-      "pattern": "ring",
+      "pattern": "glimmer-prism",
       "count": 7,
       "spread": 0,
       "speed": 0.9,
@@ -998,27 +1173,32 @@
     },
     "burst": {
       "count": 18,
-      "speed": 6.0,
+      "speed": 6,
       "spread": 6,
       "life": 0.3,
       "size": 0.09,
       "ring": 1,
       "shake": 0.08,
-      "palette": [6, 5, 2]
-    }
+      "palette": [
+        6,
+        5,
+        2
+      ]
+    },
+    "sizeClass": "small"
   },
   {
     "name": "SHIVER",
-    "hp": 17,
-    "radius": 0.52,
+    "hp": 4,
+    "radius": 0.46499999999999997,
     "speed": 5.2,
-    "score": 640,
-    "period": 1.2,
-    "amp": 2.0,
+    "score": 190,
+    "period": 1.7,
+    "amp": 2,
     "freq": 1.8,
     "hover": -99,
     "fire": {
-      "pattern": "twin",
+      "pattern": "shiver-zigzag",
       "count": 3,
       "spread": 0.36,
       "speed": 1.2,
@@ -1032,21 +1212,26 @@
       "size": 0.1,
       "ring": 0,
       "shake": 0.09,
-      "palette": [5, 6, 2]
-    }
+      "palette": [
+        5,
+        6,
+        2
+      ]
+    },
+    "sizeClass": "small"
   },
   {
     "name": "RIME",
-    "hp": 33,
-    "radius": 0.72,
+    "hp": 7,
+    "radius": 0.5,
     "speed": 2.9,
-    "score": 1020,
-    "period": 1.6,
+    "score": 260,
+    "period": 1.88,
     "amp": 1.1,
-    "freq": 1.0,
+    "freq": 1,
     "hover": -99,
     "fire": {
-      "pattern": "sweep",
+      "pattern": "rime-arch",
       "count": 8,
       "spread": 0.16,
       "speed": 0.8,
@@ -1060,21 +1245,26 @@
       "size": 0.12,
       "ring": 0,
       "shake": 0.15,
-      "palette": [7, 4, 2]
-    }
+      "palette": [
+        7,
+        4,
+        2
+      ]
+    },
+    "sizeClass": "small"
   },
   {
     "name": "FLOE",
-    "hp": 41,
-    "radius": 0.8,
+    "hp": 10,
+    "radius": 0.535,
     "speed": 2.6,
-    "score": 1180,
-    "period": 1.7,
+    "score": 330,
+    "period": 2.06,
     "amp": 0.9,
     "freq": 0.8,
     "hover": -99,
     "fire": {
-      "pattern": "petal",
+      "pattern": "floe-offset",
       "count": 4,
       "spread": 0.28,
       "speed": 0.8,
@@ -1082,27 +1272,32 @@
     },
     "burst": {
       "count": 34,
-      "speed": 5.0,
+      "speed": 5,
       "spread": 6,
       "life": 0.5,
       "size": 0.13,
       "ring": 1,
       "shake": 0.18,
-      "palette": [5, 2, 6]
-    }
+      "palette": [
+        5,
+        2,
+        6
+      ]
+    },
+    "sizeClass": "small"
   },
   {
     "name": "CRYSTAL",
-    "hp": 48,
-    "radius": 0.76,
+    "hp": 13,
+    "radius": 0.5700000000000001,
     "speed": 3.1,
-    "score": 1300,
-    "period": 1.5,
+    "score": 400,
+    "period": 2.24,
     "amp": 1.3,
     "freq": 1.2,
     "hover": -99,
     "fire": {
-      "pattern": "spiral",
+      "pattern": "crystal-refraction",
       "count": 8,
       "spread": 0,
       "speed": 0.85,
@@ -1110,27 +1305,32 @@
     },
     "burst": {
       "count": 32,
-      "speed": 6.0,
+      "speed": 6,
       "spread": 5,
       "life": 0.46,
       "size": 0.12,
       "ring": 1,
       "shake": 0.17,
-      "palette": [4, 6, 2]
-    }
+      "palette": [
+        4,
+        6,
+        2
+      ]
+    },
+    "sizeClass": "small"
   },
   {
     "name": "HOARFROST",
-    "hp": 56,
-    "radius": 0.84,
+    "hp": 4,
+    "radius": 0.43,
     "speed": 2.4,
-    "score": 1450,
-    "period": 1.9,
+    "score": 120,
+    "period": 1.7,
     "amp": 0.8,
     "freq": 0.7,
     "hover": -99,
     "fire": {
-      "pattern": "cross",
+      "pattern": "hoarfrost-branches",
       "count": 8,
       "spread": 0,
       "speed": 0.75,
@@ -1144,21 +1344,26 @@
       "size": 0.13,
       "ring": 0,
       "shake": 0.2,
-      "palette": [4, 7, 2]
-    }
+      "palette": [
+        4,
+        7,
+        2
+      ]
+    },
+    "sizeClass": "small"
   },
   {
     "name": "CALVING",
-    "hp": 86,
-    "radius": 1.05,
-    "speed": 2.0,
-    "score": 2050,
-    "period": 1.8,
+    "hp": 128,
+    "radius": 1.12,
+    "speed": 2,
+    "score": 2200,
+    "period": 2.94,
     "amp": 0.6,
     "freq": 0.6,
     "hover": -99,
     "fire": {
-      "pattern": "rain",
+      "pattern": "calving-cascade",
       "count": 7,
       "spread": 1.05,
       "speed": 0.7,
@@ -1172,21 +1377,26 @@
       "size": 0.16,
       "ring": 0,
       "shake": 0.3,
-      "palette": [1, 3, 2]
-    }
+      "palette": [
+        1,
+        3,
+        2
+      ]
+    },
+    "sizeClass": "medium"
   },
   {
     "name": "MORAINE",
-    "hp": 104,
-    "radius": 1.15,
+    "hp": 10,
+    "radius": 0.5,
     "speed": 1.7,
-    "score": 2400,
-    "period": 2.0,
+    "score": 260,
+    "period": 2.06,
     "amp": 0.5,
     "freq": 0.5,
     "hover": -99,
     "fire": {
-      "pattern": "wall",
+      "pattern": "moraine-orbit",
       "count": 10,
       "spread": 1.2,
       "speed": 0.8,
@@ -1200,21 +1410,26 @@
       "size": 0.17,
       "ring": 0,
       "shake": 0.34,
-      "palette": [2, 6, 3]
-    }
+      "palette": [
+        2,
+        6,
+        3
+      ]
+    },
+    "sizeClass": "small"
   },
   {
     "name": "GLACIER",
-    "hp": 155,
-    "radius": 1.7,
+    "hp": 80,
+    "radius": 1.28,
     "speed": 1.2,
-    "score": 3600,
-    "period": 1.5,
-    "amp": 1.0,
+    "score": 1560,
+    "period": 2.72,
+    "amp": 1,
     "freq": 0.8,
     "hover": -99,
     "fire": {
-      "pattern": "burst",
+      "pattern": "glacier-rampart",
       "count": 6,
       "spread": 0.1,
       "speed": 1.3,
@@ -1228,7 +1443,12 @@
       "size": 0.2,
       "ring": 0,
       "shake": 0.46,
-      "palette": [6, 2, 5]
-    }
+      "palette": [
+        6,
+        2,
+        5
+      ]
+    },
+    "sizeClass": "medium"
   }
 ]

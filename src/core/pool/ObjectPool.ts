@@ -13,6 +13,8 @@ export class ObjectPool {
   readonly radius: Float32Array;
   readonly hp: Float32Array;
   readonly aux: Float32Array;
+  /** Distinguishes a reused slot from the object that occupied it previously. */
+  readonly generation: Uint32Array;
   private readonly free: Int32Array;
   private top = 0;
   count = 0;
@@ -30,6 +32,7 @@ export class ObjectPool {
     this.radius = new Float32Array(capacity);
     this.hp = new Float32Array(capacity);
     this.aux = new Float32Array(capacity);
+    this.generation = new Uint32Array(capacity);
     this.free = new Int32Array(capacity);
     this.clear();
   }
@@ -43,6 +46,7 @@ export class ObjectPool {
     if (!this.top) return -1;
     const i = this.free[--this.top];
     this.active[i] = 1;
+    this.generation[i]++;
     this.x[i] = this.px[i] = x;
     this.y[i] = this.py[i] = y;
     this.vx[i] = vx;

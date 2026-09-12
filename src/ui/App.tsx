@@ -309,9 +309,9 @@ function GameApp() {
             <span className="bracket" />
             <small>INTERCEPTOR CLASS</small>
             <strong>
-              VL–01 <span> / </span> LANCE
+              VL–01 <span> / </span> PEREGRINE
             </strong>
-            <p>DUAL ION DRIVE · ADAPTIVE ARMAMENT</p>
+            <p>SINGLE ION DRIVE · ADAPTIVE ARMAMENT</p>
             <div>
               <span>HULL INTEGRITY</span>
               <i />

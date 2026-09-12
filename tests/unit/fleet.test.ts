@@ -1,4 +1,6 @@
-import { describe, expect, it } from 'vitest';
+import { beforeAll, describe, expect, it } from 'vitest';
+import { readFile } from 'node:fs/promises';
+import { loadBlenderFleet } from '../../src/visual/BlenderFleet';
 import { GameState } from '../../src/game/GameState';
 import { formationPosition } from '../../src/game/formations';
 import { STAGES } from '../../src/game/stages';
@@ -13,6 +15,11 @@ import {
 } from '../../src/visual/SceneBuilder';
 import { Mesh } from 'three/webgpu';
 
+beforeAll(async () => {
+  const bytes = await readFile('public/models/voltaris-fleet.glb');
+  await loadBlenderFleet(bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength));
+}, 30000);
+
 describe('fleet refit', () => {
   it('keeps off-centre charge lamps attached when hulls are rebuilt', () => {
     for (let i = 0; i < defs.length; i++) {
@@ -22,6 +29,17 @@ describe('fleet refit', () => {
       expect(ENEMY_CORE[i]).toEqual(anchor);
       second.hull!.computeBoundingBox();
       const box = second.hull!.boundingBox!;
+      const reach = Math.max(
+        Math.abs(box.min.x),
+        Math.abs(box.max.x),
+        Math.abs(box.min.y),
+        Math.abs(box.max.y),
+      );
+      // Imported root transforms must preserve the collision-relative visual scale.
+      // Rotated component bounding boxes are conservative; actual vertices
+      // must remain inside the envelope and occupy most of its intended reach.
+      expect(reach).toBeLessThanOrEqual(defs[i].radius * 1.55 + 0.001);
+      expect(reach).toBeGreaterThan(defs[i].radius * 1.55 * 0.82);
       expect(anchor.x).toBeGreaterThanOrEqual(box.min.x);
       expect(anchor.x).toBeLessThanOrEqual(box.max.x);
       expect(anchor.y).toBeGreaterThanOrEqual(box.min.y);

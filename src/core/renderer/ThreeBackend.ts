@@ -13,7 +13,6 @@ import {
   groundGeometry,
   glow,
   ENEMY_TYPES,
-  FLEET_STYLE,
   ENEMY_CORE,
   GROUND_TYPES,
   GROUND_CORE,
@@ -23,6 +22,7 @@ import {
 import { STAGES } from '../../game/stages';
 import { ObjectPool } from '../pool/ObjectPool';
 import { itemMaterial } from '../../visual/ItemDesign';
+import { enemyRotation } from '../../game/HostilePatterns';
 
 /**
  * Debris colours, indexed by a particle's type. Saturated on purpose: the
@@ -360,8 +360,11 @@ export class ThreeBackend implements IRenderBackend {
     );
     this.skyBombs = batch(new T.ConeGeometry(1, 2.6, 6), lit('#a8e6ff', 2.6), 256);
     this.bombs = batch(new T.ConeGeometry(1, 2.6, 6).rotateZ(Math.PI), lit('#ffd06a', 2.6), 256);
-    for (const style of this.shotStyle)
-      this.hostileShots.push(batch(style.geometry, lit(style.hex, style.gain), style.capacity));
+    for (const style of this.shotStyle) {
+      const shots = batch(style.geometry, lit('#ffffff', 1), style.capacity);
+      ThreeBackend.tintable(shots);
+      this.hostileShots.push(shots);
+    }
 
     /* --- Enemy fleet -------------------------------------------------- */
     // Less metal than a hero asset would use: at this size the specular
@@ -375,8 +378,8 @@ export class ThreeBackend implements IRenderBackend {
     for (let i = 0; i < ENEMY_TYPES; i++) {
       const parts = enemyGeometry(i);
       const material = hullMaterial.clone();
-      material.metalness = FLEET_STYLE[i][4];
-      material.roughness = FLEET_STYLE[i][5];
+      material.metalness = 0.58;
+      material.roughness = 0.42;
       const hull = new T.InstancedMesh(parts.hull!, material, 256);
       hull.count = 0;
       hull.frustumCulled = false;
@@ -716,7 +719,8 @@ export class ThreeBackend implements IRenderBackend {
       switch (p.type[i]) {
         case 1: {
           const k = p.kind[i],
-            s = this.shotStyle[k];
+            s = this.shotStyle[k],
+            slot = this.hostileShots[k].count;
           this.push(
             this.hostileShots[k],
             x,
@@ -727,6 +731,14 @@ export class ThreeBackend implements IRenderBackend {
             r * s.sz,
             s.spin ? t * s.spin + i * 0.7 : aim,
           );
+          const hostileBatch = this.hostileShots[k];
+          if (hostileBatch.count > slot) {
+            this.tint
+              .set(p.tint[i] || s.hex)
+              .lerp(this.white, 0.18)
+              .multiplyScalar(s.gain);
+            hostileBatch.setColorAt(hostileBatch.count - 1, this.tint);
+          }
           break;
         }
         case 2:
@@ -766,7 +778,7 @@ export class ThreeBackend implements IRenderBackend {
       const x = e.px[i] + (e.x[i] - e.px[i]) * alpha,
         y = e.py[i] + (e.y[i] - e.py[i]) * alpha;
       // SPINNER and TEMPEST read as rotors; the rest just bank as they weave.
-      const angle = type === 5 ? t * 2.6 : type === 29 ? t * 0.9 : Math.sin(e.age[i]) * 0.12;
+      const angle = enemyRotation(type, e.age[i], g.time);
       const slot = hull.count;
       this.push(hull, x, y, 0, 1, 1, 1, angle);
       // instanceColor multiplies the baked hull colours, so a hit reads as the
@@ -838,7 +850,7 @@ export class ThreeBackend implements IRenderBackend {
           this.groundCores,
           x + (spin ? -core.x : core.x),
           y + (spin ? -core.y : core.y),
-          0.3,
+          core.z,
           core.size * pulse,
           core.size * pulse,
           core.size * pulse,

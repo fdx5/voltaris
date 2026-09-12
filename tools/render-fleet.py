@@ -7,12 +7,13 @@ from PIL import Image, ImageDraw, ImageFont
 records = json.loads(Path('doc/validation/fleet-preview.json').read_text())
 S = 2
 W, H = 240, 220
-out = Image.new('RGB', (W * 7 * S, (H * 6 + 72) * S), '#081321')
+rows = math.ceil(len(records) / 7)
+out = Image.new('RGB', (W * 7 * S, (H * rows + 72) * S), '#081321')
 draw = ImageDraw.Draw(out)
 font_path = 'C:/Windows/Fonts/consola.ttf'
 font = ImageFont.truetype(font_path, 13 * S)
 heading = ImageFont.truetype(font_path, 23 * S)
-draw.text((24*S, 15*S), 'VOLTARIS / 42 DISTINCT HULLS', fill='#e5eff8', font=heading)
+draw.text((24*S, 15*S), f'VOLTARIS / {len(records)} BLENDER UNITS', fill='#e5eff8', font=heading)
 draw.text((24*S, 44*S), 'ACTUAL GEOMETRY / ORTHOGRAPHIC COLOUR STUDY / NOT AN IN-GAME CAPTURE', fill='#84a3bd', font=font)
 for idx, record in enumerate(records):
     ox, oy = idx % 7 * W, idx // 7 * H + 72
@@ -43,5 +44,5 @@ for idx, record in enumerate(records):
     draw.text(((ox+14)*S,(oy+182)*S),f'{idx+1:02}  {record["name"]}',fill='#d8e8f3',font=font)
     for j,c in enumerate(record.get('palette', [])):
         draw.rectangle(((ox+15+j*22)*S,(oy+203)*S,(ox+32+j*22)*S,(oy+208)*S),fill=c)
-out.resize((W*7,H*6+72), Image.Resampling.LANCZOS).save('doc/validation/fleet-redesign.png')
+out.resize((W*7,H*rows+72), Image.Resampling.LANCZOS).save('doc/validation/fleet-redesign.png')
 print('doc/validation/fleet-redesign.png')

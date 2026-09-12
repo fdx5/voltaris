@@ -1,6 +1,6 @@
 // Offline geometry preview: no game, browser, or production debug route required.
 import { build } from 'esbuild';
-import { writeFile, unlink, mkdir } from 'node:fs/promises';
+import { readFile, writeFile, unlink, mkdir } from 'node:fs/promises';
 import { Mesh, Vector3 } from 'three/webgpu';
 const temporary = new URL('./.fleet-models.mjs', import.meta.url);
 await build({
@@ -12,9 +12,17 @@ await build({
   outfile: temporary.pathname.replace(/^\/([A-Z]:)/, '$1'),
 });
 try {
-  const { enemyGeometry, groundGeometry, makeBoss, makeShip, FLEET_STYLE } = await import(
-    temporary.href
-  );
+  const {
+    loadBlenderFleet,
+    enemyGeometry,
+    groundGeometry,
+    makeBoss,
+    makeShip,
+    FLEET_STYLE,
+    GROUND_TYPES,
+  } = await import(temporary.href);
+  const bytes = await readFile('public/models/voltaris-fleet.glb');
+  await loadBlenderFleet(bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength));
   const records = [];
   function meshData(geometry, material, matrix) {
     const p = geometry.attributes.position,
@@ -44,7 +52,7 @@ try {
       emissive: material?.isMeshBasicNodeMaterial ?? false,
     };
   }
-  for (let i = 0; i < 34; i++) {
+  for (let i = 0; i < FLEET_STYLE.length; i++) {
     const g = enemyGeometry(i);
     records.push({
       name: FLEET_STYLE[i][0],
@@ -52,10 +60,10 @@ try {
       parts: [meshData(g.hull), { ...meshData(g.accent), emissive: true }],
     });
   }
-  for (let i = 0; i < 4; i++) {
+  for (let i = 0; i < GROUND_TYPES; i++) {
     const g = groundGeometry(i);
     records.push({
-      name: ['BASTION', 'RADAR', 'SILO', 'FLAK'][i],
+      name: `EMPLACEMENT ${String(i + 1).padStart(2, '0')}`,
       parts: [meshData(g.hull), { ...meshData(g.accent), emissive: true }],
     });
   }
@@ -67,7 +75,7 @@ try {
     });
     records.push({ name, parts });
   }
-  for (const design of ['gatekeeper', 'ares', 'jove']) {
+  for (const design of ['gatekeeper', 'ares', 'jove', 'nereid']) {
     const boss = makeBoss(design);
     boss.pods.forEach((p, i) => {
       const a = (i / boss.pods.length) * Math.PI * 2;

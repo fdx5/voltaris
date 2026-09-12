@@ -1,0 +1,574 @@
+[
+  {
+    "id": 0,
+    "name": "SKIFF",
+    "design": "CRESCENT COURIER",
+    "size": "small",
+    "palette": [
+      "#efb944",
+      "#233b64",
+      "#a9b4bb",
+      "#233b64"
+    ],
+    "pattern": "crescent-pair"
+  },
+  {
+    "id": 1,
+    "name": "LANCER",
+    "design": "MONO RAIL NEEDLE",
+    "size": "small",
+    "palette": [
+      "#cf334b",
+      "#e0d5b4",
+      "#e2ded2",
+      "#e0d5b4"
+    ],
+    "pattern": "rail-train"
+  },
+  {
+    "id": 2,
+    "name": "CARRIER",
+    "design": "OFFSET HANGAR BARGE",
+    "size": "small",
+    "palette": [
+      "#477aad",
+      "#ec8e35",
+      "#a9b4bb",
+      "#ec8e35"
+    ],
+    "pattern": "bay-stagger"
+  },
+  {
+    "id": 3,
+    "name": "WARDEN",
+    "design": "OCTAGONAL BULWARK",
+    "size": "medium",
+    "palette": [
+      "#228d79",
+      "#f1d574",
+      "#e2ded2",
+      "#f1d574"
+    ],
+    "pattern": "shield-slots"
+  },
+  {
+    "id": 4,
+    "name": "WASP",
+    "design": "SEGMENTED STINGER",
+    "size": "small",
+    "palette": [
+      "#dfa31e",
+      "#473967",
+      "#a9b4bb",
+      "#473967"
+    ],
+    "pattern": "sting-braid"
+  },
+  {
+    "id": 5,
+    "name": "SPINNER",
+    "design": "QUAD ROTOR DRONE",
+    "size": "small",
+    "palette": [
+      "#a947a8",
+      "#9fe6ca",
+      "#e2ded2",
+      "#9fe6ca"
+    ],
+    "pattern": "rotor-pinwheel"
+  },
+  {
+    "id": 6,
+    "name": "MORTAR",
+    "design": "SUSPENDED HOWITZER",
+    "size": "small",
+    "palette": [
+      "#ac633a",
+      "#91cad8",
+      "#a9b4bb",
+      "#91cad8"
+    ],
+    "pattern": "mortar-stair"
+  },
+  {
+    "id": 7,
+    "name": "SHARD",
+    "design": "TRIHEDRAL SPLINTER",
+    "size": "small",
+    "palette": [
+      "#7fc3e5",
+      "#742f53",
+      "#e2ded2",
+      "#742f53"
+    ],
+    "pattern": "shard-triplet"
+  },
+  {
+    "id": 8,
+    "name": "SENTRY",
+    "design": "BINOCULAR GUN PLATFORM",
+    "size": "small",
+    "palette": [
+      "#d77392",
+      "#293a54",
+      "#a9b4bb",
+      "#293a54"
+    ],
+    "pattern": "binocular-cross"
+  },
+  {
+    "id": 9,
+    "name": "RAVEN",
+    "design": "BLACK KITE",
+    "size": "small",
+    "palette": [
+      "#334052",
+      "#c5a15a",
+      "#e2ded2",
+      "#c5a15a"
+    ],
+    "pattern": "raven-feather"
+  },
+  {
+    "id": 10,
+    "name": "HYDRA",
+    "design": "THREE NECK GUNSHIP",
+    "size": "medium",
+    "palette": [
+      "#a1bd38",
+      "#432535",
+      "#a9b4bb",
+      "#432535"
+    ],
+    "pattern": "hydra-converge"
+  },
+  {
+    "id": 11,
+    "name": "BULWARK",
+    "design": "ARMOURED TRAVERSE",
+    "size": "medium",
+    "palette": [
+      "#d49b69",
+      "#36596b",
+      "#e2ded2",
+      "#36596b"
+    ],
+    "pattern": "bunker-comb"
+  },
+  {
+    "id": 12,
+    "name": "SEEKER",
+    "design": "GIMBAL EYE",
+    "size": "small",
+    "palette": [
+      "#44ada9",
+      "#f0e5ca",
+      "#a9b4bb",
+      "#f0e5ca"
+    ],
+    "pattern": "seeker-comet"
+  },
+  {
+    "id": 13,
+    "name": "MANTIS",
+    "design": "TWIN SCYTHE",
+    "size": "small",
+    "palette": [
+      "#699b39",
+      "#c6a3d9",
+      "#e2ded2",
+      "#c6a3d9"
+    ],
+    "pattern": "mantis-pincer"
+  },
+  {
+    "id": 14,
+    "name": "DRILL",
+    "design": "HELICAL BORER",
+    "size": "small",
+    "palette": [
+      "#bcc4c7",
+      "#d66b24",
+      "#a9b4bb",
+      "#d66b24"
+    ],
+    "pattern": "drill-corkscrew"
+  },
+  {
+    "id": 15,
+    "name": "MONOLITH",
+    "design": "SPLIT OBSIDIAN TOWER",
+    "size": "medium",
+    "palette": [
+      "#423258",
+      "#f0ba35",
+      "#e2ded2",
+      "#f0ba35"
+    ],
+    "pattern": "monolith-window"
+  },
+  {
+    "id": 16,
+    "name": "SWARMER",
+    "design": "TRI POD KNOT",
+    "size": "small",
+    "palette": [
+      "#e16856",
+      "#d9cfa0",
+      "#a9b4bb",
+      "#d9cfa0"
+    ],
+    "pattern": "swarm-cluster"
+  },
+  {
+    "id": 17,
+    "name": "ARBITER",
+    "design": "BALANCE ARRAY",
+    "size": "medium",
+    "palette": [
+      "#eee4b5",
+      "#3e71a5",
+      "#e2ded2",
+      "#3e71a5"
+    ],
+    "pattern": "arbiter-balance"
+  },
+  {
+    "id": 18,
+    "name": "SCOURGE",
+    "design": "ASYMMETRIC SCORPION",
+    "size": "medium",
+    "palette": [
+      "#81344a",
+      "#5ed1c5",
+      "#a9b4bb",
+      "#5ed1c5"
+    ],
+    "pattern": "scourge-hook"
+  },
+  {
+    "id": 19,
+    "name": "HALBERD",
+    "design": "POLEAXE DRONE",
+    "size": "small",
+    "palette": [
+      "#456ebd",
+      "#ecae83",
+      "#e2ded2",
+      "#ecae83"
+    ],
+    "pattern": "halberd-cut"
+  },
+  {
+    "id": 20,
+    "name": "CINDER",
+    "design": "OPEN FURNACE CAGE",
+    "size": "small",
+    "palette": [
+      "#d15123",
+      "#453b32",
+      "#a9b4bb",
+      "#453b32"
+    ],
+    "pattern": "cinder-embers"
+  },
+  {
+    "id": 21,
+    "name": "TALON",
+    "design": "THREE TALON CAGE",
+    "size": "small",
+    "palette": [
+      "#26a5bf",
+      "#eda659",
+      "#e2ded2",
+      "#eda659"
+    ],
+    "pattern": "talon-rake"
+  },
+  {
+    "id": 22,
+    "name": "VULTURE",
+    "design": "BROKEN WING SALVAGER",
+    "size": "small",
+    "palette": [
+      "#a99d69",
+      "#903e42",
+      "#a9b4bb",
+      "#903e42"
+    ],
+    "pattern": "vulture-scatter"
+  },
+  {
+    "id": 23,
+    "name": "SIREN",
+    "design": "RESONANCE FORK",
+    "size": "small",
+    "palette": [
+      "#9f74cb",
+      "#e7d3e8",
+      "#e2ded2",
+      "#e7d3e8"
+    ],
+    "pattern": "siren-duet"
+  },
+  {
+    "id": 24,
+    "name": "BASILISK",
+    "design": "REPTILE SIEGE DECK",
+    "size": "medium",
+    "palette": [
+      "#397759",
+      "#d7cb73",
+      "#a9b4bb",
+      "#d7cb73"
+    ],
+    "pattern": "basilisk-scales"
+  },
+  {
+    "id": 25,
+    "name": "COMET",
+    "design": "TEARDROP ENGINE",
+    "size": "small",
+    "palette": [
+      "#e79647",
+      "#51437c",
+      "#e2ded2",
+      "#51437c"
+    ],
+    "pattern": "comet-tail"
+  },
+  {
+    "id": 26,
+    "name": "GORGON",
+    "design": "FIVE EYE FAN",
+    "size": "small",
+    "palette": [
+      "#c5537b",
+      "#d4ddb1",
+      "#a9b4bb",
+      "#d4ddb1"
+    ],
+    "pattern": "gorgon-gaze"
+  },
+  {
+    "id": 27,
+    "name": "ANVIL",
+    "design": "HAMMERHEAD FREIGHTER",
+    "size": "medium",
+    "palette": [
+      "#617c97",
+      "#f1b73f",
+      "#e2ded2",
+      "#f1b73f"
+    ],
+    "pattern": "anvil-press"
+  },
+  {
+    "id": 28,
+    "name": "WRAITH",
+    "design": "HOLLOW SPECTRE",
+    "size": "small",
+    "palette": [
+      "#4e7582",
+      "#72e5bc",
+      "#a9b4bb",
+      "#72e5bc"
+    ],
+    "pattern": "wraith-aperture"
+  },
+  {
+    "id": 29,
+    "name": "TEMPEST",
+    "design": "COUNTER ROTATING GYRO",
+    "size": "small",
+    "palette": [
+      "#7378d5",
+      "#dfccb1",
+      "#e2ded2",
+      "#dfccb1"
+    ],
+    "pattern": "tempest-vortex"
+  },
+  {
+    "id": 30,
+    "name": "CHIMERA",
+    "design": "UNBALANCED HYBRID",
+    "size": "medium",
+    "palette": [
+      "#bb8553",
+      "#56c9bd",
+      "#a9b4bb",
+      "#56c9bd"
+    ],
+    "pattern": "chimera-duality"
+  },
+  {
+    "id": 31,
+    "name": "OBELISK",
+    "design": "TILTED PYRAMID",
+    "size": "medium",
+    "palette": [
+      "#d4c5a1",
+      "#aa4053",
+      "#e2ded2",
+      "#aa4053"
+    ],
+    "pattern": "obelisk-runes"
+  },
+  {
+    "id": 32,
+    "name": "NOVA",
+    "design": "FIVE PETAL CHARGE",
+    "size": "small",
+    "palette": [
+      "#de8bb7",
+      "#472f58",
+      "#a9b4bb",
+      "#472f58"
+    ],
+    "pattern": "nova-bloom"
+  },
+  {
+    "id": 33,
+    "name": "LEVIATHAN",
+    "design": "ARTICULATED LEVIATHAN",
+    "size": "medium",
+    "palette": [
+      "#285978",
+      "#eaa676",
+      "#e2ded2",
+      "#eaa676"
+    ],
+    "pattern": "leviathan-spine"
+  },
+  {
+    "id": 34,
+    "name": "SLEET",
+    "design": "THREE PRONG ICE PICK",
+    "size": "small",
+    "palette": [
+      "#a3d5ea",
+      "#be426a",
+      "#a9b4bb",
+      "#be426a"
+    ],
+    "pattern": "sleet-fork"
+  },
+  {
+    "id": 35,
+    "name": "GLIMMER",
+    "design": "FACETED LANTERN",
+    "size": "small",
+    "palette": [
+      "#8bd4a7",
+      "#b46db5",
+      "#e2ded2",
+      "#b46db5"
+    ],
+    "pattern": "glimmer-prism"
+  },
+  {
+    "id": 36,
+    "name": "SHIVER",
+    "design": "ZIGZAG RESONATOR",
+    "size": "small",
+    "palette": [
+      "#6786d0",
+      "#efc665",
+      "#a9b4bb",
+      "#efc665"
+    ],
+    "pattern": "shiver-zigzag"
+  },
+  {
+    "id": 37,
+    "name": "RIME",
+    "design": "HORSESHOE RADIATOR",
+    "size": "small",
+    "palette": [
+      "#d8dce5",
+      "#496baa",
+      "#e2ded2",
+      "#496baa"
+    ],
+    "pattern": "rime-arch"
+  },
+  {
+    "id": 38,
+    "name": "FLOE",
+    "design": "LINKED RAFT PLATFORM",
+    "size": "small",
+    "palette": [
+      "#63a5bb",
+      "#dfa489",
+      "#a9b4bb",
+      "#dfa489"
+    ],
+    "pattern": "floe-offset"
+  },
+  {
+    "id": 39,
+    "name": "CRYSTAL",
+    "design": "HEX CRYSTAL CLUSTER",
+    "size": "small",
+    "palette": [
+      "#acb5ed",
+      "#3d667b",
+      "#e2ded2",
+      "#3d667b"
+    ],
+    "pattern": "crystal-refraction"
+  },
+  {
+    "id": 40,
+    "name": "HOARFROST",
+    "design": "BRANCHING ANTENNA",
+    "size": "small",
+    "palette": [
+      "#b9c9b4",
+      "#55786f",
+      "#a9b4bb",
+      "#55786f"
+    ],
+    "pattern": "hoarfrost-branches"
+  },
+  {
+    "id": 41,
+    "name": "CALVING",
+    "design": "FALLING BLOCK CARRIER",
+    "size": "medium",
+    "palette": [
+      "#537da5",
+      "#d4deef",
+      "#e2ded2",
+      "#d4deef"
+    ],
+    "pattern": "calving-cascade"
+  },
+  {
+    "id": 42,
+    "name": "MORAINE",
+    "design": "MINERAL HARVEST ORB",
+    "size": "small",
+    "palette": [
+      "#8d8176",
+      "#e3bc5f",
+      "#a9b4bb",
+      "#e3bc5f"
+    ],
+    "pattern": "moraine-orbit"
+  },
+  {
+    "id": 43,
+    "name": "GLACIER",
+    "design": "STEPPED ICEBREAKER",
+    "size": "medium",
+    "palette": [
+      "#749eac",
+      "#edf0ca",
+      "#e2ded2",
+      "#edf0ca"
+    ],
+    "pattern": "glacier-rampart"
+  }
+]
