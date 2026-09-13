@@ -53,6 +53,7 @@ for (const device of [
     for (const selector of [
       'canvas',
       '.play-frame',
+      '.hud.top-left',
       '.hud.bottom-left',
       '.skills',
       '.hud.top-right',

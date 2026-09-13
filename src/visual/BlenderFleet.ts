@@ -14,7 +14,7 @@ export function loadBlenderFleet(data?: ArrayBuffer): Promise<void> {
   return (pending ??= (
     data
       ? loader.parseAsync(data, '')
-      : loader.loadAsync('/models/voltaris-fleet.glb?revision=independent-1')
+      : loader.loadAsync('/models/voltaris-fleet.glb?revision=capital-refit-3')
   )
     .then((gltf) => {
       fleet = gltf.scene;
@@ -108,12 +108,16 @@ export const blenderGroundGeometry = (type: number) => instanceGeometry(`ground_
 
 export function makeBlenderShip(): T.Group {
   const root = asset('player');
-  root.userData.source = 'Blender / Peregrine Mk II';
+  root.userData.source = 'Blender / Peregrine Mk III';
   const engines: T.Group[] = [];
-  for (const side of [0]) {
+  for (const side of [-1, 1]) {
     const engine = new T.Group();
     engine.name = 'exhaust';
-    engine.position.set(-1.28, 0.127, 0.079);
+    engine.position.set(
+      -1.53,
+      side * 0.47 * Math.cos((-26 * Math.PI) / 180) - -0.015 * Math.sin((-26 * Math.PI) / 180),
+      side * 0.47 * Math.sin((-26 * Math.PI) / 180) - 0.015 * Math.cos((-26 * Math.PI) / 180),
+    );
     engine.userData.phase = side * 1.8;
     for (let i = 0; i < 5; i++) {
       const length = 1.12 - i * 0.18;

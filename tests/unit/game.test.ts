@@ -576,6 +576,66 @@ describe('arcade rules', () => {
     expect(falling).toBeGreaterThan(0);
     expect(climbing).toBeGreaterThan(0);
   });
+  it("launches each stage's authored rocks inside its corridor", () => {
+    for (let index = 0; index < STAGES.length; index++) {
+      const stage = STAGES[index];
+      expect(stage.hazards.length).toBeGreaterThan(0);
+      for (const h of stage.hazards) {
+        expect(h.time).toBeLessThan(stage.durationSec);
+        expect(h.y).toBeGreaterThan(stage.minY);
+        expect(h.y).toBeLessThan(stage.maxY);
+      }
+      const g = new GameState();
+      g.start('LASER', 3, false, false, index);
+      g.autoFire = false;
+      const first = stage.hazards[0];
+      while (g.time < first.time - dt) {
+        g.invincible = 1;
+        g.tick(dt);
+      }
+      expect(g.rocks.count).toBe(0);
+      g.invincible = 1;
+      g.tick(dt);
+      expect(g.rocks.count).toBe(1);
+      const i = g.rocks.active.indexOf(1);
+      expect(g.rocks.y[i]).toBeCloseTo(first.y, 1);
+      expect(g.rocks.radius[i]).toBeCloseTo(first.size, 5);
+    }
+  });
+  it('costs a life to fly into a rock', () => {
+    const g = new GameState();
+    g.start('LASER', 3);
+    g.invincible = 0;
+    g.rocks.acquire(g.x + 0.5, g.y, 0, 0, 0, 1e9, 1, 30);
+    g.tick(dt);
+    expect(g.lives).toBe(2);
+  });
+  it('stops piercing shots on a rock and breaks it once worn down', () => {
+    const g = new GameState();
+    g.start('LASER', 3);
+    g.level = 8;
+    g.invincible = 99;
+    // An enemy parked behind the rock must stay untouched while the rock stands.
+    g.enemies.acquire(g.x + 8, g.y, 0, 0, 0, 30, 0.4, 1e6);
+    const rock = g.rocks.acquire(g.x + 4, g.y, 0, 0, 0, 1e9, 1.2, 36);
+    for (let n = 0; n < 5; n++) g.tick(dt);
+    expect(g.rocks.active[rock]).toBe(1);
+    expect(g.rocks.hp[rock]).toBeLessThan(36);
+    expect(g.enemies.hp[g.enemies.active.indexOf(1)]).toBe(1e6);
+    const score = g.score;
+    for (let n = 0; n < 60 * 4 && g.rocks.active[rock]; n++) g.tick(dt);
+    expect(g.rocks.active[rock]).toBe(0);
+    expect(g.score).toBeGreaterThan(score);
+  });
+  it('sends no rocks at a boss training run', () => {
+    const g = new GameState();
+    g.start('LASER', 3, true);
+    for (let i = 0; i < 60 * 12; i++) {
+      g.invincible = 1;
+      g.tick(dt);
+    }
+    expect(g.rocks.count).toBe(0);
+  });
   it('restarts without carrying over bullets, rank, or credits used', () => {
     const g = new GameState();
     g.start('MISSILE', 9, true);

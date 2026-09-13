@@ -54,13 +54,13 @@ const weaponInfo = {
   },
   MISSILE: {
     title: 'HOMING ARRAY',
-    description: '자동 추적 미사일. 회피에 집중하면서 넓은 전장을 통제합니다.',
+    description: '쌍열에서 펼쳐지는 자동 추적 미사일. 넓게 퍼진 뒤 목표를 추격합니다.',
     stat: 'TRACKING',
     value: '★★★★★',
   },
   SPREAD: {
     title: 'SCATTER CANNON',
-    description: '부채꼴 확산 포탄. 근접 전투와 편대 격파에 특화됩니다.',
+    description: '좁고 넓은 탄막을 교차 발사하는 결정탄. 근접 집중 사격과 편대 격파에 특화됩니다.',
     stat: 'COVERAGE',
     value: '★★★★★',
   },
@@ -403,7 +403,9 @@ function GameApp() {
             <small>
               SCORE <span>×{ui.graze.toFixed(2)}</span>
             </small>
-            <strong>{Math.floor(ui.score).toString().padStart(7, '0')}</strong>
+            <strong aria-label={`점수 ${Math.floor(ui.score).toLocaleString('en-US')}`}>
+              {Math.floor(ui.score).toLocaleString('en-US', { minimumIntegerDigits: 7 })}
+            </strong>
             <p>
               STAGE {String(ui.stageIndex + 1).padStart(2, '0')} <i>/</i> {ui.stageName}
             </p>

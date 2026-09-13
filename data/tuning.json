@@ -20,7 +20,8 @@
     "enemies": 256,
     "particles": 3000,
     "items": 64,
-    "ground": 64
+    "ground": 64,
+    "rocks": 16
   },
   "spawn": {
     "firstWave": 3,
@@ -102,5 +103,10 @@
     "boss": 50000,
     "noMiss": 50000,
     "powerBonus": 5000
+  },
+  "hazards": {
+    "hp": 30,
+    "score": 600,
+    "hitScale": 0.85
   }
 }

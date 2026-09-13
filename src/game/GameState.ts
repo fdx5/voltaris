@@ -47,6 +47,15 @@ export class GameState {
   readonly ground = new ObjectPool(tuning.pools.ground);
   readonly groundFlash = new Float32Array(tuning.pools.ground);
   readonly groundGrid = new SpatialHash(tuning.pools.ground);
+  /**
+   * Rocks drifting through the play field. Unlike the belt in the backdrop
+   * these are solid: they ram the ship and stop its shots. `type` picks the
+   * model, `aux` is the rock's authored index (it seeds the tumble).
+   */
+  readonly rocks = new ObjectPool(tuning.pools.rocks);
+  readonly rockFlash = new Float32Array(tuning.pools.rocks);
+  /** The next authored rock still to enter. */
+  private hazardIndex = 0;
   /** Seconds of hit flash left on each live enemy, so a hull that is being
    *  worn down reads as taking damage rather than shrugging it off. */
   readonly enemyFlash = new Float32Array(tuning.pools.enemies);
@@ -180,6 +189,9 @@ export class GameState {
     this.items.clear();
     this.ground.clear();
     this.groundFlash.fill(0);
+    this.rocks.clear();
+    this.rockFlash.fill(0);
+    this.hazardIndex = 0;
     this.scroll = 0;
     this.groundIndex = 0;
     this.groundTimer = 0;
@@ -379,6 +391,7 @@ export class GameState {
     this.spawn(dt);
     this.advanceSalvos(enemyDt);
     this.updateEnemies(enemyDt);
+    this.updateRocks(enemyDt);
     if (this.terrain) this.updateGround(enemyDt);
     if (this.boss) this.updateBoss(enemyDt);
     if (this.bossDying) return;
@@ -468,10 +481,15 @@ export class GameState {
     for (let j = 0; j < w.count; j++) {
       const mid = j - (w.count - 1) / 2;
       const a =
-        angle + (this.weapon === 'SPREAD' ? mid * 0.13 : this.weapon === 'MISSILE' ? mid * 0.2 : 0);
-      this.bullets.fire(
+        angle +
+        (this.weapon === 'SPREAD'
+          ? mid * (this.shotEvent % 2 ? 0.15 : 0.11)
+          : this.weapon === 'MISSILE'
+            ? mid * 0.28
+            : 0);
+      const slot = this.bullets.fire(
         x,
-        y + (this.weapon === 'LASER' ? mid * 0.3 : 0),
+        y + (this.weapon === 'LASER' ? mid * 0.3 : this.weapon === 'MISSILE' ? mid * 0.16 : 0),
         Math.cos(a) * (this.weapon === 'MISSILE' ? 18 : 30),
         Math.sin(a) * (this.weapon === 'MISSILE' ? 18 : 30),
         this.weapon === 'MISSILE' ? 2 : 0,
@@ -479,6 +497,7 @@ export class GameState {
         damage,
         w.pierce,
       );
+      if (slot >= 0 && this.weapon === 'SPREAD') this.bullets.tint[slot] = 0xbca8ff;
     }
   }
   /**
@@ -613,6 +632,30 @@ export class GameState {
         this.groundTimer = 0.35;
       }
     }
+    // Rocks stop coming once the boss is due; the fight is its own hazard.
+    const hazards = this.stage.hazards;
+    while (
+      this.hazardIndex < hazards.length &&
+      this.time >= hazards[this.hazardIndex].time &&
+      this.time < this.stage.durationSec
+    ) {
+      const n = this.hazardIndex++,
+        h = hazards[n];
+      const i = this.rocks.acquire(
+        17.5 + h.size,
+        h.y,
+        -h.speed,
+        h.drift,
+        n % 3,
+        1e9,
+        h.size,
+        Math.round(tuning.hazards.hp * h.size),
+      );
+      if (i >= 0) {
+        this.rockFlash[i] = 0;
+        this.rocks.aux[i] = n;
+      }
+    }
     if (
       this.itemIndex < this.stage.items.length &&
       this.time >= this.stage.items[this.itemIndex].time
@@ -678,6 +721,48 @@ export class GameState {
           parseInt(fleetDesigns[e.type[i]].palette[1].slice(1), 16),
         );
     }
+  }
+  /** Rocks coast straight through, glancing off the top and bottom of the field. */
+  private updateRocks(dt: number) {
+    const r = this.rocks;
+    for (let i = 0; i < r.capacity; i++) {
+      if (!r.active[i]) continue;
+      r.px[i] = r.x[i];
+      r.py[i] = r.y[i];
+      r.age[i] += dt;
+      this.rockFlash[i] = Math.max(0, this.rockFlash[i] - dt);
+      r.x[i] += r.vx[i] * dt;
+      r.y[i] += r.vy[i] * dt;
+      const inset = r.radius[i] * 0.5;
+      if (
+        (r.y[i] < this.stage.minY + inset && r.vy[i] < 0) ||
+        (r.y[i] > this.stage.maxY - inset && r.vy[i] > 0)
+      )
+        r.vy[i] *= -1;
+      if (r.x[i] < -18 - r.radius[i]) r.release(i);
+    }
+  }
+  damageRock(i: number, damage: number) {
+    const r = this.rocks;
+    if (!r.active[i]) return;
+    r.hp[i] -= damage;
+    if (r.hp[i] > 0) {
+      this.rockFlash[i] = 0.08;
+      return;
+    }
+    const size = r.radius[i];
+    this.score += Math.floor(tuning.hazards.score * size);
+    this.burst(r.x[i], r.y[i], {
+      count: Math.round(30 * size),
+      speed: 2,
+      spread: 5,
+      life: 0.6,
+      size: 0.16 * size,
+      ring: 0,
+      shake: 0.2 * size,
+      palette: [2, 2, 0],
+    });
+    r.release(i);
   }
   /**
    * Emplacements do not move under their own power: the surface carries them,
@@ -1089,6 +1174,7 @@ export class GameState {
     this.groundGrid.clear();
     for (let i = 0; i < this.ground.capacity; i++)
       if (this.ground.active[i]) this.groundGrid.insert(i, this.ground.x[i], this.ground.y[i]);
+    const r = this.rocks;
     for (let i = 0; i < b.capacity; i++) {
       if (!b.active[i] || b.type[i] === 1) continue;
       // Bombs are the only thing that can touch the surface, and the only
@@ -1116,6 +1202,18 @@ export class GameState {
         }
         continue;
       }
+      // A rock is solid: whatever it stops never reaches the ships behind it,
+      // piercing rounds included.
+      for (let j = 0; j < r.capacity && b.active[i]; j++) {
+        if (
+          r.active[j] &&
+          segmentCircle(b.px[i], b.py[i], b.x[i], b.y[i], r.x[j], r.y[j], r.radius[j] + b.radius[i])
+        ) {
+          this.damageRock(j, b.hp[i]);
+          b.release(i);
+        }
+      }
+      if (!b.active[i]) continue;
       this.grid.query(b.x[i], b.y[i], 2.6);
       for (let n = 0; n < this.grid.resultCount; n++) {
         const j = this.grid.results[n];
@@ -1209,6 +1307,14 @@ export class GameState {
         )
       ) {
         b.release(i);
+        this.hit();
+        break;
+      }
+    }
+    if (this.invincible > 0) return;
+    for (let j = 0; j < r.capacity; j++) {
+      const reach = r.radius[j] * tuning.hazards.hitScale + tuning.player.hitRadius;
+      if (r.active[j] && (r.x[j] - this.x) ** 2 + (r.y[j] - this.y) ** 2 < reach ** 2) {
         this.hit();
         break;
       }
@@ -1419,6 +1525,7 @@ export class GameState {
       this.pendingSalvos.length = 0;
       this.enemies.clear();
       this.ground.clear();
+      this.rocks.clear();
       this.noticeTime = 0;
       this.shake = 0.5;
       return;
@@ -1478,6 +1585,7 @@ export class GameState {
     this.enemies.clear();
     this.items.clear();
     this.particles.clear();
+    this.rocks.clear();
     this.boss = false;
     this.setStressCount(this.stressCount);
   }

@@ -16,6 +16,8 @@ import {
   ENEMY_CORE,
   GROUND_TYPES,
   GROUND_CORE,
+  HAZARD_VARIANTS,
+  hazardRock,
   type BossModel,
   type SceneName,
 } from '../../visual/SceneBuilder';
@@ -23,6 +25,7 @@ import { STAGES } from '../../game/stages';
 import { ObjectPool } from '../pool/ObjectPool';
 import { itemMaterial } from '../../visual/ItemDesign';
 import { enemyRotation } from '../../game/HostilePatterns';
+import tuning from '../../../data/tuning.json';
 
 /**
  * Debris colours, indexed by a particle's type. Saturated on purpose: the
@@ -194,6 +197,8 @@ export class ThreeBackend implements IRenderBackend {
   private readonly shotCore: T.InstancedMesh;
   private readonly shotHalo: T.InstancedMesh;
   private readonly missiles: T.InstancedMesh;
+  private readonly missileExhaust: T.InstancedMesh;
+  private readonly scatter: T.InstancedMesh;
   private readonly lance: T.InstancedMesh;
   private readonly allShotBatches: T.InstancedMesh[] = [];
   /**
@@ -215,6 +220,9 @@ export class ThreeBackend implements IRenderBackend {
   private readonly optionCores: T.Mesh[] = [];
   private readonly itemBatches: T.InstancedMesh[] = [];
   private readonly particles: T.InstancedMesh;
+  /** Solid rocks in the play field, one body and one outline batch per model. */
+  private readonly rockBodies: T.InstancedMesh[] = [];
+  private readonly rockRims: T.InstancedMesh[] = [];
   /** One backdrop and one boss model per stage, swapped by visibility so the
    *  shaders are all compiled up front and a stage change never hitches. */
   private readonly skies: ReturnType<typeof buildBackdrop>[] = [];
@@ -353,6 +361,18 @@ export class ThreeBackend implements IRenderBackend {
       lit('#ffcf94', 2.6),
       512,
     );
+    this.missileExhaust = batch(
+      new T.CapsuleGeometry(1, 3, 2, 5).rotateZ(Math.PI / 2),
+      Object.assign(lit('#ffb46c', 1.1), {
+        transparent: true,
+        opacity: 0.22,
+        blending: T.AdditiveBlending,
+        depthWrite: false,
+      }),
+      1536,
+      18,
+    );
+    this.scatter = batch(new T.OctahedronGeometry(1), lit('#d5baff', 2), 1024);
     this.lance = batch(
       new T.CapsuleGeometry(1, 6, 4, 10).rotateZ(Math.PI / 2),
       lit('#a8ecff', 4),
@@ -476,6 +496,21 @@ export class ThreeBackend implements IRenderBackend {
     ThreeBackend.tintable(this.particles);
     this.deferred.push(this.particles);
     this.scene.add(this.particles);
+    for (let v = 0; v < HAZARD_VARIANTS; v++) {
+      const rock = hazardRock(v);
+      const body = new T.InstancedMesh(rock.geometry, rock.body, tuning.pools.rocks);
+      const rim = new T.InstancedMesh(rock.geometry, rock.rim, tuning.pools.rocks);
+      for (const mesh of [body, rim]) {
+        mesh.count = 0;
+        mesh.frustumCulled = false;
+        mesh.instanceMatrix.setUsage(T.DynamicDrawUsage);
+        ThreeBackend.tintable(mesh);
+        this.deferred.push(mesh);
+        this.scene.add(mesh);
+      }
+      this.rockBodies.push(body);
+      this.rockRims.push(rim);
+    }
     this.shieldMesh = new T.Mesh(new T.TorusGeometry(1.05, 0.025, 6, 48), glow('#9beced', 1.4));
     this.deferred.push(this.shieldMesh);
     this.scene.add(this.shieldMesh);
@@ -742,6 +777,19 @@ export class ThreeBackend implements IRenderBackend {
           break;
         }
         case 2:
+          for (let tail = 1; tail <= 3; tail++) {
+            const distance = r * (2 + tail * 2.2);
+            this.push(
+              this.missileExhaust,
+              x - Math.cos(aim) * distance,
+              y - Math.sin(aim) * distance,
+              0.12,
+              r * 1.3,
+              r * (0.48 - tail * 0.1),
+              r * 0.3,
+              aim,
+            );
+          }
           this.push(this.missiles, x, y, 0.15, r * 1.35, r * 0.8, r * 0.8, aim);
           break;
         case 4:
@@ -756,6 +804,10 @@ export class ThreeBackend implements IRenderBackend {
           this.push(this.lance, x, y, 0.15, r * 2.4, r * 0.85, r * 0.85, aim);
           break;
         default:
+          if (p.tint[i] === 0xbca8ff) {
+            this.push(this.scatter, x, y, 0.15, r * 2.4, r * 0.72, r * 0.5, aim);
+            break;
+          }
           // A hairline core inside a soft additive sheath reads as a tracer
           // without the slab of geometry a single fat capsule needs.
           this.push(this.shotCore, x, y, 0.15, r * 1.5, r * 0.38, r * 0.38, aim);
@@ -863,6 +915,44 @@ export class ThreeBackend implements IRenderBackend {
     for (const b of this.groundAccents) this.commit(b);
     this.commit(this.groundCores);
   }
+  /**
+   * Rocks tumble in 3D, so they bypass `push` and its single spin axis. The
+   * outline pulses slowly and flares on a hit.
+   */
+  private syncRocks(g: Readonly<GameState>, alpha: number) {
+    const r = g.rocks,
+      t = this.visualTime;
+    for (const b of this.rockBodies) b.count = 0;
+    for (const b of this.rockRims) b.count = 0;
+    for (let i = 0; i < r.capacity; i++) {
+      if (!r.active[i]) continue;
+      const body = this.rockBodies[r.type[i] % HAZARD_VARIANTS],
+        rim = this.rockRims[r.type[i] % HAZARD_VARIANTS];
+      if (body.count >= body.instanceMatrix.count) continue;
+      const x = r.px[i] + (r.x[i] - r.px[i]) * alpha,
+        y = r.py[i] + (r.y[i] - r.py[i]) * alpha,
+        s = r.radius[i],
+        seed = r.aux[i] * 2.39996,
+        age = r.age[i];
+      this.dummy.position.set(x, y, 0);
+      this.dummy.rotation.set(seed + age * 0.7, seed * 1.7 + age * 0.45, seed * 0.6 + age * 0.3);
+      this.dummy.scale.setScalar(s);
+      this.dummy.updateMatrix();
+      const slot = body.count++;
+      body.setMatrixAt(slot, this.dummy.matrix);
+      const flash = g.rockFlash[i];
+      this.tint.setScalar(flash > 0 ? 1 + flash * 20 : 1);
+      body.setColorAt(slot, this.tint);
+      this.dummy.scale.setScalar(s * 1.1);
+      this.dummy.updateMatrix();
+      rim.count++;
+      rim.setMatrixAt(slot, this.dummy.matrix);
+      this.tint.setScalar((0.8 + Math.sin(t * 5 + seed) * 0.2) * (flash > 0 ? 1.8 : 1));
+      rim.setColorAt(slot, this.tint);
+    }
+    for (const b of this.rockBodies) this.commit(b);
+    for (const b of this.rockRims) this.commit(b);
+  }
   sync(g: Readonly<GameState>, alpha: number, dt: number) {
     this.visualTime += dt;
     const t = this.visualTime;
@@ -899,6 +989,7 @@ export class ThreeBackend implements IRenderBackend {
     this.syncBullets(g, alpha);
     this.syncEnemies(g, alpha);
     this.syncGround(g, alpha);
+    this.syncRocks(g, alpha);
     // The surface is periodic, so scrolling it is one translation.
     const surface = this.skies[this.stage].ground;
     if (surface) {
@@ -938,7 +1029,9 @@ export class ThreeBackend implements IRenderBackend {
     const boss = this.bosses[this.stage];
     boss.root.visible = g.boss && (!g.bossDying || g.bossDeathTime < 6.65);
     boss.root.position.set(g.bossX, g.bossY, 0);
-    boss.root.rotation.z = g.bossDying ? Math.sin(t * 27) * 0.012 * g.bossDeathTime : 0;
+    boss.root.rotation.z = g.bossDying
+      ? Math.sin(t * 27) * 0.012 * g.bossDeathTime
+      : Math.sin(t * 0.48) * 0.009;
     boss.ring.rotation.z = g.bossAngle;
     boss.core.rotation.set(0, 0, t * 0.3);
     boss.core.scale.setScalar(g.bossShot < 0.4 ? 1.1 + Math.sin(t * 35) * 0.08 : 1);

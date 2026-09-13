@@ -13,19 +13,35 @@ def painted(name,points,z,depth,m):
     for j,(x,y) in enumerate(points):
         xx,yy=points[(j+1)%len(points)]
         if math.hypot(xx-x,yy-y)<.24: continue
-        a=(cx+(x-cx)*.90,cy+(y-cy)*.90,z+depth+.05)
-        b=(cx+(xx-cx)*.90,cy+(yy-cy)*.90,z+depth+.05)
+        a=(cx+(x-cx)*.90,cy+(y-cy)*.90,z+depth+.069)
+        b=(cx+(xx-cx)*.90,cy+(yy-cy)*.90,z+depth+.069)
         rod(name+' / engraved panel seam',a,b,.006,black)
         for u in [.15,.85]:
             cylinder(name+' / recessed fastener',(a[0]+(b[0]-a[0])*u,a[1]+(b[1]-a[1])*u,a[2]+.006),.014,.01,steel,'Z',vertices=6)
+    # Upper armour follows the parent panel's silhouette; recessed dark seams
+    # separate ceramic slabs and preserve the design's negative spaces.
+    if depth > .18 and len(points) >= 4:
+        inset=[(cx+(x-cx)*.82,cy+(y-cy)*.82) for x,y in points]
+        plate(name+' / floating ceramic skin',inset,z+depth+.046,.018,m,.008)
+    if active.name.startswith('boss_') and depth > .45:
+        from mathutils.geometry import tessellate_polygon
+        polygon=[Vector((x,y,0)) for x,y in points]
+        for ti,triangle in enumerate(tessellate_polygon([polygon])):
+            tri=[polygon[v] if isinstance(v,int) else v for v in triangle]
+            center=(tri[0]+tri[1]+tri[2])/3
+            patch=[(center.x+(v.x-center.x)*.72,center.y+(v.y-center.y)*.72) for v in tri]
+            plate(name+' / segmented ballistic tile',patch,z+depth+.09,.085,m,.012)
+            if ti%2==0:
+                a,b=patch[:2]
+                rod(name+' / tile service channel',(a[0],a[1],z+depth+.18),(b[0],b[1],z+depth+.18),.018,black)
     # Small maintenance hatch: only on broad filled panels, never across a void.
     inside=False
     for j,(x,y) in enumerate(points):
         xx,yy=points[(j+1)%len(points)]
         if (y>cy)!=(yy>cy) and cx<(xx-x)*(cy-y)/(yy-y)+x: inside=not inside
     if inside and max(x for x,y in points)-min(x for x,y in points)>.7 and max(y for x,y in points)-min(y for x,y in points)>.6:
-        box(name+' / access hatch',(cx,cy,z+depth+.054),(.22,.15,.018),dark,.008)
-        box(name+' / service marking',(cx+.04,cy,z+depth+.067),(.08,.025,.008),steel,0)
+        box(name+' / access hatch',(cx,cy,z+depth+.075),(.22,.15,.018),dark,.008)
+        box(name+' / service marking',(cx+.04,cy,z+depth+.088),(.08,.025,.008),steel,0)
 
 def orb(name,loc,scale,mat,faceted=False):
     n=18 if faceted else 32; rows=12 if faceted else 16
@@ -396,21 +412,29 @@ def design_enemy(i,m):
 views=[20,70,28,8,38,0,65,52,25,7,30,58,18,12,72,20,42,34,10,65,40,28,22,48,56,75,8,62,5,30,38,55,0,67,15,42,63,12,24,52,0,48,36,60]
 defs=json.loads((ROOT/'data/enemies/enemy-defs.json').read_text())
 
-# New player: a slender lifting body with a single dorsal turbine, ventral rail
-# and offset twin tail fins, deliberately unlike any hostile in the roster.
+# PEREGRINE III: variable-sweep interceptor, layered wings and twin nacelles.
 start('player'); ports=[]
-painted('player lifting body',[(-1.38,-.20),(-.5,-.37),(.20,-.23),(1.55,0),(.2,.23),(-.5,.37),(-1.38,.20)],-.14,.29,player_m[0])
+painted('titanium keel',[(-1.3,-.19),(-.48,-.32),(.55,-.19),(1.65,0),(.55,.19),(-.48,.32),(-1.3,.19)],-.17,.33,player_m[0])
+painted('dorsal spine',[(-1.1,-.12),(.10,-.17),(1.28,0),(.10,.17),(-1.1,.12)],.17,.10,player_m[0])
 for sign in [-1,1]:
-    painted('player swept lifting plane',[(-.48,sign*.15),(-1.22,sign*1.0),(-.73,sign*.86),(.47,sign*.19)],-.04,.08,player_m[2])
-    spike('player tail stabilizer',(-1.02,sign*.37,0),(-.92,sign*.42,.64),.18,player_m[2],3)
-    battery((.47,sign*.31,-.17),player_m[3],.70,.034)
-orb('player canopy',(.48,0,.21),(.45,.15,.15),glass)
-cylinder('player single dorsal turbine',(-.87,0,.15),.22,.69,dark)
-torus('player engine throat',(-1.24,0,.15),.17,.04,steel,'X')
-cylinder('player engine chamber',(-1.26,0,.15),.12,.03,player_m[3])
-vents(-.44,0,.27,.44,.2)
-active.rotation_euler.x=math.radians(-58)
-active['design']='PEREGRINE / single turbine lifting body'
+    painted('swept carrier wing',[(-.26,sign*.2),(-1.25,sign*1.03),(-.82,sign*1.12),(.59,sign*.29)],-.12,.13,player_m[0])
+    painted('inset wing armour',[(-.28,sign*.31),(-1.04,sign*.96),(-.78,sign*.94),(.33,sign*.32)],.018,.038,player_m[2])
+    painted('forward canard',[(.70,sign*.13),(.12,sign*.58),(.47,sign*.57),(1.02,sign*.16)],-.04,.065,player_m[0])
+    painted('engine nacelle',[(-1.38,sign*.32),(-1.35,sign*.64),(-.25,sign*.60),(.18,sign*.39),(-.31,sign*.26)],-.20,.38,player_m[0])
+    box('recessed intake',(-.04,sign*.4,.22),(.26,.20,.10),black,.015)
+    for j in range(4): box('intake compressor vane',(-.14+j*.062,sign*.4,.28),(.018,.17,.025),steel,.004)
+    cylinder('ceramic nozzle',(-1.32,sign*.47,-.015),.17,.30,dark)
+    torus('exhaust rim',(-1.49,sign*.47,-.015),.14,.025,steel,'X')
+    cylinder('ion chamber',(-1.51,sign*.47,-.015),.11,.018,player_m[3])
+    spike('canted stabilizer',(-1.06,sign*.45,.12),(-1.19,sign*.67,.63),.20,player_m[2],3)
+    battery((.40,sign*.32,-.12),player_m[3],.68,.033)
+    box('wing identification stripe',(-.78,sign*.86,.09),(.17,.055,.009),player_m[0],0,angle=sign*.4)
+    vents(-.72,sign*.47,.25,.44,.17,5)
+orb('armoured canopy coaming',(.46,0,.23),(.48,.19,.12),dark)
+orb('sapphire canopy',(.46,0,.29),(.40,.145,.13),glass)
+for x in [.20,.63]: box('canopy structural frame',(x,0,.395),(.026,.22,.025),player_m[0],.006)
+active.rotation_euler.x=math.radians(-26)
+active['design']='PEREGRINE III / twin-engine variable-sweep interceptor'
 
 for i,record in enumerate(catalog):
     start(f'enemy_{i:02d}'); ports=[]; m=palette(record)
@@ -500,7 +524,7 @@ for i in range(12):
 (ROOT/'data/enemies/ground-hardpoints.json').write_text(json.dumps(groundpoints,indent=2)+'\n')
 
 # Four unrelated capital-ship structures and four unrelated destructible pods.
-boss_palettes=[['#ad3056','#d6ccb2','#758c99','#ff9a70'],['#d97b29','#294e78','#d5c9a7','#ffd377'],['#7050b1','#afd378','#cbc4d9','#d1b2ff'],['#268d86','#d7b46e','#b7d7d4','#80efe4']]
+boss_palettes=[['#657482','#c8c7b8','#833c40','#ff9a70'],['#74685b','#aeb9bf','#43546a','#ffd377'],['#59637d','#b4bbc6','#827255','#d1b2ff'],['#436d78','#a2b9bd','#475260','#80efe4']]
 for level,name in enumerate(['gatekeeper','ares','jove','nereid']):
     start('boss_'+name); ports=[]
     h,s,t,l=palette({'name':name.upper(),'palette':boss_palettes[level]})
@@ -558,6 +582,51 @@ for level,name in enumerate(['gatekeeper','ares','jove','nereid']):
             painted('hunting mandible',[(-1.95,sign*.2),(-2.60,sign*1.02),(-3.78,sign*.59),(-2.80,sign*.52),(-2.72,sign*.13)],-.25,.48,s)
         spike('tail rudder',(3.0,0,0),(4.05,.90,.1),.55,h,3)
         core_location=(-1.50,0,.78)
+    # Capital scale is communicated by layered superstructure and repeated
+    # human-scale bays, rather than enlarging a single primitive.
+    if level==0:
+        for side in [-1,1]:
+            painted('fortress shoulder',[(-.85,side*1.3),(-.82,side*2.7),(.5,side*2.95),(1.18,side*2.4),(.72,side*1.35)],.45,.33,h)
+            for j in range(5):
+                y=side*(1.45+j*.25)
+                box('recessed hangar bay',(.45,y,.855),(.52,.16,.035),black,.01)
+                box('hangar threshold',(.46,y,.881),(.34,.024,.012),s,.002)
+            engine(1.25,side*1.92,.05,.31,.75,[h,s,t,l])
+            box('armoured bridge',(.08,side*2.15,.98),(.62,.38,.26),s,.04)
+            for j in range(5): box('bridge slit',(-.17+j*.09,side*2.15,1.12),(.045,.12,.012),glass,.002)
+    elif level==1:
+        for side in [-1,1]:
+            painted('siege broadside armour',[(-1.9,side*.52),(-1.5,side*1.0),(.15,side*.98),(.42,side*.63)],.42,.27,h)
+            for j in range(4):
+                x=-1.45+j*.43
+                box('magazine blast door',(x,side*.72,.73),(.30,.24,.055),s,.014)
+                cylinder('vertical launch tube',(x,side*.72,.79),.064,.03,black,'Z',vertices=12)
+        for j in range(7): box('command window',(0.63+j*.15,1.14,1.43),(.095,.38,.025),glass,.005)
+        for y in [-.50,.42,1.12]:
+            cylinder('heavy stern turbine',(2.12,y,-.22),.33,.85,dark)
+            torus('turbine nozzle',(2.56,y,-.22),.27,.045,s,'X')
+            cylinder('stern reactor',(2.60,y,-.22),.18,.035,l)
+    elif level==2:
+        for arm in range(3):
+            a=arm*math.tau/3
+            for j in range(4):
+                x=1.0+j*.43; y=-.40
+                xx=x*math.cos(a)-y*math.sin(a); yy=x*math.sin(a)+y*math.cos(a)
+                box('radial armour cassette',(xx,yy,.53),(.34,.48,.23),h,.035,angle=a)
+                box('cassette service recess',(xx,yy,.66),(.21,.25,.025),black,.006,angle=a)
+            xx=1.1*math.cos(a); yy=1.1*math.sin(a)
+            cylinder('field generator housing',(xx,yy,.40),.25,.45,s,'Z',vertices=20)
+            torus('field generator iris',(xx,yy,.65),.18,.025,t)
+    else:
+        for j in range(7):
+            x=-2.0+j*.76; y=math.sin(j*.63)*.47; radius=.98-j*.07
+            for side in [-1,1]:
+                painted('overlapping leviathan carapace',[(x-.35,y+side*.18),(x-.1,y+side*radius),(x+.43,y+side*radius*.83),(x+.31,y+side*.20)],radius*.60,.17,h)
+                for k in range(3): box('gill heat exchanger',(x-.14+k*.13,y+side*radius*.53,radius*.60+.19),(.045,.24,.024),black,.003)
+            spike('dorsal stabilizer',(x+.1,y,.45),(x+.46,y,.98-j*.05),.19,t,3)
+        for side in [-1,1]:
+            cylinder('jaw accelerator',(-2.97,side*.57,.38),.14,1.05,dark)
+            torus('jaw muzzle brake',(-3.50,side*.57,.38),.13,.023,s,'X')
     active['design']=['divided vertical portal','asymmetric rail siege engine','open triskelion station','articulated abyssal leviathan'][level]
     active.rotation_euler.x=math.radians([12,58,22,42][level])
     # Reactor geometries stay local to their own pivot when animated in-game.

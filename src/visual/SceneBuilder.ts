@@ -1,3 +1,4 @@
+import { buildSectorArchitecture } from './SectorArchitecture';
 import * as T from 'three/webgpu';
 import {
   color,
@@ -11,7 +12,7 @@ import {
   mix,
   mx_fractal_noise_float,
 } from 'three/tsl';
-import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
+import { mergeGeometries, mergeVertices } from 'three/addons/utils/BufferGeometryUtils.js';
 import { Random } from '../core/math/Random';
 import { Terrain } from '../core/math/Terrain';
 import enemyDefs from '../../data/enemies/enemy-defs.json';
@@ -1172,18 +1173,22 @@ function nebulaSheet(rng: Random, width: number, height: number, hexA: string, h
 /* ------------------------------------------------------------------ *
  * Asteroids
  *
- * Five photographed rock surfaces (Poly Haven, CC0), each on its own
- * lumpy icosphere, colour, size band and depth, so the belt reads as a
- * mix of real bodies rather than one repeated prop.
+ * Nine photographed rock surfaces (Poly Haven, CC0) with their normal maps,
+ * two to each belt class, over five body shapes - lumpy, elongated, shattered,
+ * cratered and contact binary - so the belt reads as a mix of real bodies
+ * rather than one repeated prop. Each class has its own colour, size band and
+ * depth lane.
  * ------------------------------------------------------------------ */
+type AsteroidShape = 'lumpy' | 'elongated' | 'shard' | 'cratered' | 'binary';
+
 type RockClass = {
-  /** Poly Haven slug, used as the texture file name. */
-  texture: string;
+  /** Poly Haven slugs, used as texture file names; variants alternate them. */
+  textures: string[];
+  /** Body shapes, one instanced batch each; the class's bodies are dealt across them. */
+  shapes: AsteroidShape[];
   tint: string;
   roughness: number;
   metalness: number;
-  /** Icosphere subdivisions: 1 is angular, 2 reads as a weathered body. */
-  detail: number;
   /** Radial displacement, as a fraction of the radius. */
   lumps: number;
   min: number;
@@ -1201,15 +1206,22 @@ type RockClass = {
   bulk: number;
 };
 
+/**
+ * Share of each class's authored count that is actually flown. The belt used
+ * to crowd the play field; half as many bodies, each more distinct, reads as
+ * a richer scene and gets out of the way of the fight.
+ */
+const BELT_DENSITY = 0.5;
+
 const ROCKS: RockClass[] = [
   // C-type: the big dark carbonaceous bodies drifting furthest out.
   {
-    texture: 'dark_rock',
+    textures: ['dark_rock', 'rock_face'],
+    shapes: ['lumpy', 'cratered', 'binary'],
     tint: '#9a958d',
     roughness: 0.96,
     metalness: 0.04,
-    detail: 2,
-    lumps: 0.17,
+    lumps: 0.14,
     min: 1.3,
     max: 4.4,
     count: 13,
@@ -1221,12 +1233,12 @@ const ROCKS: RockClass[] = [
   },
   // S-type: ordinary grey stone, the bulk of the belt.
   {
-    texture: 'gray_rocks',
+    textures: ['gray_rocks', 'rock_05'],
+    shapes: ['elongated', 'cratered', 'lumpy'],
     tint: '#a9a7a1',
     roughness: 0.86,
     metalness: 0.1,
-    detail: 1,
-    lumps: 0.24,
+    lumps: 0.18,
     min: 0.6,
     max: 2.5,
     count: 22,
@@ -1238,12 +1250,12 @@ const ROCKS: RockClass[] = [
   },
   // M-type: small metallic fragments that catch the key light.
   {
-    texture: 'marble_rock_02',
+    textures: ['marble_rock_02', 'gray_rocks'],
+    shapes: ['shard', 'elongated', 'shard'],
     tint: '#b9c8d8',
-    roughness: 0.4,
-    metalness: 0.7,
-    detail: 1,
-    lumps: 0.31,
+    roughness: 0.42,
+    metalness: 0.65,
+    lumps: 0.1,
     min: 0.4,
     max: 1.5,
     count: 16,
@@ -1253,14 +1265,14 @@ const ROCKS: RockClass[] = [
     spin: 0.6,
     bulk: 0.5,
   },
-  // Oxidised silicate: rust-red, heavily eroded.
+  // Oxidised silicate: rust-red, layered and heavily eroded.
   {
-    texture: 'rock_06',
+    textures: ['rock_06', 'cliff_side'],
+    shapes: ['binary', 'lumpy', 'elongated'],
     tint: '#c08c58',
     roughness: 0.92,
     metalness: 0.07,
-    detail: 2,
-    lumps: 0.21,
+    lumps: 0.16,
     min: 0.9,
     max: 3.1,
     count: 14,
@@ -1270,14 +1282,14 @@ const ROCKS: RockClass[] = [
     spin: 0.25,
     bulk: 0.9,
   },
-  // Rubble: the near lane, small and tumbling fast.
+  // Rubble: the near lane, small, cracked and tumbling fast.
   {
-    texture: 'rock_04',
+    textures: ['rock_04', 'rock_boulder_cracked'],
+    shapes: ['shard', 'lumpy', 'shard'],
     tint: '#95897b',
     roughness: 0.9,
     metalness: 0.06,
-    detail: 1,
-    lumps: 0.35,
+    lumps: 0.2,
     min: 0.35,
     max: 1.25,
     count: 26,
@@ -1289,100 +1301,226 @@ const ROCKS: RockClass[] = [
   },
 ];
 
-/** Deterministic bumpiness: a handful of offset sine lobes over the sphere. */
-function lumpField(rng: Random, lobes: number) {
-  const wave: number[][] = [];
-  for (let i = 0; i < lobes; i++)
-    wave.push([
-      1.3 + rng.next() * 3.4,
-      1.3 + rng.next() * 3.4,
-      1.3 + rng.next() * 3.4,
-      rng.next() * 6.283,
-      rng.next() * 6.283,
-      rng.next() * 6.283,
-    ]);
-  return (x: number, y: number, z: number) => {
-    let n = 0;
-    for (const [fx, fy, fz, px, py, pz] of wave)
-      n += Math.sin(x * fx + px) * Math.sin(y * fy + py) * Math.sin(z * fz + pz);
-    return n / wave.length;
+/**
+ * Deterministic 3D value noise, summed over a few octaves. Displacement reads
+ * it as a function of direction alone, so every copy of a vertex lands on the
+ * same point and the surface stays welded.
+ */
+function rockNoise(rng: Random) {
+  const N = 32;
+  const lattice = new Float32Array(N * N * N);
+  for (let i = 0; i < lattice.length; i++) lattice[i] = rng.next() * 2 - 1;
+  const wrap = (v: number) => ((v % N) + N) % N;
+  const at = (x: number, y: number, z: number) => lattice[(wrap(z) * N + wrap(y)) * N + wrap(x)];
+  const smooth = (t: number) => t * t * (3 - 2 * t);
+  const value = (x: number, y: number, z: number) => {
+    const x0 = Math.floor(x),
+      y0 = Math.floor(y),
+      z0 = Math.floor(z);
+    const fx = smooth(x - x0),
+      fy = smooth(y - y0),
+      fz = smooth(z - z0);
+    let sum = 0;
+    for (let k = 0; k < 8; k++) {
+      const dx = k & 1,
+        dy = (k >> 1) & 1,
+        dz = (k >> 2) & 1;
+      sum +=
+        at(x0 + dx, y0 + dy, z0 + dz) *
+        (dx ? fx : 1 - fx) *
+        (dy ? fy : 1 - fy) *
+        (dz ? fz : 1 - fz);
+    }
+    return sum;
+  };
+  const offset = rng.next() * 17;
+  return (x: number, y: number, z: number, octaves = 4) => {
+    let sum = 0,
+      amp = 0.55,
+      freq = 1.6;
+    for (let o = 0; o < octaves; o++) {
+      sum += value(x * freq + offset, y * freq + offset * 0.7, z * freq - offset) * amp;
+      amp *= 0.5;
+      freq *= 2.03;
+    }
+    return sum;
   };
 }
 
-function asteroidGeometry(rng: Random, detail: number, lumps: number) {
-  const source = new T.IcosahedronGeometry(1, detail);
-  const g = source.index ? source.toNonIndexed() : source;
-  const position = g.attributes.position as T.BufferAttribute;
-  const noise = lumpField(rng, 4);
+/** A random unit vector, drawn so the directions cover the sphere evenly. */
+function randomDirection(rng: Random): [number, number, number] {
+  const z = rng.next() * 2 - 1,
+    a = rng.next() * Math.PI * 2,
+    r = Math.sqrt(1 - z * z);
+  return [Math.cos(a) * r, Math.sin(a) * r, z];
+}
+
+/**
+ * The body's radius along a direction, before surface noise. Every shape is a
+ * star-shaped function of direction, which is what lets one subdivided sphere
+ * be pushed out into any of them without folding over itself.
+ */
+function shapeField(rng: Random, shape: AsteroidShape) {
+  switch (shape) {
+    case 'elongated': {
+      // A potato: a stretched ellipsoid, never quite symmetrical.
+      const a = 1.35 + rng.next() * 0.35,
+        b = 0.72 + rng.next() * 0.16,
+        c = 0.78 + rng.next() * 0.18;
+      return (x: number, y: number, z: number) =>
+        1 / Math.sqrt((x / a) ** 2 + (y / b) ** 2 + (z / c) ** 2);
+    }
+    case 'shard': {
+      // A fragment knocked off something larger: a rounded core with planar
+      // fracture faces sheared off it.
+      const cuts: [number, number, number, number][] = [];
+      const count = 5 + Math.floor(rng.next() * 4);
+      for (let i = 0; i < count; i++) cuts.push([...randomDirection(rng), 0.58 + rng.next() * 0.3]);
+      return (x: number, y: number, z: number) => {
+        let r = 1.08;
+        for (const [nx, ny, nz, h] of cuts) {
+          const d = x * nx + y * ny + z * nz;
+          if (d > 0.05) r = Math.min(r, h / d);
+        }
+        return r;
+      };
+    }
+    case 'cratered': {
+      // Bowls with raised rims, from a few large impacts down to pockmarks.
+      const craters: [number, number, number, number, number][] = [];
+      const count = 5 + Math.floor(rng.next() * 5);
+      for (let i = 0; i < count; i++) {
+        const size = 0.18 + rng.next() ** 2 * 0.42;
+        craters.push([...randomDirection(rng), size, size * (0.22 + rng.next() * 0.12)]);
+      }
+      return (x: number, y: number, z: number) => {
+        let r = 1;
+        for (const [cx, cy, cz, size, depth] of craters) {
+          const t = Math.acos(Math.min(1, x * cx + y * cy + z * cz)) / size;
+          if (t < 1) r -= depth * (1 - t * t);
+          else if (t < 1.45) r += depth * 0.35 * Math.sin(((t - 1) / 0.45) * Math.PI);
+        }
+        return r;
+      };
+    }
+    case 'binary': {
+      // Two bodies that met slowly and stuck: a peanut with a waist.
+      const lobes: [number, number, number, number][] = [
+        [0.42, 0, 0, 0.72],
+        [-0.46, 0.08, 0.04, 0.58 + rng.next() * 0.1],
+      ];
+      return (x: number, y: number, z: number) => {
+        let r = 0;
+        for (const [cx, cy, cz, radius] of lobes) {
+          // Far intersection of the ray from the centre with the lobe.
+          const along = x * cx + y * cy + z * cz;
+          r = Math.max(
+            r,
+            along + Math.sqrt(along * along - (cx * cx + cy * cy + cz * cz) + radius ** 2),
+          );
+        }
+        return r;
+      };
+    }
+    default:
+      return () => 1;
+  }
+}
+
+/**
+ * A subdivided sphere pushed out into one body shape, then roughened with
+ * fractal noise. Normals are computed on the welded mesh so a dense body
+ * shades smooth; UVs are box-projected per face, with the axis chosen from
+ * the face's direction from the centre rather than its normal, so the
+ * projection only changes along six broad seams instead of at every facet.
+ */
+function asteroidGeometry(rng: Random, detail: number, lumps: number, shape: AsteroidShape) {
+  const noise = rockNoise(rng);
+  const field = shapeField(rng, shape);
+  const welded = mergeVertices(new T.IcosahedronGeometry(1, detail), 1e-5);
+  const position = welded.attributes.position as T.BufferAttribute;
+  // A ridged octave on top of the smooth one: sharp crests read as weathering.
+  const ridge = shape === 'shard' ? 0.5 : 1;
   for (let i = 0; i < position.count; i++) {
     const len = Math.hypot(position.getX(i), position.getY(i), position.getZ(i)) || 1;
     const x = position.getX(i) / len,
       y = position.getY(i) / len,
       z = position.getZ(i) / len;
-    // Displacement is a function of direction alone, so the duplicated
-    // corners of adjacent triangles stay welded.
-    const r = 1 + noise(x, y, z) * lumps;
+    const bumps =
+      noise(x, y, z) * lumps + (0.5 - Math.abs(noise(z, x, y, 3))) * lumps * 0.35 * ridge;
+    const r = field(x, y, z) * (1 + bumps);
     position.setXYZ(i, x * r, y * r, z * r);
   }
-  // Per-face planar projection along the facet's dominant axis. Spherical UVs
-  // smear the whole map across the triangles that meet at the poles; this has
-  // no poles and no wrap seam, and the axis changes land on facet edges where
-  // they read as cracks in the rock.
-  const uv = new Float32Array(position.count * 2);
-  const a = new T.Vector3(),
-    b = new T.Vector3(),
-    c = new T.Vector3(),
-    edge = new T.Vector3(),
-    normal = new T.Vector3();
-  for (let t = 0; t < position.count; t += 3) {
-    a.fromBufferAttribute(position, t);
-    b.fromBufferAttribute(position, t + 1);
-    c.fromBufferAttribute(position, t + 2);
-    edge.copy(c).sub(a);
-    normal.copy(b).sub(a).cross(edge);
-    const nx = Math.abs(normal.x),
-      ny = Math.abs(normal.y),
-      nz = Math.abs(normal.z);
-    const axis = nx > ny && nx > nz ? 0 : ny > nz ? 1 : 2;
-    for (let k = 0; k < 3; k++) {
-      const v = k === 0 ? a : k === 1 ? b : c;
-      uv[(t + k) * 2] = (axis === 0 ? v.z : v.x) * 0.45 + 0.5;
-      uv[(t + k) * 2 + 1] = (axis === 1 ? v.z : v.y) * 0.45 + 0.5;
+  welded.computeVertexNormals();
+  const g = welded.toNonIndexed();
+  const pos = g.attributes.position as T.BufferAttribute;
+  const uv = new Float32Array(pos.count * 2);
+  const shiftU = rng.next(),
+    shiftV = rng.next();
+  for (let t = 0; t < pos.count; t += 3) {
+    const cx = Math.abs(pos.getX(t) + pos.getX(t + 1) + pos.getX(t + 2)),
+      cy = Math.abs(pos.getY(t) + pos.getY(t + 1) + pos.getY(t + 2)),
+      cz = Math.abs(pos.getZ(t) + pos.getZ(t + 1) + pos.getZ(t + 2));
+    const axis = cx > cy && cx > cz ? 0 : cy > cz ? 1 : 2;
+    for (let k = t; k < t + 3; k++) {
+      const vx = pos.getX(k),
+        vy = pos.getY(k),
+        vz = pos.getZ(k);
+      uv[k * 2] = (axis === 0 ? vz : vx) * 0.42 + shiftU;
+      uv[k * 2 + 1] = (axis === 1 ? vz : vy) * 0.42 + shiftV;
     }
   }
   g.setAttribute('uv', new T.BufferAttribute(uv, 2));
-  g.computeVertexNormals();
   return g;
 }
 
-/** A tiled, tumbling belt of one rock class. */
+/** Colour and relief for one photographed rock surface. */
+function rockMaps(slug: string) {
+  return {
+    map: loadTexture(`rocks/${slug}.jpg`, true, true),
+    normalMap: loadTexture(`rocks/${slug}_nor.jpg`, false, true),
+  };
+}
+
+/** A tiled, tumbling belt of one rock class, one instanced batch per body shape. */
 function asteroidField(
   rng: Random,
   rock: RockClass,
   span: number,
   mix: { count: number; min: number; max: number; bias: number },
 ) {
-  const material = new T.MeshStandardNodeMaterial({
-    map: loadTexture(`rocks/${rock.texture}.jpg`, true, true),
-    color: rock.tint,
-    roughness: rock.roughness,
-    metalness: rock.metalness,
-  });
+  const variants = rock.shapes.map((shape, v) => ({
+    geometry: asteroidGeometry(rng, 7, rock.lumps, shape),
+    material: new T.MeshStandardNodeMaterial({
+      ...rockMaps(rock.textures[v % rock.textures.length]),
+      normalScale: new T.Vector2(1.4, 1.4),
+      color: rock.tint,
+      roughness: rock.roughness,
+      metalness: rock.metalness,
+    }),
+  }));
   // A near lane takes only a fraction of the scene's extra bodies and size.
   const gain = 1 + (mix.max - 1) * rock.bulk;
-  const count = Math.round(rock.count * (1 + (mix.count - 1) * (0.35 + 0.65 * rock.bulk)));
-  const total = count * 3;
+  const count = Math.max(
+    variants.length,
+    Math.round(rock.count * BELT_DENSITY * (1 + (mix.count - 1) * (0.35 + 0.65 * rock.bulk))),
+  );
   const min = rock.min * mix.min,
     max = rock.max * gain;
-  const mesh = new T.InstancedMesh(asteroidGeometry(rng, rock.detail, rock.lumps), material, total);
-  mesh.frustumCulled = false;
-  mesh.instanceMatrix.setUsage(T.DynamicDrawUsage);
-  // x y z, sx sy sz, rx ry rz per instance, plus a tumble rate.
-  const base = new Float32Array(total * 9);
-  const rate = new Float32Array(total * 3);
   const dummy = new T.Object3D(),
     tint = new T.Color();
+  const batches = variants.map((variant, v) => {
+    const total = Math.ceil((count - v) / variants.length) * 3;
+    const mesh = new T.InstancedMesh(variant.geometry, variant.material, total);
+    mesh.frustumCulled = false;
+    mesh.instanceMatrix.setUsage(T.DynamicDrawUsage);
+    // x y z, sx sy sz, rx ry rz per instance, plus a tumble rate.
+    return { mesh, total, base: new Float32Array(total * 9), rate: new Float32Array(total * 3) };
+  });
+  const filled = new Int32Array(batches.length);
   for (let i = 0; i < count; i++) {
+    const batch = batches[i % batches.length];
+    const slot = filled[i % batches.length]++;
     const x = (rng.next() - 0.5) * span,
       y = (rng.next() - 0.5) * 95,
       z = rock.near - rng.next() * (rock.near - rock.far);
@@ -1390,41 +1528,72 @@ function asteroidField(
     // occasional very large one. Raising the bias widens the gap between them.
     const roll = Math.pow(rng.next(), mix.bias);
     const s = min + roll * (max - min);
-    const sy = s * (0.62 + rng.next() * 0.7),
-      sz = s * (0.62 + rng.next() * 0.7);
+    const sy = s * (0.7 + rng.next() * 0.55),
+      sz = s * (0.7 + rng.next() * 0.55);
     const rx = rng.next() * 6.283,
       ry = rng.next() * 6.283,
       rz = rng.next() * 6.283;
     const wx = (rng.next() - 0.5) * rock.spin,
       wy = (rng.next() - 0.5) * rock.spin,
       wz = (rng.next() - 0.5) * rock.spin;
-    tint.setScalar(0.7 + rng.next() * 0.55);
+    // Brightness and a slight warm or cool cast, so no two bodies match.
+    const shade = 0.72 + rng.next() * 0.5,
+      cast = (rng.next() - 0.5) * 0.12;
+    tint.setRGB(shade * (1 + cast), shade, shade * (1 - cast));
     for (let tile = -1; tile <= 1; tile++) {
-      const k = i * 3 + tile + 1;
-      base.set([x + tile * span, y, z, s, sy, sz, rx, ry, rz], k * 9);
-      rate.set([wx, wy, wz], k * 3);
-      mesh.setColorAt(k, tint);
+      const k = slot * 3 + tile + 1;
+      batch.base.set([x + tile * span, y, z, s, sy, sz, rx, ry, rz], k * 9);
+      batch.rate.set([wx, wy, wz], k * 3);
+      batch.mesh.setColorAt(k, tint);
     }
   }
   return {
-    mesh,
+    meshes: batches.map((b) => b.mesh),
     tumble(t: number) {
-      for (let k = 0; k < total; k++) {
-        const b = k * 9,
-          w = k * 3;
-        dummy.position.set(base[b], base[b + 1], base[b + 2]);
-        dummy.scale.set(base[b + 3], base[b + 4], base[b + 5]);
-        dummy.rotation.set(
-          base[b + 6] + rate[w] * t,
-          base[b + 7] + rate[w + 1] * t,
-          base[b + 8] + rate[w + 2] * t,
-        );
-        dummy.updateMatrix();
-        mesh.setMatrixAt(k, dummy.matrix);
+      for (const { mesh, total, base, rate } of batches) {
+        for (let k = 0; k < total; k++) {
+          const b = k * 9,
+            w = k * 3;
+          dummy.position.set(base[b], base[b + 1], base[b + 2]);
+          dummy.scale.set(base[b + 3], base[b + 4], base[b + 5]);
+          dummy.rotation.set(
+            base[b + 6] + rate[w] * t,
+            base[b + 7] + rate[w + 1] * t,
+            base[b + 8] + rate[w + 2] * t,
+          );
+          dummy.updateMatrix();
+          mesh.setMatrixAt(k, dummy.matrix);
+        }
+        mesh.instanceMatrix.needsUpdate = true;
       }
-      mesh.instanceMatrix.needsUpdate = true;
     },
   };
+}
+
+/**
+ * A rock that is actually in the play field and has to be flown around.
+ *
+ * Built to be told apart at a glance from both the belt behind it and the
+ * glowing shots around it: a solid, fully lit body with a hot hazard outline
+ * (a back-face shell a size larger), where shots are small emissive shapes
+ * with no surface and belt rocks carry no outline at all. Its shapes stay
+ * close to round so the collision circle matches what the player sees.
+ */
+export const HAZARD_VARIANTS = 3;
+export function hazardRock(variant: number) {
+  const rng = new Random(51377 + variant * 7919);
+  const shape = (['lumpy', 'cratered', 'lumpy'] as const)[variant % 3];
+  const geometry = asteroidGeometry(rng, 9, 0.12 + variant * 0.03, shape);
+  const body = new T.MeshStandardNodeMaterial({
+    ...rockMaps(['rock_boulder_cracked', 'dark_rock', 'rock_06'][variant % 3]),
+    normalScale: new T.Vector2(1.6, 1.6),
+    color: ['#e6d2b8', '#d8cfc3', '#e8b98a'][variant % 3],
+    roughness: 0.85,
+    metalness: 0.04,
+  });
+  const rim = new T.MeshBasicNodeMaterial({ side: T.BackSide, toneMapped: false });
+  rim.colorNode = color('#ff5a1c').mul(1.9);
+  return { geometry, body, rim };
 }
 
 /* ------------------------------------------------------------------ *
@@ -2333,7 +2502,7 @@ type SceneConfig = {
 const SCENES: Record<SceneName, SceneConfig> = {
   earth: {
     skyTint: '#8fb2dd',
-    skyGain: 0.5,
+    skyGain: 0.28,
     nebula: [
       ['#123a63', '#3f6fb0'],
       ['#3a1450', '#8e3fa0'],
@@ -2359,14 +2528,14 @@ const SCENES: Record<SceneName, SceneConfig> = {
       spin: 0.0125,
       terminator: 0,
     },
-    station: true,
+    station: false,
     moons: [{ radius: 4.6, at: [-46, 26, -102], speed: 1.1, span: 260 }],
     rocks: { count: 1, min: 1, max: 1, bias: 2 },
     streakTint: '#9fd0ff',
   },
   mars: {
     skyTint: '#d8a583',
-    skyGain: 0.42,
+    skyGain: 0.24,
     nebula: [
       ['#3d1a12', '#a8563a'],
       ['#2a1830', '#7a4470'],
@@ -2401,7 +2570,7 @@ const SCENES: Record<SceneName, SceneConfig> = {
   },
   jupiter: {
     skyTint: '#c9a882',
-    skyGain: 0.34,
+    skyGain: 0.22,
     nebula: [
       ['#2a1a0c', '#8a5a28'],
       ['#1a1428', '#5a4278'],
@@ -2437,7 +2606,7 @@ const SCENES: Record<SceneName, SceneConfig> = {
   },
   neptune: {
     skyTint: '#8fb6d8',
-    skyGain: 0.3,
+    skyGain: 0.2,
     nebula: [
       ['#0b1c33', '#2c5a8e'],
       ['#101a2e', '#3f4f88'],
@@ -2478,6 +2647,9 @@ export function buildBackdrop(
   const layers: Layer[] = [];
   const root = new T.Group();
   scene.add(root);
+
+  const architecture = buildSectorArchitecture(name);
+  root.add(architecture.root);
 
   /* --- Milky Way sky shell ------------------------------------------ */
   const skyMaterial = new T.MeshBasicNodeMaterial({
@@ -2523,9 +2695,9 @@ export function buildBackdrop(
   const starGeometry = new T.SphereGeometry(1, 5, 4);
   const starTints = ['#ffffff', '#cfe4ff', '#ffe7c2', '#ffd0c0', '#d6ccff'];
   const bands = [
-    { count: 900, span: 300, speed: 0.5, z: -128, depth: 34, size: 0.11, bright: 0.6 },
-    { count: 520, span: 240, speed: 1.5, z: -86, depth: 26, size: 0.15, bright: 0.9 },
-    { count: 220, span: 190, speed: 3.4, z: -54, depth: 18, size: 0.2, bright: 1.3 },
+    { count: 420, span: 300, speed: 0.5, z: -128, depth: 34, size: 0.08, bright: 0.24 },
+    { count: 190, span: 240, speed: 1.5, z: -86, depth: 26, size: 0.11, bright: 0.36 },
+    { count: 70, span: 190, speed: 3.4, z: -54, depth: 18, size: 0.13, bright: 0.5 },
   ];
   for (const band of bands) {
     const material = new T.MeshBasicNodeMaterial({ toneMapped: false, fog: false });
@@ -2715,8 +2887,10 @@ export function buildBackdrop(
     if (config.rocks.count <= 0) break;
     const span = 150;
     const field = asteroidField(rng, rock, span, config.rocks);
-    root.add(field.mesh);
-    layers.push({ object: field.mesh, speed: rock.speed, span });
+    for (const mesh of field.meshes) {
+      root.add(mesh);
+      layers.push({ object: mesh, speed: rock.speed, span });
+    }
     belts.push(field);
   }
 
@@ -2737,7 +2911,7 @@ export function buildBackdrop(
       depthWrite: false,
       fog: false,
     }),
-    90,
+    36,
     streakSpan,
     (d, tint) => {
       d.position.set((rng.next() - 0.5) * streakSpan, (rng.next() - 0.5) * 34, -6 - rng.next() * 9);
@@ -2756,6 +2930,7 @@ export function buildBackdrop(
     ground,
     /** Advances every parallax band; `scale` lets the hangar idle drift slower. */
     update(t: number, scale = 1) {
+      architecture.update(t * scale);
       for (const belt of belts) belt.tumble(t * scale);
       for (const layer of layers) {
         const shift = (t * layer.speed * scale) % layer.span;

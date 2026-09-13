@@ -301,6 +301,64 @@ export function bossSalvo(stage: number, phase: number, cycle: number, aim: numb
   const add = (x: number, y: number, a: number, kind: number, delay = 0, speed = 1) =>
     out.push({ mount: 0, dx: x, dy: y, angle: a, kind, delay, speed });
   const sign = cycle % 2 ? 1 : -1;
+  // Every third salvo is a contrasting phrase, with a deliberate open lane.
+  // Alternates replace a salvo instead of layering more density on top.
+  if (cycle % 3 === 2) {
+    if (stage === 0) {
+      for (let beat = 0; beat < 3; beat++)
+        for (let row = -5; row <= 5; row++) {
+          if (Math.abs(row - (beat - 1) * sign) <= 1) continue;
+          add(
+            -1.2,
+            row * 0.49,
+            PI,
+            phase === 1 ? S.ORB : S.PULSE,
+            beat * 0.28,
+            0.72 + phase * 0.06,
+          );
+        }
+    } else if (stage === 1) {
+      for (let beat = 0; beat < 4; beat++) {
+        for (const side of [-1, 1])
+          for (let j = 0; j < 3; j++)
+            add(
+              -1.1,
+              side * 0.72,
+              aim + side * (0.18 + j * 0.12),
+              S.ACCEL,
+              beat * 0.23,
+              0.42 + phase * 0.04,
+            );
+      }
+    } else if (stage === 2) {
+      for (let arm = 0; arm < 3; arm++)
+        for (let beat = 0; beat < 4; beat++) {
+          const a = (arm * TAU) / 3;
+          for (const side of [-1, 1])
+            add(
+              Math.cos(a) * 2.6,
+              Math.sin(a) * 2.6,
+              PI + side * (0.22 + beat * 0.16) + arm * 0.05,
+              phase === 3 ? S.PLASMA : S.WAVE,
+              beat * 0.24,
+              0.62 + phase * 0.04,
+            );
+        }
+    } else {
+      for (let beat = 0; beat < 5; beat++)
+        for (const side of [-1, 1])
+          for (let tooth = 0; tooth < 3; tooth++)
+            add(
+              -2.7,
+              side * 0.7,
+              PI + side * (0.12 + tooth * 0.16 + (4 - beat) * 0.07),
+              phase === 3 ? S.BOUNCE : S.SHARD,
+              beat * 0.2,
+              0.72 + phase * 0.04,
+            );
+    }
+    return out;
+  }
   if (stage === 0) {
     // Portal jaws: zipper / opposed diagonals / alternating iris bars.
     for (let row = 0; row < 6; row++)

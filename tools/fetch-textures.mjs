@@ -53,11 +53,27 @@ const assets = [
   ],
 ];
 
-// Poly Haven slugs, one per asteroid class. Photographed bare rock, CC0.
-const rocks = ['gray_rocks', 'dark_rock', 'rock_06', 'marble_rock_02', 'rock_04'];
+/**
+ * Poly Haven slugs for the asteroids, two per belt class plus the hazard
+ * rocks. Photographed bare rock, CC0. Each comes down from the 2K source with
+ * its normal map: at 512px and colour only, a close body read as a smooth
+ * painted ball, and the relief is what sells a rock as a rock.
+ */
+const rocks = [
+  'gray_rocks',
+  'dark_rock',
+  'rock_06',
+  'marble_rock_02',
+  'rock_04',
+  'cliff_side',
+  'rock_boulder_cracked',
+  'rock_face',
+  'rock_05',
+];
 for (const slug of rocks) {
   const files = await (await fetch(`https://api.polyhaven.com/files/${slug}`)).json();
-  assets.push([files.Diffuse['1k'].jpg.url, `rocks/${slug}.jpg`, 512]);
+  assets.push([files.Diffuse['2k'].jpg.url, `rocks/${slug}.jpg`, 1024, null, 85]);
+  assets.push([files.nor_gl['2k'].jpg.url, `rocks/${slug}_nor.jpg`, 1024, null, 82]);
 }
 
 /**

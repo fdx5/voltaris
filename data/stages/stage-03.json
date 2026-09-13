@@ -828,5 +828,56 @@
       "type": 1,
       "y": 2
     }
+  ],
+  "hazards": [
+    {
+      "time": 9,
+      "y": 4.8,
+      "size": 1,
+      "speed": 3.4,
+      "drift": -0.2
+    },
+    {
+      "time": 36,
+      "y": 0,
+      "size": 1.1,
+      "speed": 3.6,
+      "drift": 0.15
+    },
+    {
+      "time": 61,
+      "y": 5.5,
+      "size": 0.9,
+      "speed": 4,
+      "drift": -0.25
+    },
+    {
+      "time": 84,
+      "y": 2.5,
+      "size": 1.2,
+      "speed": 3.2,
+      "drift": 0
+    },
+    {
+      "time": 111,
+      "y": -1.2,
+      "size": 0.9,
+      "speed": 4.2,
+      "drift": 0.2
+    },
+    {
+      "time": 134,
+      "y": 5,
+      "size": 1.1,
+      "speed": 3.6,
+      "drift": -0.3
+    },
+    {
+      "time": 160,
+      "y": 1.5,
+      "size": 1,
+      "speed": 4,
+      "drift": 0.1
+    }
   ]
 }

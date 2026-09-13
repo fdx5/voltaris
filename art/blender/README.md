@@ -1,5 +1,11 @@
 # VOLTARIS / Independent fleet
 
+September 2026 capital refit: the player is now Peregrine III, a twin-engine
+interceptor. Capital hulls use restrained naval finishes, segmented armour and
+design-specific superstructures. See [refit notes](../../doc/art-direction-refit.md)
+for the current art direction, weapon changes and reference study. The earlier
+single-turbine description below documents the previous independent-fleet pass.
+
 `voltaris-fleet.blend` is the editable Blender source. The shared fighter design
 was replaced. `tools/blender/unit_designs.py` now contains a separate construction
 for every enemy, four unrelated capital ships, twelve different emplacements and
