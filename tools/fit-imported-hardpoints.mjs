@@ -1,6 +1,7 @@
 import { build } from 'esbuild';
 import { readFile, writeFile, unlink } from 'node:fs/promises';
 import { readFleetGeometry } from './read-fleet-geometry.mjs';
+import { fitEngines } from './fit-engines.mjs';
 const roster = JSON.parse(await readFile('data/enemies/imported-fleet.json', 'utf8'));
 const temp = new URL('./.imported-hardpoints.mjs', import.meta.url);
 await build({
@@ -37,6 +38,8 @@ try {
       // Projectiles leave the nose: the mean of the forward-most 2.5% of vertices.
       record.viewDegrees = entry.view;
       record.muzzles = record.muzzles.map(() => [box.min.x, y / n, z / n]);
+      // Exhaust bells, as [x, y, z, radius] in the drawn hull's space; flames trail toward +X.
+      if (kind === 'fleet') record.engines = fitEngines(g);
       record.source = `${roster.packs[entry.pack].artist} / ${roster.packs[entry.pack].title}`;
       record.model = entry.model;
       parts.hull.dispose();

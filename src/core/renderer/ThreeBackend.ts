@@ -1,5 +1,5 @@
 import * as T from 'three/webgpu';
-import { pass } from 'three/tsl';
+import { float, normalView, pass, positionGeometry, positionViewDirection } from 'three/tsl';
 import { bloom } from 'three/addons/tsl/display/BloomNode.js';
 import type { IRenderBackend, Quality } from './IRenderBackend';
 import { IMPACTS, IMPACT_LIFE, type GameState } from '../../game/GameState';
@@ -28,6 +28,7 @@ import { ObjectPool } from '../pool/ObjectPool';
 import { itemMaterial } from '../../visual/ItemDesign';
 import { enemyRotation } from '../../game/HostilePatterns';
 import tuning from '../../../data/tuning.json';
+import fleetHardpoints from '../../../data/enemies/fleet-hardpoints.json';
 
 /**
  * Debris colours, indexed by a particle's type. Saturated on purpose: the
@@ -212,6 +213,11 @@ export class ThreeBackend implements IRenderBackend {
   private readonly enemyHulls: T.InstancedMesh[] = [];
   private readonly enemyAccents: (T.InstancedMesh | null)[] = [];
   private readonly enemyCores: T.InstancedMesh;
+  /** Jet flames trailing every hostile's engine bells: a soft outer plume and a hot core. */
+  private readonly exhaustPlume: T.InstancedMesh;
+  private readonly exhaustCore: T.InstancedMesh;
+  /** Each hull type burns its own colour, so a mixed squadron reads as mixed. */
+  private readonly exhaustTint: T.Color[] = [];
   private readonly groundHulls: T.InstancedMesh[] = [];
   private readonly groundAccents: (T.InstancedMesh | null)[] = [];
   private readonly groundCores: T.InstancedMesh;
@@ -487,6 +493,49 @@ export class ThreeBackend implements IRenderBackend {
       new T.MeshBasicNodeMaterial({ toneMapped: false }),
       256,
     );
+    // A flame is an open cone with its wide mouth on the nozzle and its tip
+    // trailing behind. It fades along its length and toward its silhouette,
+    // so under additive blending it reads as a soft glow, not a solid shape.
+    const flame = (gain: number) => {
+      const material = new T.MeshBasicNodeMaterial({
+        transparent: true,
+        blending: T.AdditiveBlending,
+        depthWrite: false,
+        side: T.DoubleSide,
+        toneMapped: false,
+      });
+      const along = float(1).sub(positionGeometry.x.clamp(0, 1)).pow(1.4);
+      const edge = normalView.dot(positionViewDirection).abs().pow(1.3);
+      material.opacityNode = along.mul(edge).mul(gain);
+      const mesh = new T.InstancedMesh(
+        new T.ConeGeometry(1, 1, 18, 1, true).rotateZ(-Math.PI / 2).translate(0.5, 0, 0),
+        material,
+        256 * 3,
+      );
+      mesh.count = 0;
+      mesh.frustumCulled = false;
+      mesh.instanceMatrix.setUsage(T.DynamicDrawUsage);
+      ThreeBackend.tintable(mesh);
+      this.deferred.push(mesh);
+      this.scene.add(mesh);
+      return mesh;
+    };
+    this.exhaustPlume = flame(0.55);
+    this.exhaustCore = flame(0.85);
+    // Exhaust hues spread around the wheel; stepping by five keeps
+    // neighbouring hull types from burning the same colour.
+    const hues = [
+      '#4fb6ff',
+      '#8a7dff',
+      '#ff6fd0',
+      '#ff9a3c',
+      '#3fe3c0',
+      '#ff5a4a',
+      '#ffd35a',
+      '#6ce4ff',
+    ];
+    for (let i = 0; i < ENEMY_TYPES; i++)
+      this.exhaustTint.push(new T.Color(hues[(i * 5) % hues.length]));
     this.enemyCores.count = 0;
     this.enemyCores.frustumCulled = false;
     this.enemyCores.instanceMatrix.setUsage(T.DynamicDrawUsage);
@@ -917,6 +966,7 @@ export class ThreeBackend implements IRenderBackend {
     for (const b of this.enemyHulls) b.count = 0;
     for (const b of this.enemyAccents) if (b) b.count = 0;
     this.enemyCores.count = 0;
+    this.exhaustPlume.count = this.exhaustCore.count = 0;
     for (let i = 0; i < e.capacity; i++) {
       if (!e.active[i]) continue;
       const type = e.type[i],
@@ -943,6 +993,43 @@ export class ThreeBackend implements IRenderBackend {
       }
       const accent = this.enemyAccents[type];
       if (accent) this.push(accent, x, y, 0, 1, 1, 1, angle, bank);
+      // Burners on each engine bell, turned with the hull. Faster ships burn
+      // longer, and every flame flutters on its own phase.
+      const thrust = 0.85 + Math.min(0.45, Math.abs(e.vx[i]) / 10);
+      const engines = fleetHardpoints[type].engines;
+      for (let k = 0; k < engines.length; k++) {
+        const [ex, ey, ez, r] = engines[k];
+        const ly = ey * Math.cos(bank) - ez * Math.sin(bank),
+          lz = ey * Math.sin(bank) + ez * Math.cos(bank);
+        const fx = x + ex * Math.cos(angle) - ly * Math.sin(angle),
+          fy = y + ex * Math.sin(angle) + ly * Math.cos(angle);
+        const flutter =
+          1 + Math.sin(t * 33 + i * 1.3 + k * 2.1) * 0.14 + Math.sin(t * 71 + i * 0.7 + k) * 0.07;
+        const tint = this.exhaustTint[type];
+        let index = this.exhaustPlume.count;
+        const plume = r * 1.05;
+        this.push(
+          this.exhaustPlume,
+          fx,
+          fy,
+          lz,
+          r * 7 * thrust * flutter,
+          plume,
+          plume,
+          angle,
+          bank,
+        );
+        if (this.exhaustPlume.count > index)
+          this.exhaustPlume.setColorAt(index, this.tint.copy(tint).multiplyScalar(1.2));
+        index = this.exhaustCore.count;
+        const hot = r * 0.5;
+        this.push(this.exhaustCore, fx, fy, lz, r * 3.2 * flutter, hot, hot, angle, bank);
+        if (this.exhaustCore.count > index)
+          this.exhaustCore.setColorAt(
+            index,
+            this.tint.copy(tint).lerp(this.white, 0.6).multiplyScalar(1.7),
+          );
+      }
       const core = ENEMY_CORE[type];
       // The charge lamp swells and breathes before a salvo. A fast strobe here
       // read as the whole airframe shaking.
@@ -967,6 +1054,8 @@ export class ThreeBackend implements IRenderBackend {
     for (const b of this.enemyHulls) this.commit(b);
     for (const b of this.enemyAccents) this.commit(b);
     this.commit(this.enemyCores);
+    this.commit(this.exhaustPlume);
+    this.commit(this.exhaustCore);
   }
   /** Emplacements sit on the surface; the lamp marks the muzzle. */
   private syncGround(g: Readonly<GameState>, alpha: number) {

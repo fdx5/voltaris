@@ -16,7 +16,27 @@
       ]
     ],
     "source": "Polyy.AI / 3D Spaceships Pack",
-    "model": "1"
+    "model": "1",
+    "engines": [
+      [
+        0.536,
+        0.004,
+        0.008,
+        0.07
+      ],
+      [
+        0.59,
+        0.232,
+        -0.073,
+        0.054
+      ],
+      [
+        0.59,
+        -0.169,
+        0.178,
+        0.054
+      ]
+    ]
   },
   {
     "name": "LANCER",
@@ -30,7 +50,27 @@
       ]
     ],
     "source": "Polyy.AI / 3D Spaceships Pack",
-    "model": "11"
+    "model": "11",
+    "engines": [
+      [
+        0.674,
+        -0.006,
+        -0.032,
+        0.094
+      ],
+      [
+        0.674,
+        -0.156,
+        -0.134,
+        0.084
+      ],
+      [
+        0.674,
+        -0.02,
+        -0.213,
+        0.084
+      ]
+    ]
   },
   {
     "name": "CARRIER",
@@ -59,7 +99,27 @@
       ]
     ],
     "source": "Polyy.AI / 3D Spaceships Pack",
-    "model": "9"
+    "model": "9",
+    "engines": [
+      [
+        0.725,
+        0.145,
+        0.176,
+        0.092
+      ],
+      [
+        0.684,
+        0.187,
+        -0.145,
+        0.083
+      ],
+      [
+        0.684,
+        -0.181,
+        0.159,
+        0.08
+      ]
+    ]
   },
   {
     "name": "WARDEN",
@@ -98,7 +158,27 @@
       ]
     ],
     "source": "Polyy.AI / 3D Spaceships Pack 2",
-    "model": "quad_wing_gunship"
+    "model": "quad_wing_gunship",
+    "engines": [
+      [
+        1.27,
+        -0.268,
+        0.019,
+        0.214
+      ],
+      [
+        1.27,
+        0.126,
+        -0.223,
+        0.213
+      ],
+      [
+        1.271,
+        0.109,
+        0.178,
+        0.192
+      ]
+    ]
   },
   {
     "name": "WASP",
@@ -112,7 +192,27 @@
       ]
     ],
     "source": "Polyy.AI / 3D Spaceships Pack",
-    "model": "2"
+    "model": "2",
+    "engines": [
+      [
+        0.825,
+        -0.122,
+        0.09,
+        0.092
+      ],
+      [
+        0.825,
+        0.166,
+        -0.076,
+        0.092
+      ],
+      [
+        0.825,
+        0.017,
+        -0.002,
+        0.069
+      ]
+    ]
   },
   {
     "name": "SPINNER",
@@ -141,7 +241,27 @@
       ]
     ],
     "source": "Polyy.AI / 3D Spaceships Pack",
-    "model": "23"
+    "model": "23",
+    "engines": [
+      [
+        0.622,
+        0.027,
+        -0.054,
+        0.072
+      ],
+      [
+        0.591,
+        0.156,
+        -0.048,
+        0.063
+      ],
+      [
+        0.591,
+        -0.092,
+        0.126,
+        0.063
+      ]
+    ]
   },
   {
     "name": "MORTAR",
@@ -155,7 +275,27 @@
       ]
     ],
     "source": "Polyy.AI / 3D Spaceships Pack",
-    "model": "6"
+    "model": "6",
+    "engines": [
+      [
+        0.614,
+        0.08,
+        0.096,
+        0.088
+      ],
+      [
+        0.584,
+        -0.023,
+        -0.078,
+        0.082
+      ],
+      [
+        0.542,
+        0.141,
+        -0.171,
+        0.068
+      ]
+    ]
   },
   {
     "name": "SHARD",
@@ -169,7 +309,15 @@
       ]
     ],
     "source": "Polyy.AI / 3D Spaceships Pack",
-    "model": "5"
+    "model": "5",
+    "engines": [
+      [
+        0.725,
+        -0.036,
+        -0.078,
+        0.097
+      ]
+    ]
   },
   {
     "name": "SENTRY",
@@ -188,7 +336,15 @@
       ]
     ],
     "source": "Quaternius / Ultimate Spaceships Pack",
-    "model": "Challenger"
+    "model": "Challenger",
+    "engines": [
+      [
+        0.776,
+        -0.061,
+        0.071,
+        0.109
+      ]
+    ]
   },
   {
     "name": "RAVEN",
@@ -207,7 +363,27 @@
       ]
     ],
     "source": "Polyy.AI / 3D Spaceships Pack",
-    "model": "4"
+    "model": "4",
+    "engines": [
+      [
+        0.826,
+        -0.03,
+        -0.026,
+        0.103
+      ],
+      [
+        0.826,
+        0.154,
+        -0.132,
+        0.103
+      ],
+      [
+        0.826,
+        -0.156,
+        0.049,
+        0.056
+      ]
+    ]
   },
   {
     "name": "HYDRA",
@@ -231,7 +407,21 @@
       ]
     ],
     "source": "Quaternius / Ultimate Spaceships Pack",
-    "model": "Executioner"
+    "model": "Executioner",
+    "engines": [
+      [
+        1.673,
+        -0.119,
+        0.062,
+        0.244
+      ],
+      [
+        1.675,
+        0.239,
+        -0.335,
+        0.244
+      ]
+    ]
   },
   {
     "name": "BULWARK",
@@ -275,7 +465,15 @@
       ]
     ],
     "source": "Polyy.AI / 3D Spaceships Pack 2",
-    "model": "four_engine_heavy_bomber"
+    "model": "four_engine_heavy_bomber",
+    "engines": [
+      [
+        1.185,
+        -0.024,
+        0.019,
+        0.187
+      ]
+    ]
   },
   {
     "name": "SEEKER",
@@ -289,7 +487,27 @@
       ]
     ],
     "source": "Polyy.AI / 3D Spaceships Pack 2",
-    "model": "canard_delta"
+    "model": "canard_delta",
+    "engines": [
+      [
+        0.725,
+        0.172,
+        0.057,
+        0.071
+      ],
+      [
+        0.725,
+        -0.023,
+        0.178,
+        0.071
+      ],
+      [
+        0.724,
+        0.162,
+        -0.072,
+        0.069
+      ]
+    ]
   },
   {
     "name": "MANTIS",
@@ -308,7 +526,27 @@
       ]
     ],
     "source": "Polyy.AI / 3D Spaceships Pack",
-    "model": "8"
+    "model": "8",
+    "engines": [
+      [
+        0.712,
+        0.152,
+        -0.195,
+        0.103
+      ],
+      [
+        0.712,
+        -0.179,
+        0.037,
+        0.103
+      ],
+      [
+        0.648,
+        0.06,
+        0.026,
+        0.091
+      ]
+    ]
   },
   {
     "name": "DRILL",
@@ -322,7 +560,27 @@
       ]
     ],
     "source": "Polyy.AI / 3D Spaceships Pack",
-    "model": "26"
+    "model": "26",
+    "engines": [
+      [
+        0.463,
+        -0.139,
+        -0.317,
+        0.075
+      ],
+      [
+        0.463,
+        -0.268,
+        -0.242,
+        0.075
+      ],
+      [
+        0.584,
+        -0.412,
+        -0.049,
+        0.05
+      ]
+    ]
   },
   {
     "name": "MONOLITH",
@@ -356,7 +614,15 @@
       ]
     ],
     "source": "Polyy.AI / 3D Spaceships Pack 2",
-    "model": "container_freighter"
+    "model": "container_freighter",
+    "engines": [
+      [
+        1.733,
+        0.108,
+        0.127,
+        0.26
+      ]
+    ]
   },
   {
     "name": "SWARMER",
@@ -380,7 +646,27 @@
       ]
     ],
     "source": "Polyy.AI / 3D Spaceships Pack",
-    "model": "29"
+    "model": "29",
+    "engines": [
+      [
+        0.364,
+        -0.018,
+        0.031,
+        0.07
+      ],
+      [
+        0.338,
+        -0.169,
+        0.025,
+        0.058
+      ],
+      [
+        0.338,
+        0.089,
+        -0.191,
+        0.058
+      ]
+    ]
   },
   {
     "name": "ARBITER",
@@ -404,7 +690,27 @@
       ]
     ],
     "source": "Polyy.AI / 3D Spaceships Pack 2",
-    "model": "sponson_patrol"
+    "model": "sponson_patrol",
+    "engines": [
+      [
+        1.623,
+        -0.108,
+        0.232,
+        0.227
+      ],
+      [
+        1.617,
+        0.14,
+        -0.13,
+        0.227
+      ],
+      [
+        1.612,
+        0.495,
+        -0.421,
+        0.172
+      ]
+    ]
   },
   {
     "name": "SCOURGE",
@@ -428,7 +734,27 @@
       ]
     ],
     "source": "Polyy.AI / 3D Spaceships Pack 2",
-    "model": "belly_bay_bomber"
+    "model": "belly_bay_bomber",
+    "engines": [
+      [
+        1.553,
+        -0.002,
+        -0.011,
+        0.204
+      ],
+      [
+        1.548,
+        -0.342,
+        0.218,
+        0.182
+      ],
+      [
+        1.492,
+        0.33,
+        -0.25,
+        0.18
+      ]
+    ]
   },
   {
     "name": "HALBERD",
@@ -442,7 +768,27 @@
       ]
     ],
     "source": "Polyy.AI / 3D Spaceships Pack 2",
-    "model": "split_nose_raider"
+    "model": "split_nose_raider",
+    "engines": [
+      [
+        0.658,
+        -0.102,
+        0.044,
+        0.092
+      ],
+      [
+        0.658,
+        0.063,
+        -0.06,
+        0.088
+      ],
+      [
+        0.742,
+        0.257,
+        -0.151,
+        0.058
+      ]
+    ]
   },
   {
     "name": "CINDER",
@@ -466,7 +812,27 @@
       ]
     ],
     "source": "Polyy.AI / 3D Spaceships Pack",
-    "model": "3"
+    "model": "3",
+    "engines": [
+      [
+        0.623,
+        -0.212,
+        0.2,
+        0.078
+      ],
+      [
+        0.573,
+        0.078,
+        0.126,
+        0.077
+      ],
+      [
+        0.623,
+        0.296,
+        -0.038,
+        0.061
+      ]
+    ]
   },
   {
     "name": "TALON",
@@ -490,7 +856,27 @@
       ]
     ],
     "source": "Polyy.AI / 3D Spaceships Pack",
-    "model": "17"
+    "model": "17",
+    "engines": [
+      [
+        0.611,
+        0.089,
+        -0.19,
+        0.079
+      ],
+      [
+        0.611,
+        -0.178,
+        -0.003,
+        0.079
+      ],
+      [
+        0.521,
+        -0.1,
+        -0.176,
+        0.078
+      ]
+    ]
   },
   {
     "name": "VULTURE",
@@ -509,7 +895,27 @@
       ]
     ],
     "source": "Polyy.AI / 3D Spaceships Pack",
-    "model": "10"
+    "model": "10",
+    "engines": [
+      [
+        0.725,
+        0.138,
+        0.042,
+        0.064
+      ],
+      [
+        0.725,
+        -0.002,
+        0.14,
+        0.064
+      ],
+      [
+        0.645,
+        0.124,
+        -0.107,
+        0.062
+      ]
+    ]
   },
   {
     "name": "SIREN",
@@ -528,7 +934,27 @@
       ]
     ],
     "source": "Polyy.AI / 3D Spaceships Pack",
-    "model": "15"
+    "model": "15",
+    "engines": [
+      [
+        0.631,
+        0.043,
+        -0.19,
+        0.089
+      ],
+      [
+        0.631,
+        -0.128,
+        -0.07,
+        0.089
+      ],
+      [
+        0.543,
+        -0.47,
+        0.119,
+        0.08
+      ]
+    ]
   },
   {
     "name": "BASILISK",
@@ -567,7 +993,27 @@
       ]
     ],
     "source": "Polyy.AI / 3D Spaceships Pack 2",
-    "model": "drill_miner"
+    "model": "drill_miner",
+    "engines": [
+      [
+        1.413,
+        -0.238,
+        0.458,
+        0.211
+      ],
+      [
+        1.413,
+        0.415,
+        -0.284,
+        0.209
+      ],
+      [
+        1.508,
+        -0.218,
+        0.027,
+        0.187
+      ]
+    ]
   },
   {
     "name": "COMET",
@@ -581,7 +1027,27 @@
       ]
     ],
     "source": "Polyy.AI / 3D Spaceships Pack",
-    "model": "30"
+    "model": "30",
+    "engines": [
+      [
+        0.623,
+        0.09,
+        -0.144,
+        0.076
+      ],
+      [
+        0.623,
+        -0.139,
+        0.048,
+        0.076
+      ],
+      [
+        0.623,
+        -0.007,
+        -0.027,
+        0.074
+      ]
+    ]
   },
   {
     "name": "GORGON",
@@ -615,7 +1081,27 @@
       ]
     ],
     "source": "Polyy.AI / 3D Spaceships Pack",
-    "model": "34"
+    "model": "34",
+    "engines": [
+      [
+        0.674,
+        -0.046,
+        0.035,
+        0.075
+      ],
+      [
+        0.674,
+        0.12,
+        0.12,
+        0.067
+      ],
+      [
+        0.634,
+        0.145,
+        -0.094,
+        0.066
+      ]
+    ]
   },
   {
     "name": "ANVIL",
@@ -644,7 +1130,27 @@
       ]
     ],
     "source": "Polyy.AI / 3D Spaceships Pack 2",
-    "model": "bulk_hauler"
+    "model": "bulk_hauler",
+    "engines": [
+      [
+        1.78,
+        0.272,
+        -0.551,
+        0.197
+      ],
+      [
+        1.767,
+        0.555,
+        -0.254,
+        0.195
+      ],
+      [
+        1.78,
+        -0.52,
+        0.32,
+        0.194
+      ]
+    ]
   },
   {
     "name": "WRAITH",
@@ -663,7 +1169,27 @@
       ]
     ],
     "source": "Polyy.AI / 3D Spaceships Pack",
-    "model": "31"
+    "model": "31",
+    "engines": [
+      [
+        0.731,
+        -0.039,
+        -0.037,
+        0.087
+      ],
+      [
+        0.731,
+        0.103,
+        -0.119,
+        0.087
+      ],
+      [
+        0.728,
+        -0.221,
+        0.024,
+        0.085
+      ]
+    ]
   },
   {
     "name": "TEMPEST",
@@ -687,7 +1213,27 @@
       ]
     ],
     "source": "Quaternius / Ultimate Spaceships Pack",
-    "model": "Spitfire"
+    "model": "Spitfire",
+    "engines": [
+      [
+        0.64,
+        0.034,
+        0.049,
+        0.09
+      ],
+      [
+        0.64,
+        0.186,
+        -0.051,
+        0.089
+      ],
+      [
+        0.64,
+        -0.111,
+        0.157,
+        0.089
+      ]
+    ]
   },
   {
     "name": "CHIMERA",
@@ -711,7 +1257,27 @@
       ]
     ],
     "source": "Polyy.AI / 3D Spaceships Pack 2",
-    "model": "grapple_tug"
+    "model": "grapple_tug",
+    "engines": [
+      [
+        1.727,
+        -0.843,
+        0.851,
+        0.213
+      ],
+      [
+        1.676,
+        0.508,
+        -0.326,
+        0.208
+      ],
+      [
+        1.727,
+        0.865,
+        -0.822,
+        0.207
+      ]
+    ]
   },
   {
     "name": "OBELISK",
@@ -740,7 +1306,15 @@
       ]
     ],
     "source": "Quaternius / Ultimate Spaceships Pack",
-    "model": "Zenith"
+    "model": "Zenith",
+    "engines": [
+      [
+        1.856,
+        0.081,
+        -0.173,
+        0.26
+      ]
+    ]
   },
   {
     "name": "NOVA",
@@ -774,7 +1348,21 @@
       ]
     ],
     "source": "Polyy.AI / 3D Spaceships Pack 2",
-    "model": "dorsal_engine_courier"
+    "model": "dorsal_engine_courier",
+    "engines": [
+      [
+        0.663,
+        0.013,
+        0.014,
+        0.092
+      ],
+      [
+        0.725,
+        0.115,
+        0.199,
+        0.071
+      ]
+    ]
   },
   {
     "name": "LEVIATHAN",
@@ -823,7 +1411,15 @@
       ]
     ],
     "source": "Quaternius / Ultimate Spaceships Pack",
-    "model": "Imperial"
+    "model": "Imperial",
+    "engines": [
+      [
+        1.607,
+        0.154,
+        -0.122,
+        0.227
+      ]
+    ]
   },
   {
     "name": "SLEET",
@@ -847,7 +1443,27 @@
       ]
     ],
     "source": "Polyy.AI / 3D Spaceships Pack",
-    "model": "32"
+    "model": "32",
+    "engines": [
+      [
+        0.593,
+        0.009,
+        0.054,
+        0.073
+      ],
+      [
+        0.593,
+        0.135,
+        -0.019,
+        0.073
+      ],
+      [
+        0.619,
+        0.24,
+        -0.129,
+        0.068
+      ]
+    ]
   },
   {
     "name": "GLIMMER",
@@ -866,7 +1482,27 @@
       ]
     ],
     "source": "Polyy.AI / 3D Spaceships Pack",
-    "model": "21"
+    "model": "21",
+    "engines": [
+      [
+        0.584,
+        -0.175,
+        -0.06,
+        0.073
+      ],
+      [
+        0.582,
+        0.022,
+        -0.191,
+        0.067
+      ],
+      [
+        0.584,
+        -0.023,
+        -0.018,
+        0.065
+      ]
+    ]
   },
   {
     "name": "SHIVER",
@@ -890,7 +1526,27 @@
       ]
     ],
     "source": "Polyy.AI / 3D Spaceships Pack",
-    "model": "22"
+    "model": "22",
+    "engines": [
+      [
+        0.531,
+        -0.047,
+        -0.015,
+        0.092
+      ],
+      [
+        0.531,
+        0.105,
+        -0.11,
+        0.092
+      ],
+      [
+        0.533,
+        0.292,
+        -0.249,
+        0.066
+      ]
+    ]
   },
   {
     "name": "RIME",
@@ -909,7 +1565,27 @@
       ]
     ],
     "source": "Polyy.AI / 3D Spaceships Pack",
-    "model": "25"
+    "model": "25",
+    "engines": [
+      [
+        0.701,
+        0.002,
+        0.076,
+        0.096
+      ],
+      [
+        0.701,
+        0.178,
+        -0.05,
+        0.096
+      ],
+      [
+        0.725,
+        0.326,
+        -0.232,
+        0.077
+      ]
+    ]
   },
   {
     "name": "FLOE",
@@ -933,7 +1609,27 @@
       ]
     ],
     "source": "Polyy.AI / 3D Spaceships Pack 2",
-    "model": "nacelle_escort"
+    "model": "nacelle_escort",
+    "engines": [
+      [
+        0.595,
+        -0.055,
+        -0.068,
+        0.096
+      ],
+      [
+        0.627,
+        0.102,
+        -0.097,
+        0.069
+      ],
+      [
+        0.623,
+        -0.145,
+        0.07,
+        0.068
+      ]
+    ]
   },
   {
     "name": "CRYSTAL",
@@ -962,7 +1658,27 @@
       ]
     ],
     "source": "Polyy.AI / 3D Spaceships Pack",
-    "model": "18"
+    "model": "18",
+    "engines": [
+      [
+        0.826,
+        0.149,
+        -0.008,
+        0.105
+      ],
+      [
+        0.758,
+        -0.226,
+        0.069,
+        0.085
+      ],
+      [
+        0.758,
+        0.211,
+        -0.237,
+        0.085
+      ]
+    ]
   },
   {
     "name": "HOARFROST",
@@ -986,7 +1702,27 @@
       ]
     ],
     "source": "Polyy.AI / 3D Spaceships Pack",
-    "model": "35"
+    "model": "35",
+    "engines": [
+      [
+        0.621,
+        0.057,
+        -0.087,
+        0.06
+      ],
+      [
+        0.621,
+        -0.078,
+        0.007,
+        0.06
+      ],
+      [
+        0.518,
+        -0.318,
+        0.143,
+        0.059
+      ]
+    ]
   },
   {
     "name": "CALVING",
@@ -1020,7 +1756,27 @@
       ]
     ],
     "source": "Polyy.AI / 3D Spaceships Pack",
-    "model": "16"
+    "model": "16",
+    "engines": [
+      [
+        1.624,
+        -0.301,
+        -0.328,
+        0.224
+      ],
+      [
+        1.623,
+        0.064,
+        0.078,
+        0.186
+      ],
+      [
+        1.623,
+        0.029,
+        -0.551,
+        0.173
+      ]
+    ]
   },
   {
     "name": "MORAINE",
@@ -1034,7 +1790,15 @@
       ]
     ],
     "source": "Quaternius / Ultimate Spaceships Pack",
-    "model": "Dispatcher"
+    "model": "Dispatcher",
+    "engines": [
+      [
+        0.721,
+        0.082,
+        -0.034,
+        0.102
+      ]
+    ]
   },
   {
     "name": "GLACIER",
@@ -1073,6 +1837,26 @@
       ]
     ],
     "source": "Quaternius / Ultimate Spaceships Pack",
-    "model": "Pancake"
+    "model": "Pancake",
+    "engines": [
+      [
+        1.528,
+        0.47,
+        -0.341,
+        0.26
+      ],
+      [
+        1.528,
+        -0.389,
+        0.432,
+        0.26
+      ],
+      [
+        1.849,
+        0.042,
+        0.047,
+        0.26
+      ]
+    ]
   }
 ]

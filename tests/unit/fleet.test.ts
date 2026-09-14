@@ -71,6 +71,26 @@ describe('fleet refit', () => {
       parts.accent!.dispose();
     }
   });
+  it('mounts one to three exhaust bells on the tail of every hostile hull', () => {
+    for (let i = 0; i < mounts.length; i++) {
+      const hull = enemyGeometry(i).hull!;
+      hull.computeBoundingBox();
+      const box = hull.boundingBox!,
+        length = box.max.x - box.min.x;
+      expect(mounts[i].engines.length).toBeGreaterThanOrEqual(1);
+      expect(mounts[i].engines.length).toBeLessThanOrEqual(3);
+      for (const [x, y, z, radius] of mounts[i].engines) {
+        // Flames trail toward +X, so every bell sits in the back of the airframe.
+        expect(x).toBeGreaterThan(box.max.x - length * 0.35);
+        expect(y).toBeGreaterThanOrEqual(box.min.y - 1e-3);
+        expect(y).toBeLessThanOrEqual(box.max.y + 1e-3);
+        expect(z).toBeGreaterThanOrEqual(box.min.z - 1e-3);
+        expect(z).toBeLessThanOrEqual(box.max.z + 1e-3);
+        expect(radius).toBeGreaterThan(0);
+      }
+      hull.dispose();
+    }
+  });
   it('keeps off-centre charge lamps attached when hulls are rebuilt', () => {
     for (let i = 0; i < defs.length; i++) {
       const first = enemyGeometry(i);
