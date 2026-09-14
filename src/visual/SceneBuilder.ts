@@ -1,3 +1,4 @@
+import { asset } from '../core/assets';
 import { buildStarField, type StarPalette } from './StarField';
 import * as T from 'three/webgpu';
 import {
@@ -1119,7 +1120,7 @@ export function legacyEnemyGeometry(type: number): EnemyHulls {
  * invisible and the ship reads as travelling right at speed. Earth and
  * its cloud shell keep their place and simply turn.
  * ------------------------------------------------------------------ */
-const TEXTURE_ROOT = '/textures/';
+const TEXTURE_ROOT = asset('/textures/');
 const loader = new T.TextureLoader();
 function loadTexture(path: string, srgb: boolean, repeat = false) {
   const t = loader.load(TEXTURE_ROOT + path);

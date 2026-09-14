@@ -7,6 +7,8 @@ import type { BossDesign, BossModel, EnemyHulls } from './SceneBuilder';
 import defs from '../../data/enemies/enemy-defs.json';
 import groundDefs from '../../data/enemies/ground-defs.json';
 import roster from '../../data/enemies/imported-fleet.json';
+import fleetParts from '../../data/enemies/imported-fleet-parts.json';
+import { asset } from '../core/assets';
 import fleetHardpoints from '../../data/enemies/fleet-hardpoints.json';
 import groundHardpoints from '../../data/enemies/ground-hardpoints.json';
 
@@ -15,7 +17,9 @@ import groundHardpoints from '../../data/enemies/ground-hardpoints.json';
  * downloaded CC0 spaceship; tools/pack-imported-fleet.mjs packs them into one GLB
  * with one textured primitive per roster slot (see data/enemies/imported-fleet.json).
  */
-export const FLEET_URL = '/models/imported/voltaris-imported-fleet.glb?v=2';
+export const FLEET_URLS = fleetParts.parts.map((name) =>
+  asset(`/models/imported/${name}?v=${fleetParts.sha256.slice(0, 12)}`),
+);
 const BOSSES = ['gatekeeper', 'ares', 'jove', 'nereid'] as const;
 const pad = (n: number) => String(n).padStart(2, '0');
 export const FLEET_SLOTS = [
@@ -28,9 +32,29 @@ export const FLEET_SLOTS = [
 let fleet: T.Group | undefined;
 let pending: Promise<void> | undefined;
 
+/** Downloads the fleet's parts side by side and joins them into one GLB. */
+async function downloadFleet() {
+  const chunks = await Promise.all(
+    FLEET_URLS.map(async (url) => {
+      const response = await fetch(url);
+      if (!response.ok) throw new Error(`Fleet download failed (${response.status}): ${url}`);
+      return new Uint8Array(await response.arrayBuffer());
+    }),
+  );
+  const bytes = new Uint8Array(fleetParts.size);
+  let offset = 0;
+  for (const chunk of chunks) {
+    bytes.set(chunk, offset);
+    offset += chunk.length;
+  }
+  if (offset !== fleetParts.size) throw new Error('Fleet download was incomplete');
+  return bytes.buffer;
+}
+
 export function loadImportedFleet(data?: ArrayBuffer): Promise<void> {
   const loader = new GLTFLoader().setMeshoptDecoder(MeshoptDecoder);
-  return (pending ??= (data ? loader.parseAsync(data, '') : loader.loadAsync(FLEET_URL))
+  return (pending ??= (data ? Promise.resolve(data) : downloadFleet())
+    .then((bytes) => loader.parseAsync(bytes, ''))
     .then((gltf) => {
       for (const name of FLEET_SLOTS) {
         const node = gltf.scene.getObjectByName(name);

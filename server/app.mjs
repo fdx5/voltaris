@@ -7,6 +7,7 @@ import { digest, hashPassword, verifyPassword, sessionToken, issueSession } from
 import { userState } from './db.mjs';
 import { verify, gameVersion } from './verify.mjs';
 
+const ASSET_CDN = 'https://cdn.jsdelivr.net';
 const fail = (status, message) => Object.assign(new Error(message), { status });
 const integer = (n, min, max) => Number.isInteger(n) && n >= min && n <= max;
 export async function createApp(
@@ -23,10 +24,11 @@ export async function createApp(
           defaultSrc: ["'self'"],
           scriptSrc: ["'self'", "'wasm-unsafe-eval'"],
           styleSrc: ["'self'", "'unsafe-inline'"],
-          imgSrc: ["'self'", 'data:', 'blob:'],
-          mediaSrc: ["'self'", 'blob:'],
+          // Models, textures and audio come from the jsDelivr mirror of the repo.
+          imgSrc: ["'self'", 'data:', 'blob:', ASSET_CDN],
+          mediaSrc: ["'self'", 'blob:', ASSET_CDN],
           // GLTFLoader's ImageBitmapLoader fetches embedded GLB textures via blob URLs.
-          connectSrc: ["'self'", 'blob:'],
+          connectSrc: ["'self'", 'blob:', ASSET_CDN],
           workerSrc: ["'self'", 'blob:'],
           upgradeInsecureRequests: production ? [] : null,
         },

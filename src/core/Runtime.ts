@@ -4,28 +4,29 @@ import { GameState, type Weapon } from '../game/GameState';
 import { InputManager } from './input/InputManager';
 import { GameLoop } from './loop/GameLoop';
 import { AudioEngine } from './audio/AudioEngine';
+import { asset } from './assets';
 import { ThreeBackend } from './renderer/ThreeBackend';
 import type { Quality } from './renderer/IRenderBackend';
 import { useUI } from '../ui/store/useUI';
 /** Weapons that fire a recorded sample instead of the synth blip. */
 const FIRE_SAMPLES: Record<Weapon, string> = {
-  LASER: '/audio/laser.mp3',
-  MISSILE: '/audio/laser.mp3',
-  SPREAD: '/audio/laser.mp3',
+  LASER: asset('/audio/laser.mp3'),
+  MISSILE: asset('/audio/laser.mp3'),
+  SPREAD: asset('/audio/laser.mp3'),
 };
 /** Played once when a sector is secured. */
-const STAGE_CLEAR = '/audio/win.mp3';
+const STAGE_CLEAR = asset('/audio/win.mp3');
 const PICKUP_SAMPLES = [
-  '/audio/powerup.mp3',
-  '/audio/optionadd.mp3',
-  '/audio/itemadd.mp3',
-  '/audio/itemadd.mp3',
+  asset('/audio/powerup.mp3'),
+  asset('/audio/optionadd.mp3'),
+  asset('/audio/itemadd.mp3'),
+  asset('/audio/itemadd.mp3'),
 ] as const;
 /** Wreck samples, chosen by how much hull came apart. */
-const WRECK_LIGHT = '/audio/11_soft_puff.mp3';
-const WRECK_HEAVY = '/audio/04_rumble_break.mp3';
-const PLAYER_DESTROY = '/audio/destroy.mp3';
-const BOSS_KILL = '/audio/bosskill.mp3';
+const WRECK_LIGHT = asset('/audio/11_soft_puff.mp3');
+const WRECK_HEAVY = asset('/audio/04_rumble_break.mp3');
+const PLAYER_DESTROY = asset('/audio/destroy.mp3');
+const BOSS_KILL = asset('/audio/bosskill.mp3');
 
 /**
  * Turns a renderer start-up failure into something the player can act on.
@@ -253,7 +254,7 @@ export class Runtime {
     const stage = this.game.stage;
     const boss = this.game.boss && stage.bossMusic ? stage.bossMusic : null;
     const track = boss ?? stage.music;
-    if (track) this.audio.playTrack(track);
+    if (track) this.audio.playTrack(asset(track));
     this.bossTrack = boss !== null;
   }
   menu() {

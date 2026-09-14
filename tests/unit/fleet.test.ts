@@ -1,7 +1,8 @@
 import { beforeAll, describe, expect, it } from 'vitest';
 import { FLEET_SLOTS, loadImportedFleet } from '../../src/visual/ImportedFleet';
-import { readFile } from 'node:fs/promises';
 import { readFleetGeometry } from '../../tools/read-fleet-geometry.mjs';
+import { readFleetBytes } from '../../tools/fleet-parts.mjs';
+import { readFile } from 'node:fs/promises';
 import { GameState } from '../../src/game/GameState';
 import { formationPosition } from '../../src/game/formations';
 import { STAGES } from '../../src/game/stages';
@@ -24,7 +25,7 @@ beforeAll(async () => {
 
 describe('fleet refit', () => {
   it('packs a different textured spaceship for every roster slot', async () => {
-    const bytes = await readFile('public/models/imported/voltaris-imported-fleet.glb');
+    const bytes = await readFleetBytes();
     const document = JSON.parse(bytes.subarray(20, 20 + bytes.readUInt32LE(12)).toString());
     expect(document.nodes.map((n: { name: string }) => n.name).sort()).toEqual(
       [...FLEET_SLOTS].sort(),

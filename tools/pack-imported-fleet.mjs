@@ -9,6 +9,7 @@
 //   A model with several materials gets an atlas: each textured material keeps its
 //   own pixel-exact cell, flat-colour materials become swatches in a strip.
 // - Base colour and metallic-roughness are WebP; geometry is meshopt-compressed.
+import { writeFleetParts } from './fleet-parts.mjs';
 import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import sharp from 'sharp';
 import { Document, NodeIO } from '@gltf-transform/core';
@@ -295,7 +296,8 @@ out.createExtension(EXTTextureWebP).setRequired(true);
 await out.transform(unpartition(), meshopt({ encoder: MeshoptEncoder, level: 'medium' }));
 await mkdir('public/models/imported', { recursive: true });
 const glb = await io.writeBinary(out);
-await writeFile('public/models/imported/voltaris-imported-fleet.glb', glb);
+// Published as sub-20 MB parts for the CDN; see tools/fleet-parts.mjs.
+await writeFleetParts(glb);
 await writeFile(
   'public/models/imported/manifest.json',
   JSON.stringify({ packs: roster.packs, models: records }, null, 2) + '\n',
