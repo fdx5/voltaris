@@ -34,6 +34,13 @@ https://poly.pizza/m/dPVCvXP-S58
 Used unmodified as `/models/special/nova-missile.glb`; the game rescales it and
 applies its own hull finish and motor flame at runtime.
 
+## Special weapon — NOVA BOMB detonation sound
+
+"Chunky Explosion" by Joth, CC0 1.0 (public domain dedication), via OpenGameArt:
+https://opengameart.org/content/chunky-explosion
+Stored unmodified as `/audio/nova-blast.mp3`; the game plays its first four
+seconds and fades the rumble tail out over the last 0.8 s.
+
 ## Adaptations
 
 `tools/pack-imported-fleet.mjs` bakes node transforms, merges each model into a

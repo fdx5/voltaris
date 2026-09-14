@@ -322,11 +322,28 @@ export class AudioEngine {
     this.tone(140, 0.9, 0.16, 520, 16);
     this.tone(900, 0.7, 0.05, 2400, 17);
   }
-  /** NOVA BOMB detonation: a long sub-bass drop under the recorded blasts. */
-  novaBlast() {
-    this.tone(90, 2.8, 0.42, 22, 20);
-    this.tone(55, 3, 0.36, 18, 21);
-    this.tone(320, 1.2, 0.12, 40, 18);
+  /**
+   * NOVA BOMB detonation: the recorded blast played for `length` seconds, its
+   * rumble tail faded out over the last `fade` rather than cut off.
+   */
+  async novaBlast(url: string, length = 4, fade = 0.8) {
+    if (!this.samples.has(url)) await this.loadSample(url);
+    const entry = this.samples.get(url);
+    if (!entry || !this.ctx || !this.impactBus) return;
+    const now = this.ctx.currentTime;
+    const node = this.ctx.createBufferSource(),
+      gain = this.ctx.createGain();
+    node.buffer = entry.buffer;
+    gain.gain.setValueAtTime(1, now);
+    gain.gain.setValueAtTime(1, now + length - fade);
+    gain.gain.linearRampToValueAtTime(0, now + length);
+    node.connect(gain);
+    gain.connect(this.impactBus);
+    node.onended = () => {
+      node.disconnect();
+      gain.disconnect();
+    };
+    node.start(now, entry.onset, length);
   }
   private notes = [0, 7, 12, 7, 3, 10, 15, 10, 5, 12, 17, 12, 3, 10, 15, 19];
   tick(active: boolean, boss: boolean) {

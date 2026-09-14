@@ -27,6 +27,8 @@ const WRECK_LIGHT = asset('/audio/11_soft_puff.mp3');
 const WRECK_HEAVY = asset('/audio/04_rumble_break.mp3');
 const PLAYER_DESTROY = asset('/audio/destroy.mp3');
 const BOSS_KILL = asset('/audio/bosskill.mp3');
+/** "Chunky Explosion" by Joth (CC0, OpenGameArt); see public/ASSET-CREDITS.md. */
+const NOVA_BLAST = asset('/audio/nova-blast.mp3');
 
 /**
  * Turns a renderer start-up failure into something the player can act on.
@@ -175,6 +177,7 @@ export class Runtime {
         WRECK_HEAVY,
         PLAYER_DESTROY,
         BOSS_KILL,
+        NOVA_BLAST,
         ...Object.values(FIRE_SAMPLES),
         ...PICKUP_SAMPLES,
       ]);
@@ -351,9 +354,7 @@ export class Runtime {
     }
     if (g.novaEvent !== this.novaBlasts) {
       if (g.novaEvent > this.novaBlasts) {
-        this.audio.novaBlast();
-        void this.audio.jingle(WRECK_HEAVY);
-        void this.audio.jingle(PLAYER_DESTROY);
+        void this.audio.novaBlast(NOVA_BLAST);
       }
       this.novaBlasts = g.novaEvent;
     }

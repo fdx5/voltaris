@@ -12,19 +12,38 @@ import { threeWGSLCompat, threeWGSLCompatOptimizer } from './tools/three-wgsl-co
  * pinned to the last commit that touched public/, so asset URLs stay the same
  * - and stay cached in players' browsers - across deploys that change only code.
  */
-function assetBase() {
+async function assetBase() {
   if (process.env.VITE_ASSET_BASE !== undefined) return process.env.VITE_ASSET_BASE;
   if (!process.env.RENDER) return '';
-  let ref = process.env.RENDER_GIT_COMMIT ?? '';
-  try {
-    ref = execSync('git log -1 --format=%H -- public', { encoding: 'utf8' }).trim() || ref;
-  } catch {
-    // No git history in the build image: the deployed commit has the same files.
-  }
   const repo = process.env.RENDER_GIT_REPO_SLUG || 'fdx5/voltaris';
+  const commit = process.env.RENDER_GIT_COMMIT ?? '';
+  let ref = '';
+  try {
+    // A full clone can answer locally; Render's shallow clone cannot.
+    if (execSync('git rev-parse --is-shallow-repository', { encoding: 'utf8' }).trim() === 'false')
+      ref = execSync('git log -1 --format=%H -- public', { encoding: 'utf8' }).trim();
+  } catch {
+    // No git in the build image.
+  }
+  if (!ref) {
+    try {
+      const response = await fetch(
+        `https://api.github.com/repos/${repo}/commits?path=public&per_page=1&sha=${commit || 'main'}`,
+        {
+          headers: { accept: 'application/vnd.github+json', 'user-agent': 'voltaris-build' },
+          signal: AbortSignal.timeout(10000),
+        },
+      );
+      if (response.ok) ref = ((await response.json()) as { sha: string }[])[0]?.sha ?? '';
+    } catch {
+      // Offline or rate limited: fall back to the deployed commit below.
+    }
+  }
+  // The deployed commit always carries the same files, only under a new URL.
+  ref ||= commit;
   return ref ? `https://cdn.jsdelivr.net/gh/${repo}@${ref}/public` : '';
 }
-const ASSET_BASE = assetBase();
+const ASSET_BASE = await assetBase();
 process.env.VITE_ASSET_BASE = ASSET_BASE;
 const cdn = ASSET_BASE !== '';
 
@@ -63,7 +82,7 @@ export default defineConfig({
           ? ['**/*.{js,css,html,ico,png,svg,webp,webmanifest}']
           : [
               '**/*.{js,css,html,ico,png,svg,jpg,webp,webmanifest}',
-              '**/audio/{optionadd,powerup,itemadd,destroy,bosskill,win}.mp3',
+              '**/audio/{optionadd,powerup,itemadd,destroy,bosskill,win,nova-blast}.mp3',
             ],
         globIgnores: cdn ? ['**/textures/**', '**/audio/**', '**/models/**'] : [],
         navigateFallbackDenylist: [/^\/api\//],
@@ -119,5 +138,12 @@ export default defineConfig({
     rollupOptions: { output: { manualChunks: { three: ['three/webgpu', 'three/tsl'] } } },
   },
   optimizeDeps: { esbuildOptions: { plugins: [threeWGSLCompatOptimizer()] } },
-  server: { port: 5173, strictPort: true, proxy: { '/api': 'http://127.0.0.1:3001' } },
+  server: {
+    port: 5173,
+    strictPort: true,
+    proxy: { '/api': 'http://127.0.0.1:3001' },
+    // Agent worktrees under .claude/ hold whole builds; watching them crashes
+    // the dev server when one of their files is locked mid-write (EBUSY).
+    watch: { ignored: ['**/.claude/**'] },
+  },
 });

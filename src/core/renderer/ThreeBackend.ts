@@ -28,6 +28,20 @@ import { ObjectPool } from '../pool/ObjectPool';
 import { itemMaterial } from '../../visual/ItemDesign';
 import { enemyRotation } from '../../game/HostilePatterns';
 import tuning from '../../../data/tuning.json';
+
+/*
+ * Share shader programs between instanced batches. Below a size limit three.js
+ * stores a batch's instance matrices in a uniform buffer named after that
+ * batch's node, so every one of the game's ~150 batches - enemy hulls, shot
+ * styles, rocks, star layers - compiled its own vertex shader: 370 of them,
+ * and on Windows' D3D11 path that alone froze start-up for about twenty
+ * seconds. With no uniform-buffer budget every batch takes the instanced
+ * attribute path instead, whose shader text is identical from batch to batch.
+ * Only instancing consults this limit here (the game has no skinning).
+ */
+(
+  T.NodeBuilder.prototype as unknown as { getUniformBufferLimit: () => number }
+).getUniformBufferLimit = () => 0;
 import { makeNovaMissile } from '../../visual/NovaMissile';
 import fleetHardpoints from '../../../data/enemies/fleet-hardpoints.json';
 
@@ -247,6 +261,8 @@ export class ThreeBackend implements IRenderBackend {
   private readonly shieldMesh: T.Mesh;
   private readonly hitDot: T.Mesh;
   private pipeline: T.RenderPipeline | null = null;
+  /** The scene pass the pipeline draws through; shaders are compiled for its target. */
+  private scenePass: ReturnType<typeof pass> | null = null;
   private bloomNode: ReturnType<typeof bloom> | null = null;
   private readonly engineLight = new T.PointLight('#76dfff', 8, 8, 2);
   private readonly explosionLight = new T.PointLight('#ffa872', 0, 15, 2);
@@ -373,11 +389,6 @@ export class ThreeBackend implements IRenderBackend {
   private visualTime = 0;
   /** Eased ship position, normalised to the field, that steers the backdrop view. */
   private readonly look = new T.Vector2();
-  /**
-   * Set once every shader has been compiled. Until then every batch stays in
-   * the scene so the compile pass can see it.
-   */
-  private warmed = false;
   constructor(
     private host: HTMLElement,
     private forceWebGL = false,
@@ -767,7 +778,6 @@ export class ThreeBackend implements IRenderBackend {
   private async boot() {
     // A restart compiles from scratch, and the compile pass only sees what is
     // visible: every batch the last session hid as empty comes back first.
-    this.warmed = false;
     this.scene.traverse((o) => {
       if ((o as T.InstancedMesh).isInstancedMesh) o.visible = true;
     });
@@ -782,6 +792,11 @@ export class ThreeBackend implements IRenderBackend {
     this.renderer.toneMapping = T.ACESFilmicToneMapping;
     this.renderer.toneMappingExposure = 1.05;
     const scenePass = pass(this.scene, this.camera);
+    this.scenePass = scenePass;
+    // What the pass would only settle on its first frame: without it the
+    // compile below targets a different buffer and the first frame redoes it.
+    scenePass.renderTarget.samples = this.renderer.samples;
+    scenePass.renderTarget.texture.type = this.renderer.getOutputBufferType();
     const output = scenePass.getTextureNode('output');
     this.bloomNode = bloom(output, 0.3, 0.35, 1.15);
     this.bloomNode.setResolutionScale(0.5);
@@ -796,7 +811,7 @@ export class ThreeBackend implements IRenderBackend {
         this.failFirstBoot = false;
         throw new Error('forced renderer failure (?rendererfail)');
       }
-      await this.renderer.compileAsync(this.scene, this.camera);
+      await this.compileForPass(this.scene);
     } finally {
       for (const o of held) o.visible = true;
     }
@@ -861,19 +876,36 @@ export class ThreeBackend implements IRenderBackend {
    * Runs off the critical path, so the hangar is interactive while the combat
    * shaders build.
    */
+  /**
+   * Compiles `object` for the scene pass's render target - where every frame is
+   * actually drawn - rather than the canvas, with the scene's lights. The target
+   * is only held while `compileAsync` collects the objects, which it does
+   * synchronously, so frames rendered while the compile finishes are unaffected.
+   */
+  private compileForPass(object: T.Object3D) {
+    const previous = this.renderer.getRenderTarget();
+    if (this.scenePass) this.renderer.setRenderTarget(this.scenePass.renderTarget);
+    try {
+      return this.renderer.compileAsync(object, this.camera, this.scene);
+    } finally {
+      this.renderer.setRenderTarget(previous);
+    }
+  }
   async warmup() {
-    // The compile queue builds one object every few frames, so a full pass
-    // takes a while. The boss hulls stay hidden until their entrance and
-    // compiled last they could still be waiting when a boss arrived - they,
-    // and the other models that appear all at once, go to the front.
-    for (const boss of this.bosses)
-      for (const part of [boss.root, ...boss.pods]) await this.compileShown(part);
-    for (const part of this.hiddenUntilUsed) await this.compileShown(part);
-    // Then the whole scene in one pass: every sector's backdrop, including
-    // the parallax tiles still off screen, which would otherwise stall the
-    // frame they scroll into view.
-    await this.compileShown(this.scene);
-    this.warmed = true;
+    // Everything the hangar does not draw, one top-level object at a time and
+    // yielding between them, so the hangar keeps drawing while this runs - a
+    // single pass over the whole scene held the page for seconds. The boss
+    // hulls and the models that appear all at once (boss death shockwave,
+    // NOVA BOMB) go first, so they are ready long before they are needed.
+    const first = [
+      ...this.bosses.flatMap((boss) => [boss.root, ...boss.pods]),
+      ...this.hiddenUntilUsed,
+    ];
+    const rest = this.scene.children.filter((object) => !first.includes(object));
+    for (const object of [...first, ...rest]) {
+      await this.compileShown(object);
+      await new Promise((resolve) => setTimeout(resolve, 0));
+    }
   }
   /**
    * Compiles `target` as though all of it were on screen. `compileAsync`
@@ -892,9 +924,7 @@ export class ThreeBackend implements IRenderBackend {
       o.frustumCulled = false;
     });
     try {
-      return target === this.scene
-        ? this.renderer.compileAsync(this.scene, this.camera)
-        : this.renderer.compileAsync(target, this.camera, this.scene);
+      return this.compileForPass(target);
     } finally {
       for (let i = 0; i < objects.length; i++) {
         objects[i].visible = flags[i * 2];
@@ -1015,8 +1045,11 @@ export class ThreeBackend implements IRenderBackend {
   private commit(batch: T.InstancedMesh | null | undefined) {
     if (!batch) return;
     const used = batch.count > 0;
-    if (this.warmed) batch.visible = used;
-    if (!used && this.warmed) return;
+    // An empty batch is never drawn. That holds before the warm-up as well:
+    // the warm-up shows each object itself while it compiles, so leaving empty
+    // batches visible only made the first frames compile them synchronously.
+    batch.visible = used;
+    if (!used) return;
     const matrix = batch.instanceMatrix;
     matrix.clearUpdateRanges();
     matrix.addUpdateRange(0, batch.count * 16);
