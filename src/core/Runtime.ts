@@ -9,6 +9,7 @@ import { ThreeBackend } from './renderer/ThreeBackend';
 import type { Quality } from './renderer/IRenderBackend';
 import { useUI } from '../ui/store/useUI';
 import { STAGES } from '../game/stages';
+import { packReplay } from './replayCodec';
 /** Weapons that fire a recorded sample instead of the synth blip. */
 const FIRE_SAMPLES: Record<Weapon, string> = {
   LASER: asset('/audio/laser.mp3'),
@@ -241,15 +242,21 @@ export class Runtime {
     if (!this.pendingResult)
       this.pendingResult = {
         id: this.runId,
-        events: this.runEvents.slice(),
+        events: packReplay(this.runEvents),
         outcome: this.game.status,
       };
     const pending = this.pendingResult;
     useAccount.setState({ saving: true, error: '' });
-    this.savePromise = api<{ user: Pilot; status: string }>(`/runs/${pending.id}/finish`, {
-      events: pending.events,
-      outcome: pending.outcome,
-    })
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 35000);
+    this.savePromise = api<{ user: Pilot; status: string }>(
+      `/runs/${pending.id}/finish`,
+      {
+        events: pending.events,
+        outcome: pending.outcome,
+      },
+      controller.signal,
+    )
       .then(({ user }) => {
         useAccount.setState({ user });
         this.previousRunId = pending.id;
@@ -257,10 +264,17 @@ export class Runtime {
         this.pendingResult = null;
       })
       .catch((e) => {
-        useAccount.setState({ error: e instanceof Error ? e.message : '기록 저장 실패' });
+        useAccount.setState({
+          error: controller.signal.aborted
+            ? '저장 응답이 지연되고 있습니다. 저장 다시 시도를 눌러 주세요.'
+            : e instanceof Error
+              ? e.message
+              : '기록 저장 실패',
+        });
         throw e;
       })
       .finally(() => {
+        clearTimeout(timeout);
         this.savePromise = null;
         useAccount.setState({ saving: false });
       });

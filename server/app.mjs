@@ -4,8 +4,8 @@ import { rateLimit } from 'express-rate-limit';
 import { randomUUID } from 'node:crypto';
 import { resolve } from 'node:path';
 import { digest, hashPassword, verifyPassword, sessionToken, issueSession } from './auth.mjs';
-import { userState } from './db.mjs';
-import { verify, gameVersion } from './verify.mjs';
+import { userState, userStateQuery, userFromRows } from './db.mjs';
+import { verify, gameVersion, canVerifyVersion } from './verify.mjs';
 
 const ASSET_CDN = 'https://cdn.jsdelivr.net';
 const fail = (status, message) => Object.assign(new Error(message), { status });
@@ -15,6 +15,7 @@ export async function createApp(
   { production = false, origin = '', verifier = verify, rateLimits = true } = {},
 ) {
   const app = express();
+  const pendingSaves = new Map();
   app.set('trust proxy', 1);
   app.disable('x-powered-by');
   app.use(
@@ -216,37 +217,73 @@ export async function createApp(
     if (!run) throw fail(404, '출격 기록을 찾을 수 없습니다.');
     if (run.status !== 'started')
       return res.json({ user: await userState(db, req.userId), status: run.status });
-    if (run.game_version !== gameVersion)
+    if (!canVerifyVersion(run.game_version))
       throw fail(409, '게임이 업데이트되었습니다. 메뉴에서 새로 출격하세요.');
-    const result = await verifier(JSON.parse(run.config_json), req.body?.events);
-    if (req.body?.outcome === 'clear' && result.status !== 'clear')
-      throw fail(422, '클리어 검증에 실패했습니다. 다음 스테이지는 해금되지 않았습니다.');
-    const tx = await db.transaction('write');
-    try {
-      const changed = await tx.execute({
-        sql: "UPDATE game_runs SET status=?,score=?,kills=?,seconds=?,level=?,credits_used=?,loadout_json=?,finished_at=CURRENT_TIMESTAMP WHERE id=? AND user_id=? AND status='started'",
-        args: [
-          result.status,
-          result.score,
-          result.kills,
-          result.seconds,
-          result.level,
-          result.creditsUsed,
-          JSON.stringify(result.loadout),
-          run.id,
-          req.userId,
-        ],
-      });
-      if (changed.rowsAffected && result.status === 'clear' && !run.practice)
-        await tx.execute({
-          sql: 'INSERT OR IGNORE INTO stage_progress(user_id,stage_id,first_run_id) VALUES (?,?,?)',
-          args: [req.userId, run.stage_id, run.id],
-        });
-      await tx.commit();
-    } finally {
-      tx.close();
+    const fingerprint = digest(JSON.stringify([req.body?.events, req.body?.outcome]));
+    const existing = pendingSaves.get(run.id);
+    if (existing) {
+      if (existing.fingerprint !== fingerprint)
+        throw fail(409, '이 출격 기록을 저장 중입니다. 잠시 후 다시 시도하세요.');
+      return res.json(await existing.promise);
     }
-    res.json({ user: await userState(db, req.userId), status: result.status });
+    const save = async () => {
+      const verificationStart = performance.now();
+      const result = await verifier(JSON.parse(run.config_json), req.body?.events);
+      const verificationMs = performance.now() - verificationStart;
+      if (req.body?.outcome === 'clear' && result.status !== 'clear')
+        throw fail(422, '클리어 검증에 실패했습니다. 다음 스테이지는 해금되지 않았습니다.');
+      const persistenceStart = performance.now();
+      // One atomic round trip: persist, conditionally unlock, and read the committed result.
+      const saved = await db.batch(
+        [
+          {
+            sql: "UPDATE game_runs SET status=?,score=?,kills=?,seconds=?,level=?,credits_used=?,loadout_json=?,finished_at=CURRENT_TIMESTAMP WHERE id=? AND user_id=? AND status='started'",
+            args: [
+              result.status,
+              result.score,
+              result.kills,
+              result.seconds,
+              result.level,
+              result.creditsUsed,
+              JSON.stringify(result.loadout),
+              run.id,
+              req.userId,
+            ],
+          },
+          {
+            sql: "INSERT OR IGNORE INTO stage_progress(user_id,stage_id,first_run_id) SELECT user_id,stage_id,id FROM game_runs WHERE id=? AND user_id=? AND status='clear' AND practice=0 AND changes()=1",
+            args: [run.id, req.userId],
+          },
+          {
+            sql: 'SELECT status FROM game_runs WHERE id=? AND user_id=?',
+            args: [run.id, req.userId],
+          },
+          userStateQuery(req.userId),
+        ],
+        'write',
+      );
+      const persistenceMs = performance.now() - persistenceStart;
+      return {
+        user: userFromRows(saved[3].rows),
+        status: saved[2].rows[0].status,
+        timing: {
+          verificationMs: Math.round(verificationMs),
+          persistenceMs: Math.round(persistenceMs),
+        },
+      };
+    };
+    const promise = save();
+    pendingSaves.set(run.id, { fingerprint, promise });
+    try {
+      const response = await promise;
+      res.set(
+        'Server-Timing',
+        `verify;dur=${response.timing.verificationMs}, save;dur=${response.timing.persistenceMs}`,
+      );
+      res.json(response);
+    } finally {
+      pendingSaves.delete(run.id);
+    }
   });
   app.get('/api/history', async (req, res) => {
     const page = Number(req.query.page || 1),

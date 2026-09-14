@@ -1,5 +1,6 @@
 import { GameState } from '../src/game/GameState';
 import type { Weapon } from '../src/game/GameState';
+import { unpackReplay } from '../src/core/replayCodec';
 
 export function verifyReplay(
   config: {
@@ -12,7 +13,7 @@ export function verifyReplay(
   },
   events: number[][],
 ) {
-  if (!Array.isArray(events) || events.length > 45000) throw new Error('Invalid replay length');
+  events = unpackReplay(events);
   const g = new GameState();
   if (config.loadout) Object.assign(g.loadout, config.loadout);
   g.start(config.weapon, config.credits, config.practice, !!config.loadout, config.stage - 1);

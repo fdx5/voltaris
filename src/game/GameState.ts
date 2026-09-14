@@ -421,7 +421,7 @@ export class GameState {
     }
     if (skill === 3) {
       this.optionCount = 0;
-      for (let i = 0; i < this.enemies.capacity; i++)
+      for (let i = 0; i < this.enemies.limit; i++)
         if (this.enemies.active[i]) this.damageEnemy(i, 40);
     }
     if (skill === 5) this.shield = 3;
@@ -669,7 +669,7 @@ export class GameState {
     const m = tuning.combat.groundMissile;
     this.burst(x, y, emplacements[1].burst);
     const g = this.ground;
-    for (let i = 0; i < g.capacity; i++) {
+    for (let i = 0; i < g.limit; i++) {
       if (!g.active[i]) continue;
       if ((g.x[i] - x) ** 2 + (g.y[i] - y) ** 2 > (m.blast + g.radius[i]) ** 2) continue;
       this.damageGround(i, m.damage);
@@ -839,7 +839,7 @@ export class GameState {
   }
   private updateEnemies(dt: number) {
     const e = this.enemies;
-    for (let i = 0; i < e.capacity; i++) {
+    for (let i = 0; i < e.limit; i++) {
       if (!e.active[i]) continue;
       const d = defs[e.type[i]];
       e.px[i] = e.x[i];
@@ -928,15 +928,14 @@ export class GameState {
     this.shake = Math.max(this.shake, 1.5);
     this.novaEvent++;
     const b = this.bullets;
-    for (let i = 0; i < b.capacity; i++) if (b.active[i] && b.type[i] === 1) b.release(i);
+    for (let i = 0; i < b.limit; i++) if (b.active[i] && b.type[i] === 1) b.release(i);
     this.pendingSalvos.length = 0;
     const [x, y, damage] = [this.novaBlastX, this.novaBlastY, nova.damage];
-    for (let i = 0; i < this.enemies.capacity; i++)
+    for (let i = 0; i < this.enemies.limit; i++)
       if (this.enemies.active[i]) this.damageEnemy(i, damage, x, y);
-    for (let i = 0; i < this.ground.capacity; i++)
+    for (let i = 0; i < this.ground.limit; i++)
       if (this.ground.active[i]) this.damageGround(i, damage);
-    for (let i = 0; i < this.rocks.capacity; i++)
-      if (this.rocks.active[i]) this.damageRock(i, damage);
+    for (let i = 0; i < this.rocks.limit; i++) if (this.rocks.active[i]) this.damageRock(i, damage);
     if (this.boss && !this.bossDying) {
       for (let p = 0; p < this.bossParts; p++) {
         if (this.partHp[p] <= 0) continue;
@@ -1016,7 +1015,7 @@ export class GameState {
   /** Rocks coast straight through, glancing off the top and bottom of the field. */
   private updateRocks(dt: number) {
     const r = this.rocks;
-    for (let i = 0; i < r.capacity; i++) {
+    for (let i = 0; i < r.limit; i++) {
       if (!r.active[i]) continue;
       r.px[i] = r.x[i];
       r.py[i] = r.y[i];
@@ -1062,7 +1061,7 @@ export class GameState {
   private updateGround(dt: number) {
     const g = this.ground,
       speed = this.stage.surface!.speed;
-    for (let i = 0; i < g.capacity; i++) {
+    for (let i = 0; i < g.limit; i++) {
       if (!g.active[i]) continue;
       const d = emplacements[g.type[i]];
       g.px[i] = g.x[i];
@@ -1333,7 +1332,7 @@ export class GameState {
   }
   private updateBullets(dt: number, enemyDt: number) {
     const b = this.bullets;
-    for (let i = 0; i < b.capacity; i++) {
+    for (let i = 0; i < b.limit; i++) {
       if (!b.active[i]) continue;
       b.px[i] = b.x[i];
       b.py[i] = b.y[i];
@@ -1342,7 +1341,7 @@ export class GameState {
         let tx = this.boss ? this.bossX : 25,
           ty = this.boss ? this.bossY : b.y[i],
           best = 10000;
-        for (let j = 0; j < this.enemies.capacity; j++) {
+        for (let j = 0; j < this.enemies.limit; j++) {
           if (!this.enemies.active[j] || this.enemies.x[j] < b.x[i] - 2) continue;
           const d = (this.enemies.x[j] - b.x[i]) ** 2 + (this.enemies.y[j] - b.y[i]) ** 2;
           if (d < best) {
@@ -1463,14 +1462,14 @@ export class GameState {
       e = this.enemies;
     this.grid.clear();
     this.bulletGrid.clear();
-    for (let i = 0; i < e.capacity; i++) if (e.active[i]) this.grid.insert(i, e.x[i], e.y[i]);
-    for (let i = 0; i < b.capacity; i++)
+    for (let i = 0; i < e.limit; i++) if (e.active[i]) this.grid.insert(i, e.x[i], e.y[i]);
+    for (let i = 0; i < b.limit; i++)
       if (b.active[i] && b.type[i] === 1) this.bulletGrid.insert(i, b.x[i], b.y[i]);
     this.groundGrid.clear();
-    for (let i = 0; i < this.ground.capacity; i++)
+    for (let i = 0; i < this.ground.limit; i++)
       if (this.ground.active[i]) this.groundGrid.insert(i, this.ground.x[i], this.ground.y[i]);
     const r = this.rocks;
-    for (let i = 0; i < b.capacity; i++) {
+    for (let i = 0; i < b.limit; i++) {
       if (!b.active[i] || b.type[i] === 1) continue;
       // Bombs are the only thing that can touch the surface, and the only
       // thing the air wing can safely ignore.
@@ -1499,7 +1498,7 @@ export class GameState {
       }
       // A rock is solid: whatever it stops never reaches the ships behind it,
       // piercing rounds included.
-      for (let j = 0; j < r.capacity && b.active[i]; j++) {
+      for (let j = 0; j < r.limit && b.active[i]; j++) {
         if (
           r.active[j] &&
           segmentCircle(b.px[i], b.py[i], b.x[i], b.y[i], r.x[j], r.y[j], r.radius[j] + b.radius[i])
@@ -1611,7 +1610,7 @@ export class GameState {
       }
     }
     if (this.invincible > 0) return;
-    for (let j = 0; j < r.capacity; j++) {
+    for (let j = 0; j < r.limit; j++) {
       const reach = r.radius[j] * tuning.hazards.hitScale + tuning.player.hitRadius;
       if (r.active[j] && (r.x[j] - this.x) ** 2 + (r.y[j] - this.y) ** 2 < reach ** 2) {
         this.hit();
@@ -1774,7 +1773,7 @@ export class GameState {
   }
   private updateItems(dt: number) {
     const a = this.items;
-    for (let i = 0; i < a.capacity; i++) {
+    for (let i = 0; i < a.limit; i++) {
       if (!a.active[i]) continue;
       a.px[i] = a.x[i];
       a.py[i] = a.y[i];
@@ -1954,7 +1953,7 @@ export class GameState {
   private tickStress(dt: number) {
     this.time += dt;
     const b = this.bullets;
-    for (let i = 0; i < b.capacity; i++) {
+    for (let i = 0; i < b.limit; i++) {
       if (!b.active[i]) continue;
       b.px[i] = b.x[i];
       b.py[i] = b.y[i];
@@ -1964,7 +1963,7 @@ export class GameState {
       if (b.y[i] > 8 || b.y[i] < -8) b.vy[i] *= -1;
     }
     this.bulletGrid.clear();
-    for (let i = 0; i < b.capacity; i++) if (b.active[i]) this.bulletGrid.insert(i, b.x[i], b.y[i]);
+    for (let i = 0; i < b.limit; i++) if (b.active[i]) this.bulletGrid.insert(i, b.x[i], b.y[i]);
     this.bulletGrid.query(0, 0, 1);
   }
 }

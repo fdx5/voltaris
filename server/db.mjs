@@ -40,15 +40,18 @@ export async function migrate(db) {
 }
 
 export async function userState(db, id) {
-  const user = (await db.execute({ sql: 'SELECT id, username FROM users WHERE id=?', args: [id] }))
-    .rows[0];
+  return userFromRows((await db.execute(userStateQuery(id))).rows);
+}
+
+export const userStateQuery = (id) => ({
+  sql: 'SELECT u.id,u.username,p.stage_id FROM users u LEFT JOIN stage_progress p ON p.user_id=u.id WHERE u.id=? ORDER BY p.stage_id',
+  args: [id],
+});
+
+export function userFromRows(rows) {
+  const user = rows[0];
   if (!user) return null;
-  const cleared = (
-    await db.execute({
-      sql: 'SELECT stage_id FROM stage_progress WHERE user_id=? ORDER BY stage_id',
-      args: [id],
-    })
-  ).rows.map((r) => Number(r.stage_id));
+  const cleared = rows.filter((r) => r.stage_id !== null).map((r) => Number(r.stage_id));
   let unlockedStage = 1;
   while (unlockedStage < 4 && cleared.includes(unlockedStage)) unlockedStage++;
   return { id: user.id, username: user.username, clearedStages: cleared, unlockedStage };

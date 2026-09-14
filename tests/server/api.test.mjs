@@ -191,3 +191,120 @@ test('malformed replay does not persist a result', async (t) => {
   );
   assert.equal((await request('/history', undefined, user.cookie)).body.rows[0].status, 'started');
 });
+
+test('simultaneous identical finishes share validation and persist once', async (t) => {
+  let calls = 0,
+    release;
+  const gate = new Promise((resolve) => {
+    release = resolve;
+  });
+  let entered;
+  const validating = new Promise((resolve) => {
+    entered = resolve;
+  });
+  const result = {
+    status: 'clear',
+    score: 100,
+    kills: 2,
+    seconds: 20,
+    level: 1,
+    creditsUsed: 1,
+    loadout: { level: 1, optionCount: 1, shield: 0 },
+  };
+  const { db, request, register } = await fixture(t, async () => {
+    calls++;
+    entered();
+    await gate;
+    return result;
+  });
+  const user = await register('simultaneous_pilot');
+  const run = await request('/runs', config, user.cookie);
+  const path = `/runs/${run.body.id}/finish`;
+  const first = request(path, { events: [], outcome: 'clear' }, user.cookie);
+  await validating;
+  const second = request(path, { events: [], outcome: 'clear' }, user.cookie);
+  // A conflicting payload must not piggyback on a valid clear.
+  assert.equal((await request(path, { events: [[9]], outcome: 'clear' }, user.cookie)).status, 409);
+  release();
+  const results = await Promise.all([first, second]);
+  assert.equal(calls, 1);
+  for (const saved of results) {
+    assert.equal(saved.status, 200);
+    assert.equal(saved.body.user.unlockedStage, 2);
+  }
+  assert.equal((await db.execute('SELECT * FROM stage_progress')).rows.length, 1);
+});
+
+test('save and stage unlock roll back together when persistence fails and can be retried', async (t) => {
+  const { db, request, register } = await fixture(t, async () => ({
+    status: 'clear',
+    score: 100,
+    kills: 2,
+    seconds: 20,
+    level: 1,
+    creditsUsed: 1,
+    loadout: { level: 1, optionCount: 1, shield: 0 },
+  }));
+  const user = await register('atomic_pilot');
+  const run = await request('/runs', config, user.cookie);
+  await db.execute(
+    "CREATE TRIGGER reject_progress BEFORE INSERT ON stage_progress BEGIN SELECT RAISE(ABORT, 'test failure'); END",
+  );
+  const path = `/runs/${run.body.id}/finish`;
+  assert.equal((await request(path, { events: [], outcome: 'clear' }, user.cookie)).status, 500);
+  assert.equal((await db.execute('SELECT status FROM game_runs')).rows[0].status, 'started');
+  assert.equal((await request('/auth/me', undefined, user.cookie)).body.user.unlockedStage, 1);
+  await db.execute('DROP TRIGGER reject_progress');
+  const saved = await request(path, { events: [], outcome: 'clear' }, user.cookie);
+  assert.equal(saved.status, 200);
+  assert.equal(saved.body.user.unlockedStage, 2);
+  assert.match(saved.headers.get('server-timing'), /verify;dur=\d+, save;dur=\d+/);
+});
+
+test('compressed frame records use the real verifier and cannot forge a clear', async (t) => {
+  const { request, register } = await fixture(t);
+  const user = await register('compressed_pilot');
+  const run = await request('/runs', config, user.cookie);
+  const path = `/runs/${run.body.id}/finish`;
+  assert.equal(
+    (await request(path, { events: [[5, 120, 0, 0, 0, 0]], outcome: 'clear' }, user.cookie)).status,
+    422,
+  );
+  const saved = await request(
+    path,
+    { events: [[5, 120, 0, 0, 0, 0]], outcome: 'abandoned' },
+    user.cookie,
+  );
+  assert.equal(saved.status, 200);
+  assert.equal(saved.body.status, 'abandoned');
+  assert.equal(saved.body.user.unlockedStage, 1);
+});
+
+test('in-flight runs from the preceding compatible build still save after deployment', async (t) => {
+  const { db, request, register } = await fixture(t);
+  const user = await register('previous_build_pilot');
+  const run = await request('/runs', config, user.cookie);
+  await db.execute({
+    sql: 'UPDATE game_runs SET game_version=? WHERE id=?',
+    args: ['25e65accd2765ac9', run.body.id],
+  });
+  assert.equal(
+    (
+      await request(
+        `/runs/${run.body.id}/finish`,
+        { events: [], outcome: 'abandoned' },
+        user.cookie,
+      )
+    ).status,
+    200,
+  );
+  const incompatible = await request('/runs', config, user.cookie);
+  await db.execute({
+    sql: 'UPDATE game_runs SET game_version=? WHERE id=?',
+    args: ['unknown-rules', incompatible.body.id],
+  });
+  assert.equal(
+    (await request(`/runs/${incompatible.body.id}/finish`, { events: [] }, user.cookie)).status,
+    409,
+  );
+});

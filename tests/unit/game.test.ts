@@ -8,6 +8,25 @@ import defs from '../../data/enemies/enemy-defs.json';
 import { Key } from '../../src/core/input/InputManager';
 const dt = 1 / 60;
 describe('fixed pools and collision broadphase', () => {
+  it('keeps the occupied bound correct across holes, reuse, expiration and reset', () => {
+    const p = new ObjectPool(100);
+    for (let i = 0; i < 6; i++) p.acquire(i, 0, 1, 0, 0, 1);
+    expect(p.limit).toBe(6);
+    p.release(4);
+    p.release(5);
+    expect(p.limit).toBe(4);
+    expect(p.acquire(10, 0, 1, 0, 0, 1)).toBe(5);
+    expect(p.limit).toBe(6);
+    p.move(0.5);
+    expect(p.x[5]).toBe(10.5);
+    p.move(1);
+    expect(p.limit).toBe(0);
+    expect(p.count).toBe(0);
+    p.acquire(0, 0);
+    p.clear();
+    expect(p.limit).toBe(0);
+    expect(p.acquire(0, 0)).toBe(0);
+  });
   it('exhausts, rejects overflow, reuses slots and ignores duplicate release', () => {
     const p = new ObjectPool(3);
     expect([p.acquire(0, 0), p.acquire(1, 1), p.acquire(2, 2), p.acquire(3, 3)]).toEqual([

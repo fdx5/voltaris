@@ -18,6 +18,8 @@ export class ObjectPool {
   private readonly free: Int32Array;
   private top = 0;
   count = 0;
+  /** Exclusive upper bound of occupied slots; iteration order stays unchanged. */
+  limit = 0;
   constructor(readonly capacity: number) {
     this.active = new Uint8Array(capacity);
     this.x = new Float32Array(capacity);
@@ -39,12 +41,14 @@ export class ObjectPool {
   clear() {
     this.active.fill(0);
     this.count = 0;
+    this.limit = 0;
     this.top = this.capacity;
     for (let i = 0; i < this.capacity; i++) this.free[i] = this.capacity - 1 - i;
   }
   acquire(x: number, y: number, vx = 0, vy = 0, type = 0, life = 8, radius = 0.15, hp = 1) {
     if (!this.top) return -1;
     const i = this.free[--this.top];
+    this.limit = Math.max(this.limit, i + 1);
     this.active[i] = 1;
     this.generation[i]++;
     this.x[i] = this.px[i] = x;
@@ -65,9 +69,10 @@ export class ObjectPool {
     this.active[i] = 0;
     this.free[this.top++] = i;
     this.count--;
+    if (i + 1 === this.limit) while (this.limit > 0 && !this.active[this.limit - 1]) this.limit--;
   }
   move(dt: number) {
-    for (let i = 0; i < this.capacity; i++) {
+    for (let i = 0; i < this.limit; i++) {
       if (!this.active[i]) continue;
       this.px[i] = this.x[i];
       this.py[i] = this.y[i];
