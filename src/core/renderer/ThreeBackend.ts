@@ -2,7 +2,7 @@ import * as T from 'three/webgpu';
 import { pass } from 'three/tsl';
 import { bloom } from 'three/addons/tsl/display/BloomNode.js';
 import type { IRenderBackend, Quality } from './IRenderBackend';
-import type { GameState } from '../../game/GameState';
+import { IMPACTS, IMPACT_LIFE, type GameState } from '../../game/GameState';
 
 import {
   makeShip,
@@ -10,6 +10,8 @@ import {
   makeBoss,
   buildBackdrop,
   enemyGeometry,
+  finishHull,
+  HULL_MATERIALS,
   groundGeometry,
   glow,
   ENEMY_TYPES,
@@ -245,6 +247,31 @@ export class ThreeBackend implements IRenderBackend {
     }),
     24,
   );
+  /** Small blasts where shots strike a boss, its pods or a gunship: a hot core and a flare. */
+  private readonly hitFire = new T.InstancedMesh(
+    new T.SphereGeometry(1, 14, 10),
+    new T.MeshBasicNodeMaterial({
+      toneMapped: false,
+      transparent: true,
+      opacity: 0.9,
+      blending: T.AdditiveBlending,
+      depthWrite: false,
+    }),
+    IMPACTS * 2,
+  );
+  /** Phase of the boss's red damage pulse, advanced at a rate set by its wear. */
+  private bossPulse = 0;
+  /**
+   * Secondary explosions breaking out across a badly damaged boss. Offsets are
+   * relative to the boss, so they ride along as it moves.
+   */
+  private readonly scorch = {
+    x: new Float32Array(14),
+    y: new Float32Array(14),
+    born: new Float32Array(14).fill(-99),
+    head: 0,
+    due: 0,
+  };
   private readonly bossSmoke = new T.InstancedMesh(
     new T.IcosahedronGeometry(1, 2),
     new T.MeshStandardNodeMaterial({
@@ -267,6 +294,8 @@ export class ThreeBackend implements IRenderBackend {
     }),
   );
   private visualTime = 0;
+  /** Eased ship position, normalised to the field, that steers the backdrop view. */
+  private readonly look = new T.Vector2();
   /**
    * Set once every shader has been compiled. Until then every batch stays in
    * the scene so the compile pass can see it.
@@ -303,7 +332,7 @@ export class ThreeBackend implements IRenderBackend {
     this.scene.add(bounceFill);
     this.scene.add(bounce);
     this.scene.add(this.engineLight, this.explosionLight);
-    for (const batch of [this.bossFire, this.bossSmoke]) {
+    for (const batch of [this.bossFire, this.bossSmoke, this.hitFire]) {
       batch.count = 0;
       batch.frustumCulled = false;
       batch.instanceMatrix.setUsage(T.DynamicDrawUsage);
@@ -311,6 +340,7 @@ export class ThreeBackend implements IRenderBackend {
       this.deferred.push(batch);
     }
     ThreeBackend.tintable(this.bossFire);
+    ThreeBackend.tintable(this.hitFire);
     this.bossShockwave.visible = false;
     this.scene.add(this.bossShockwave);
     this.deferred.push(this.bossShockwave);
@@ -398,8 +428,8 @@ export class ThreeBackend implements IRenderBackend {
     for (let i = 0; i < ENEMY_TYPES; i++) {
       const parts = enemyGeometry(i);
       const material = hullMaterial.clone();
-      material.metalness = 0.58;
-      material.roughness = 0.42;
+      material.map = parts.map ?? null;
+      finishHull(material, parts.surface ?? null);
       const hull = new T.InstancedMesh(parts.hull!, material, 256);
       hull.count = 0;
       hull.frustumCulled = false;
@@ -420,7 +450,10 @@ export class ThreeBackend implements IRenderBackend {
     }
     for (let i = 0; i < GROUND_TYPES; i++) {
       const parts = groundGeometry(i);
-      const hull = new T.InstancedMesh(parts.hull!, hullMaterial, 64);
+      const material = hullMaterial.clone();
+      material.map = parts.map ?? null;
+      finishHull(material, parts.surface ?? null);
+      const hull = new T.InstancedMesh(parts.hull!, material, 64);
       hull.count = 0;
       hull.frustumCulled = false;
       hull.instanceMatrix.setUsage(T.DynamicDrawUsage);
@@ -597,6 +630,7 @@ export class ThreeBackend implements IRenderBackend {
       ? 'WEBGL 2'
       : 'WEBGPU';
     console.info('[VOLTARIS] Active backend:', this.backendName);
+    this.lightHulls();
     this.renderer.toneMapping = T.ACESFilmicToneMapping;
     this.renderer.toneMappingExposure = 1.05;
     const scenePass = pass(this.scene, this.camera);
@@ -617,6 +651,61 @@ export class ThreeBackend implements IRenderBackend {
       await this.renderer.compileAsync(this.scene, this.camera);
     } finally {
       for (const o of held) o.visible = true;
+    }
+  }
+  /**
+   * Gives every hull a reflection environment: a dark studio with a warm key
+   * panel above, a cool rim strip below and a faint blue horizon, matching the
+   * scene's lights. Plating now carries highlights and gradients across its
+   * curves instead of flat, unlit colour. Built per renderer, since a WebGL
+   * fallback cannot use textures made on the failed WebGPU device.
+   */
+  private lightHulls() {
+    const studio = new T.Scene();
+    studio.background = new T.Color('#040609');
+    const panel = (
+      w: number,
+      h: number,
+      hex: string,
+      gain: number,
+      x: number,
+      y: number,
+      z: number,
+    ) => {
+      const mesh = new T.Mesh(
+        new T.PlaneGeometry(w, h),
+        new T.MeshBasicNodeMaterial({
+          color: new T.Color(hex).multiplyScalar(gain),
+          side: T.DoubleSide,
+        }),
+      );
+      mesh.position.set(x, y, z);
+      mesh.lookAt(0, 0, 0);
+      studio.add(mesh);
+    };
+    panel(9, 4, '#fff1dc', 5, -6, 9, 7);
+    panel(5, 5, '#dff0ff', 2.2, 8, 4, 8);
+    panel(14, 2.2, '#5fa6ff', 2.4, 3, -8, -5);
+    panel(3, 12, '#a8c8ff', 1.2, -10, 0, -6);
+    const horizon = new T.Mesh(
+      new T.TorusGeometry(12, 0.6, 8, 64),
+      new T.MeshBasicNodeMaterial({ color: new T.Color('#24476e').multiplyScalar(0.8) }),
+    );
+    horizon.rotation.x = Math.PI / 2;
+    studio.add(horizon);
+    const pmrem = new T.PMREMGenerator(this.renderer);
+    const environment = pmrem.fromScene(studio, 0.02).texture;
+    pmrem.dispose();
+    studio.traverse((o) => {
+      const mesh = o as T.Mesh;
+      if (!mesh.isMesh) return;
+      mesh.geometry.dispose();
+      (mesh.material as T.Material).dispose();
+    });
+    for (const material of HULL_MATERIALS) {
+      material.envMap = environment;
+      material.envMapIntensity = 0.9;
+      material.needsUpdate = true;
     }
   }
   /**
@@ -645,7 +734,10 @@ export class ThreeBackend implements IRenderBackend {
     this.camera.position.set(0, 0, height / 2 / Math.tan(Math.PI / 12));
     this.camera.updateProjectionMatrix();
     const scale = this.quality === 'HIGH' ? 1 : this.quality === 'MEDIUM' ? 0.85 : 0.7;
-    this.renderer.setPixelRatio(Math.min(devicePixelRatio, 1.75) * scale);
+    // Sharp hull textures need the full device resolution on HIGH; lower tiers trade it for speed.
+    this.renderer.setPixelRatio(
+      Math.min(devicePixelRatio, this.quality === 'HIGH' ? 2 : 1.75) * scale,
+    );
     this.renderer.setSize(w, h);
   }
   setQuality(q: Quality) {
@@ -676,9 +768,11 @@ export class ThreeBackend implements IRenderBackend {
     sy: number,
     sz: number,
     angle = 0,
+    roll = 0,
   ) {
     this.dummy.position.set(x, y, z);
-    this.dummy.rotation.set(0, 0, angle);
+    // Roll about the local X axis first, then turn in the screen plane.
+    this.dummy.rotation.set(roll, 0, angle, 'ZXY');
     this.dummy.scale.set(sx, sy, sz);
     this.dummy.updateMatrix();
     batch.setMatrixAt(i, this.dummy.matrix);
@@ -693,9 +787,10 @@ export class ThreeBackend implements IRenderBackend {
     sy: number,
     sz: number,
     angle = 0,
+    roll = 0,
   ) {
     if (batch.count >= batch.instanceMatrix.count) return;
-    this.set(batch.count++, batch, x, y, z, sx, sy, sz, angle);
+    this.set(batch.count++, batch, x, y, z, sx, sy, sz, angle, roll);
   }
   /**
    * Hands one filled batch to the renderer.
@@ -830,9 +925,12 @@ export class ThreeBackend implements IRenderBackend {
       const x = e.px[i] + (e.x[i] - e.px[i]) * alpha,
         y = e.py[i] + (e.y[i] - e.py[i]) * alpha;
       // SPINNER and TEMPEST read as rotors; the rest just bank as they weave.
-      const angle = enemyRotation(type, e.age[i], g.time);
+      // Nose and roll follow the weave: top plating shows on the climb,
+      // the underside on the dive.
+      const angle = enemyRotation(type, e.age[i], g.time) + g.enemyPitch[i],
+        bank = g.enemyBank[i];
       const slot = hull.count;
-      this.push(hull, x, y, 0, 1, 1, 1, angle);
+      this.push(hull, x, y, 0, 1, 1, 1, angle, bank);
       // instanceColor multiplies the baked hull colours, so a hit reads as the
       // whole airframe flaring white for a frame or two.
       if (hull.count > slot) {
@@ -844,16 +942,20 @@ export class ThreeBackend implements IRenderBackend {
         } else hull.setColorAt(slot, this.white);
       }
       const accent = this.enemyAccents[type];
-      if (accent) this.push(accent, x, y, 0, 1, 1, 1, angle);
+      if (accent) this.push(accent, x, y, 0, 1, 1, 1, angle, bank);
       const core = ENEMY_CORE[type];
-      const pulse = g.enemyTelegraph(i) ? 2 + Math.sin(t * 50) * 0.9 : 1;
+      // The charge lamp swells and breathes before a salvo. A fast strobe here
+      // read as the whole airframe shaking.
+      const pulse = g.enemyTelegraph(i) ? 1.9 + Math.sin(t * 9) * 0.25 : 1;
+      const coreY = core.y * Math.cos(bank) - core.z * Math.sin(bank),
+        coreZ = core.y * Math.sin(bank) + core.z * Math.cos(bank);
       if (this.enemyCores.count < this.enemyCores.instanceMatrix.count) {
         const idx = this.enemyCores.count;
         this.push(
           this.enemyCores,
-          x + core.x * Math.cos(angle) - core.y * Math.sin(angle),
-          y + core.x * Math.sin(angle) + core.y * Math.cos(angle),
-          core.z,
+          x + core.x * Math.cos(angle) - coreY * Math.sin(angle),
+          y + core.x * Math.sin(angle) + coreY * Math.cos(angle),
+          coreZ,
           core.size * pulse,
           core.size * pulse,
           core.size * pulse,
@@ -880,10 +982,11 @@ export class ThreeBackend implements IRenderBackend {
       if (!hull) continue;
       const x = p.px[i] + (p.x[i] - p.px[i]) * alpha,
         y = p.py[i] + (p.y[i] - p.py[i]) * alpha;
-      // A roof mount is the same model turned over.
-      const spin = p.aux[i] === 1 ? Math.PI : 0;
+      // A roof unit is the floor model turned over about its nose axis, so it
+      // still faces the player and hangs from the ceiling by its dorsal line.
+      const flip = p.aux[i] === 1 ? -1 : 1;
       const slot = hull.count;
-      this.push(hull, x, y, 0, 1, 1, 1, spin);
+      this.push(hull, x, y, 0, 1, flip, flip);
       if (hull.count > slot) {
         const flash = g.groundFlash[i];
         if (flash > 0) {
@@ -893,16 +996,16 @@ export class ThreeBackend implements IRenderBackend {
         hull.setColorAt(slot, this.tint);
       }
       const accent = this.groundAccents[type];
-      if (accent) this.push(accent, x, y, 0, 1, 1, 1, spin);
+      if (accent) this.push(accent, x, y, 0, 1, flip, flip);
       const core = GROUND_CORE[type];
       const pulse = g.groundTelegraph(i) ? 2 + Math.sin(t * 50) * 0.9 : 1;
       if (this.groundCores.count < this.groundCores.instanceMatrix.count) {
         const idx = this.groundCores.count;
         this.push(
           this.groundCores,
-          x + (spin ? -core.x : core.x),
-          y + (spin ? -core.y : core.y),
-          core.z,
+          x + core.x,
+          y + core.y * flip,
+          core.z * flip,
           core.size * pulse,
           core.size * pulse,
           core.size * pulse,
@@ -958,11 +1061,27 @@ export class ThreeBackend implements IRenderBackend {
     const t = this.visualTime;
     const inactive = g.status === 'menu';
     if (g.stageIndex !== this.stage) this.showStage(g.stageIndex);
-    this.skies[this.stage].update(t, inactive ? 0.4 : this.reducedMotion ? 0.5 : 1);
+    // The backdrop is framed by where the ship flies: diving low tilts the
+    // view down toward the planet below, climbing lifts it to open sky.
+    const range = STAGES[this.stage]
+      ? Math.max(1, (STAGES[this.stage].maxY - STAGES[this.stage].minY) / 2)
+      : 7.2;
+    const lookX = inactive ? 0 : T.MathUtils.clamp(g.x / 13, -1, 1);
+    const lookY = inactive ? 0 : T.MathUtils.clamp(g.y / range, -1, 1);
+    const ease = 1 - Math.exp(-dt * (this.reducedMotion ? 1.5 : 3.2));
+    this.look.x += (lookX - this.look.x) * ease;
+    this.look.y += (lookY - this.look.y) * ease;
+    this.skies[this.stage].update(
+      t,
+      inactive ? 0.4 : this.reducedMotion ? 0.5 : 1,
+      this.look.x,
+      this.look.y * (this.reducedMotion ? 0.5 : 1),
+      this.camera.position.z,
+    );
     if (inactive) {
       this.ship.position.set(5.5, Math.sin(t * 0.6) * 0.28, 0);
       this.ship.scale.setScalar(3.05);
-      this.ship.rotation.set(0.38 + Math.sin(t * 0.3) * 0.08, -0.22, -0.09);
+      this.ship.rotation.set(Math.sin(t * 0.3) * 0.025, -0.06, -0.025);
       this.ship.visible = true;
     } else {
       this.ship.position.set(
@@ -971,7 +1090,9 @@ export class ThreeBackend implements IRenderBackend {
         0,
       );
       this.ship.scale.setScalar(0.7);
-      this.ship.rotation.set(-g.roll * 0.8, 0, g.pitch * 0.55, 'ZXY');
+      // Roll about the nose: climbing turns the canopy and dorsal plating to
+      // the camera, diving shows the ventral keel and underside panels.
+      this.ship.rotation.set(-g.roll * 0.72, 0, g.pitch * 0.3, 'ZXY');
       this.ship.visible =
         g.respawn <= 0 &&
         (g.effects[0] > 0 || g.invincible <= 0 || Math.floor(g.time * 15) % 2 === 0);
@@ -1043,11 +1164,88 @@ export class ThreeBackend implements IRenderBackend {
         g.partHp[i] > 0 &&
         (!g.bossDying || g.bossDeathTime < 2.4 + i * 0.35);
       pod.position.set(g.partX[i], g.partY[i], 0.4);
-      pod.rotation.z = g.bossAngle + (i / boss.pods.length) * Math.PI * 2;
+      pod.rotation.z = Math.sin(t * 1.4 + i) * 0.08;
     }
     this.particles.count = 0;
     this.bossFire.count = this.bossSmoke.count = 0;
     const death = g.bossDeathTime;
+    // Wear: how much of the boss hull is gone. Past half, the whole airframe
+    // flushes red on a pulse; the pulse quickens at 70% and again at 90%, where
+    // the hull also simmers red between beats and secondary blasts break out,
+    // so the fight runs straight on into the destruction sequence.
+    const wear = g.boss ? T.MathUtils.clamp(1 - Math.max(0, g.bossHp) / g.stage.boss.hp, 0, 1) : 0;
+    const beat = wear >= 0.9 ? 3.4 : wear >= 0.7 ? 1.7 : wear >= 0.5 ? 0.8 : 0;
+    this.bossPulse += dt * beat;
+    let glow = 0;
+    if (beat > 0) {
+      const wave = 0.5 - 0.5 * Math.cos(this.bossPulse * Math.PI * 2);
+      glow = wave ** 3 * (wear >= 0.9 ? 1.9 : wear >= 0.7 ? 1.4 : 1);
+      if (wear >= 0.9) glow += 0.32 + Math.sin(t * 23) * 0.08;
+    }
+    glow = Math.max(glow, (g.bossFlash / 0.08) * 0.55);
+    if (g.bossDying) glow = (1.3 + Math.min(death, 6) * 0.2) * (0.7 + 0.3 * Math.sin(t * 31));
+    if (boss.damage) boss.damage.value = this.reducedMotion ? Math.min(glow, 0.8) : glow;
+    if (wear >= 0.9 && !g.bossDying) boss.core.scale.setScalar(1.15 + Math.sin(t * 21) * 0.18);
+    const scorchRate =
+      g.bossDying || g.status !== 'playing' ? 0 : wear >= 0.9 ? 6 : wear >= 0.7 ? 2.4 : 0;
+    const sc = this.scorch;
+    if (scorchRate > 0 && (sc.due -= dt) <= 0) {
+      const k = sc.head++ % sc.born.length;
+      const a = sc.head * 2.399963 + Math.random() * 0.6,
+        r = g.stage.boss.ringRadius * (0.25 + Math.random() * 0.6);
+      sc.x[k] = Math.cos(a) * r;
+      sc.y[k] = Math.sin(a) * r * 0.72;
+      sc.born[k] = t;
+      sc.due = (0.6 + Math.random() * 0.8) / scorchRate;
+    }
+    if (g.boss && !g.bossDying)
+      for (let k = 0; k < sc.born.length; k++) {
+        const age = t - sc.born[k];
+        if (age < 0 || age > 1.4) continue;
+        const x = g.bossX + sc.x[k],
+          y = g.bossY + sc.y[k];
+        if (wear >= 0.9)
+          this.push(
+            this.bossSmoke,
+            x + age * 0.2,
+            y + age * 0.7,
+            1.3,
+            0.2 + age * 0.55,
+            0.16 + age * 0.45,
+            0.14 + age * 0.35,
+          );
+        if (age < 0.5) {
+          const f = (0.16 + Math.sin((age / 0.5) * Math.PI) * 0.42) * (wear >= 0.9 ? 1.25 : 1);
+          const index = this.bossFire.count;
+          this.push(this.bossFire, x, y, 1.9, f, f, f * 0.8);
+          this.tint.set(age < 0.1 ? '#fff3b3' : age < 0.28 ? '#ffab32' : '#ff4018');
+          this.tint.multiplyScalar(2.2 * (1 - age / 0.5));
+          this.bossFire.setColorAt(index, this.tint);
+        }
+      }
+    // Hit blasts: a white-hot flare that swells into an orange fireball and dies red.
+    this.hitFire.count = 0;
+    for (let k = 0; k < IMPACTS; k++) {
+      const age = g.impactAge[k];
+      if (age >= IMPACT_LIFE) continue;
+      const u = age / IMPACT_LIFE,
+        heavy = g.impactHeavy[k] === 1;
+      const size =
+        (heavy ? 0.46 : 0.32) * (0.3 + Math.sin(Math.min(1, u * 1.8) * Math.PI * 0.5) * 0.85);
+      let index = this.hitFire.count;
+      this.push(this.hitFire, g.impactX[k], g.impactY[k], 1.6, size, size, size * 0.8);
+      this.tint.set(u < 0.18 ? '#fff1c4' : u < 0.45 ? '#ffa23a' : '#ff4516');
+      this.tint.multiplyScalar(2.6 * (1 - u));
+      this.hitFire.setColorAt(index, this.tint);
+      if (u < 0.35) {
+        index = this.hitFire.count;
+        const core = size * 0.45 * (1 - u / 0.35);
+        this.push(this.hitFire, g.impactX[k], g.impactY[k], 1.7, core, core, core);
+        this.tint.set('#fffaf0').multiplyScalar(3);
+        this.hitFire.setColorAt(index, this.tint);
+      }
+    }
+    this.commit(this.hitFire);
     this.bossShockwave.visible = g.bossDying && death > 6.65;
     if (g.bossDying) {
       for (let j = 0; j < 24; j++) {

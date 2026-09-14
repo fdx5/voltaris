@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import designs from '../../data/enemies/fleet-designs.json';
 import defs from '../../data/enemies/enemy-defs.json';
 import mounts from '../../data/enemies/fleet-hardpoints.json';
-import { enemySalvo, bossSalvo, groundSalvo } from '../../src/game/HostilePatterns';
+import { enemySalvo, bossSalvo, groundSalvo, heavySalvo } from '../../src/game/HostilePatterns';
 import { STAGES } from '../../src/game/stages';
 import { GameState } from '../../src/game/GameState';
 
@@ -26,7 +26,8 @@ describe('independent fleet designs and armaments', () => {
       return JSON.stringify(plan);
     });
     expect(new Set(signatures).size).toBe(44);
-    expect(new Set(mounts.map((m) => m.viewDegrees)).size).toBeGreaterThan(15);
+    // Every family flies its own imported hull.
+    expect(new Set(mounts.map((m) => `${m.source}/${m.model}`)).size).toBe(44);
   });
   it('gives medium ships larger hulls, more health and more complex bursts', () => {
     const medium = designs.filter((d) => d.size === 'medium');
@@ -66,6 +67,56 @@ describe('independent fleet designs and armaments', () => {
         expect(plan.length).toBeLessThanOrEqual(60);
         expect(plan.every((shot) => Object.values(shot).every(Number.isFinite))).toBe(true);
       }
+  });
+});
+
+describe('medium gunship barrages', () => {
+  const medium = mounts.flatMap((m, i) => (m.size === 'medium' ? [i] : []));
+  it('fires dense, deterministic phrases that change with every volley', () => {
+    for (const type of medium) {
+      const phrases = new Set<string>();
+      for (let cycle = 0; cycle < 6; cycle++) {
+        const plan = heavySalvo(type, 2.9, cycle);
+        expect(plan).toEqual(heavySalvo(type, 2.9, cycle));
+        expect(plan.length).toBeGreaterThanOrEqual(24);
+        expect(plan.length).toBeLessThanOrEqual(60);
+        expect(plan.every((shot) => Object.values(shot).every(Number.isFinite))).toBe(true);
+        expect(plan.every((shot) => shot.delay <= 1.3 && shot.speed > 0)).toBe(true);
+        phrases.add(JSON.stringify(plan));
+      }
+      expect(phrases.size).toBe(6);
+    }
+  });
+  it('fields mediums one to four abreast with 2.5 to 4 times the armour', () => {
+    const g = new GameState();
+    g.start('LASER', 3, false, false, 0);
+    expect(g.mediumCount).toBe(1);
+    expect(g.mediumArmour).toBe(2.5);
+    g.start('LASER', 3, false, false, 3);
+    g.time = g.stage.durationSec;
+    expect(g.mediumCount).toBe(4);
+    expect(g.mediumArmour).toBe(4);
+  });
+});
+
+describe('armour hit feedback', () => {
+  it('bursts on a gunship hull where it is struck, but not on a light hull', () => {
+    const g = new GameState();
+    g.start('LASER', 3, true);
+    g.boss = false;
+    const medium = mounts.findIndex((m) => m.size === 'medium'),
+      light = mounts.findIndex((m) => m.size === 'small');
+    const heavy = g.enemies.acquire(5, 0, 0, 0, medium, 30, 1.2, 1e6);
+    g.damageEnemy(heavy, 1, 0, 0);
+    expect(g.armourHitEvent).toBe(1);
+    const k = g.impactAge.findIndex((age) => age === 0);
+    expect(k).toBeGreaterThanOrEqual(0);
+    // On the struck side of the hull, not at its centre.
+    expect(g.impactX[k]).toBeLessThan(5);
+    expect(Math.hypot(g.impactX[k] - 5, g.impactY[k])).toBeLessThan(1.8);
+    const small = g.enemies.acquire(5, 3, 0, 0, light, 30, 0.4, 1e6);
+    g.damageEnemy(small, 1, 0, 3);
+    expect(g.armourHitEvent).toBe(1);
   });
 });
 

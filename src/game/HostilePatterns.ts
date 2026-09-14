@@ -12,7 +12,21 @@ export type SalvoShot = {
 const PI = Math.PI,
   TAU = PI * 2;
 export const enemyRotation = (type: number, age: number, time: number) =>
-  type === 5 ? time * 2.6 : type === 29 ? time * 0.9 : Math.sin(age) * 0.12;
+  Math.sin(age * (type === 5 ? 1.6 : 1) + (type === 29 ? time * 0.15 : 0)) * 0.12;
+/** Nose attitude from vertical speed: a climbing hull (nose at -X) lifts its nose. */
+export const enemyPitch = (vy: number) => Math.max(-0.3, Math.min(0.3, -vy * 0.055));
+/**
+ * Roll about the nose from vertical speed, as the player's ship banks. Hulls
+ * are drawn with their dorsal `view` radians toward the camera; climbing rolls
+ * that on past face-on to show the full top, diving rolls it away until the
+ * underside is on show. Both ends are fixed attitudes, whatever the hull's view.
+ */
+export function enemyBank(vy: number, view: number) {
+  const s = Math.tanh(vy / 1.5);
+  const top = (100 * Math.PI) / 180,
+    belly = (-40 * Math.PI) / 180;
+  return s > 0 ? s * (top - view) : -s * (belly - view);
+}
 
 /** Each recipe matches a separately authored weapon architecture in fleet-designs.json.
  * Speed is relative; delay is simulation time. No random sources affect replay.
@@ -291,6 +305,82 @@ export function enemySalvo(type: number, aim: number, cycle: number): SalvoShot[
       break;
     default:
       throw new Error(`Unmapped hostile design ${type}`);
+  }
+  return out;
+}
+
+/**
+ * Mini-boss barrages for medium gunships, fired between their authored salvos.
+ * Six phrase families rotate with the volley count, offset by hull type so two
+ * gunships side by side rarely open with the same phrase; each type also fires
+ * its own pair of shot kinds and arm count. Walls always leave a lane open.
+ */
+export function heavySalvo(type: number, aim: number, cycle: number): SalvoShot[] {
+  const out: SalvoShot[] = [];
+  const add = (mount: number, angle: number, kind: number, delay = 0, speed = 1) =>
+    out.push({ mount, angle, kind, delay, speed, dx: 0, dy: 0 });
+  const primary = [S.ORB, S.SHARD, S.NEEDLE, S.PULSE, S.WAVE][type % 5];
+  const secondary = [S.ACCEL, S.SPLIT, S.PLASMA, S.BOUNCE, S.SHARD][(type * 3) % 5];
+  const turn = cycle % 2 ? 1 : -1;
+  switch ((cycle + type) % 6) {
+    case 0: {
+      // Rotating spiral: three to five arms wind out around the hull.
+      const arms = 3 + (type % 3);
+      for (let beat = 0; beat < 10; beat++)
+        for (let arm = 0; arm < arms; arm++)
+          add(
+            arm,
+            aim + turn * beat * 0.22 + (arm * TAU) / arms,
+            beat % 3 === 2 ? secondary : primary,
+            beat * 0.09,
+            0.85,
+          );
+      break;
+    }
+    case 1:
+      // Three sweeping walls, each with a two-shot gap that walks along it.
+      for (let wall = 0; wall < 3; wall++) {
+        const gap = 3 + ((cycle + wall * 2 + type) % 7);
+        for (let j = 0; j < 13; j++)
+          if (j !== gap && j !== gap + 1)
+            add(j % 4, PI + (j - 6) * 0.15, wall === 1 ? secondary : primary, wall * 0.38, 0.8);
+      }
+      break;
+    case 2:
+      // Twin rings: the second, slower ring fills the first ring's spaces.
+      for (let j = 0; j < 20; j++) {
+        const a = (j * TAU) / 20 + cycle * 0.16;
+        add(0, a, primary, 0, 0.95);
+        add(1, a + TAU / 40, secondary, 0.32, 0.62);
+      }
+      break;
+    case 3:
+      // Every mount streams at the player, then a splitting fan follows through.
+      for (let m = 0; m < 4; m++)
+        for (let j = 0; j < 6; j++)
+          add(m, aim + (m - 1.5) * 0.07, S.NEEDLE, m * 0.05 + j * 0.07, 1.15);
+      for (let j = 0; j < 7; j++) add(0, aim + (j - 3) * 0.2, S.SPLIT, 0.62, 0.7);
+      break;
+    case 4:
+      // Mirrored sine sweeps crossing over the aim line.
+      for (let j = 0; j < 18; j++) {
+        const swing = Math.sin(j * 0.35) * 0.75;
+        add(0, aim + swing, primary, j * 0.05, 0.9);
+        add(1, aim - swing, j % 2 ? S.WAVE : secondary, j * 0.05, 0.9);
+      }
+      break;
+    default:
+      // Flower: five petals whose shots leave at layered speeds, then seekers.
+      for (let petal = 0; petal < 5; petal++)
+        for (let j = 0; j < 5; j++)
+          add(
+            petal % 3,
+            (petal * TAU) / 5 + cycle * 0.4 + (j - 2) * 0.09,
+            j === 2 ? secondary : primary,
+            0,
+            0.55 + j * 0.14,
+          );
+      if (type % 2) for (let j = 0; j < 3; j++) add(0, aim + (j - 1) * 0.5, S.HOMING, 0.8, 0.6);
   }
   return out;
 }

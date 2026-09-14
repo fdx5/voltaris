@@ -63,6 +63,9 @@ export class Runtime {
   private recorded = false;
   private controller = new AbortController();
   private sounds = new Uint32Array(7);
+  private armourHits = 0;
+  /** Visual-clock time of the last armour blast, so a laser does not machine-gun it. */
+  private armourSoundAt = -1;
   private pickupSounds = new Uint32Array(4);
   private lastStatus = 'menu';
   private bossTrack = false;
@@ -175,6 +178,7 @@ export class Runtime {
       this.game = new GameState();
       this.pickupSounds.fill(0);
       this.sounds.fill(0);
+      this.armourHits = 0;
       if (run.config.loadout) Object.assign(this.game.loadout, run.config.loadout);
       this.game.start(weapon, credits, practice, !!run.config.loadout, stageIndex);
       this.game.autoFire = autoFire;
@@ -334,6 +338,16 @@ export class Runtime {
     if (g.warningEvent !== this.sounds[3]) {
       this.audio.warning();
       this.sounds[3] = g.warningEvent;
+    }
+    // Every hit on a boss or gunship sets off the blast again, retriggered no
+    // faster than about fourteen times a second.
+    if (g.armourHitEvent !== this.armourHits) {
+      const now = performance.now() / 1000;
+      if (g.armourHitEvent > this.armourHits && now - this.armourSoundAt > 0.07) {
+        this.audio.armourSample(PLAYER_DESTROY);
+        this.armourSoundAt = now;
+      }
+      this.armourHits = g.armourHitEvent;
     }
     if (g.hitEvent !== this.sounds[4]) {
       if (!destroyed) this.audio.explosion();

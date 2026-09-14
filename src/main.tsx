@@ -2,7 +2,7 @@ import ReactDOM from 'react-dom/client';
 import { App } from './ui/App';
 import './ui/styles.css';
 import { installViewport } from './ui/viewport';
-import { loadBlenderFleet } from './visual/BlenderFleet';
+import { loadImportedFleet } from './visual/ImportedFleet';
 installViewport();
 const host = document.getElementById('root')!;
 const root = ReactDOM.createRoot(host);
@@ -12,7 +12,7 @@ function start() {
       VOLTARIS · 기체 격납고를 준비하고 있습니다…
     </div>,
   );
-  void loadBlenderFleet()
+  void loadImportedFleet()
     .then(() => root.render(<App />))
     .catch(() => {
       root.render(

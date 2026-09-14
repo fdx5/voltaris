@@ -1,0 +1,33 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>VOLTARIS imported fleet gallery</title>
+    <style>
+      body {
+        margin: 0;
+        background: #020306;
+        color: #cfe0ef;
+        font:
+          12px Consolas,
+          monospace;
+      }
+      #host {
+        position: relative;
+      }
+      .label {
+        position: absolute;
+        transform: translateX(-50%);
+        white-space: nowrap;
+        text-align: center;
+      }
+      .label b {
+        color: #fff;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="host"></div>
+    <script type="module" src="./fleet-gallery.ts"></script>
+  </body>
+</html>

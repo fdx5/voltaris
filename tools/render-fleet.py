@@ -13,7 +13,7 @@ draw = ImageDraw.Draw(out)
 font_path = 'C:/Windows/Fonts/consola.ttf'
 font = ImageFont.truetype(font_path, 13 * S)
 heading = ImageFont.truetype(font_path, 23 * S)
-draw.text((24*S, 15*S), f'VOLTARIS / {len(records)} BLENDER UNITS', fill='#e5eff8', font=heading)
+draw.text((24*S, 15*S), f'VOLTARIS / {len(records)} IMPORTED UNITS', fill='#e5eff8', font=heading)
 draw.text((24*S, 44*S), 'ACTUAL GEOMETRY / ORTHOGRAPHIC COLOUR STUDY / NOT AN IN-GAME CAPTURE', fill='#84a3bd', font=font)
 for idx, record in enumerate(records):
     ox, oy = idx % 7 * W, idx // 7 * H + 72

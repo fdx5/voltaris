@@ -17,7 +17,7 @@
   "boss": {
     "id": "GATEKEEPER",
     "design": "gatekeeper",
-    "hp": 3600,
+    "hp": 7200,
     "parts": 4,
     "partHp": 140,
     "ringRadius": 3.2,

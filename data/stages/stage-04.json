@@ -835,7 +835,7 @@
   "boss": {
     "id": "NEREID",
     "design": "nereid",
-    "hp": 15600,
+    "hp": 31200,
     "parts": 10,
     "partHp": 380,
     "ringRadius": 5.6,

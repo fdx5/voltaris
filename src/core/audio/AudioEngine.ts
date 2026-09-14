@@ -100,6 +100,9 @@ export class AudioEngine {
   private impactBus: GainNode | null = null;
   private impactVoices = 0;
   private pickupBus: GainNode | null = null;
+  /** Hits on armoured hulls: a fast retrigger of one blast, on its own capped bus. */
+  private armourBus: GainNode | null = null;
+  private armourVoices = 0;
 
   /**
    * Fires one voice of a weapon sample. Called once per shot, so at a laser's
@@ -110,6 +113,14 @@ export class AudioEngine {
    */
   fireSample(url: string) {
     this.playSample(url, 'weapon');
+  }
+  /**
+   * One blast per hit on a boss or gunship. Retriggers as fast as the hits
+   * land, but on a bus of its own with a short voice and a polyphony cap, so a
+   * stream of hits stays a rolling rumble and never crowds out other effects.
+   */
+  armourSample(url: string) {
+    this.playSample(url, 'armour');
   }
   /** One-shot for a wreck. Longer than a weapon voice and on its own bus. */
   impactSample(url: string) {
@@ -144,7 +155,7 @@ export class AudioEngine {
   }
   private playSample(
     url: string,
-    bus: 'weapon' | 'impact' | 'pickup',
+    bus: 'weapon' | 'impact' | 'pickup' | 'armour',
     whole = false,
     volume = 1,
     duration?: number,
@@ -154,12 +165,20 @@ export class AudioEngine {
       void this.loadSample(url);
       return;
     }
-    const weapon = bus === 'weapon';
-    const output = bus === 'pickup' ? this.pickupBus : weapon ? this.weaponBus : this.impactBus;
-    // Wrecks come in waves, so both buses cap their polyphony rather than
-    // letting a big formation stack into a wall of noise.
-    const busy = weapon ? this.weaponVoices : this.impactVoices;
-    if (!this.ctx || !output || (!whole && busy >= (weapon ? 10 : 8))) return;
+    const weapon = bus === 'weapon',
+      armour = bus === 'armour';
+    const output =
+      bus === 'pickup'
+        ? this.pickupBus
+        : weapon
+          ? this.weaponBus
+          : armour
+            ? this.armourBus
+            : this.impactBus;
+    // Wrecks come in waves, so the combat buses cap their polyphony rather
+    // than letting a big formation stack into a wall of noise.
+    const busy = weapon ? this.weaponVoices : armour ? this.armourVoices : this.impactVoices;
+    if (!this.ctx || !output || (!whole && busy >= (weapon ? 10 : armour ? 6 : 8))) return;
     const node = this.ctx.createBufferSource();
     node.buffer = entry.buffer;
     // A touch of detune keeps a repeated sample from sounding mechanical.
@@ -174,9 +193,11 @@ export class AudioEngine {
       gain.connect(output);
     } else node.connect(output);
     if (weapon) this.weaponVoices++;
+    else if (armour) this.armourVoices++;
     else if (bus === 'impact') this.impactVoices++;
     node.onended = () => {
       if (weapon) this.weaponVoices--;
+      else if (armour) this.armourVoices--;
       else if (bus === 'impact') this.impactVoices--;
       node.disconnect();
       gain?.disconnect();
@@ -184,7 +205,7 @@ export class AudioEngine {
     // Timed cinematics keep the file's leading silence to preserve their timeline.
     const onset = duration === undefined ? entry.onset : 0;
     const remaining = entry.buffer.duration - onset;
-    const length = whole ? remaining : Math.min(remaining, weapon ? 0.4 : 1.6);
+    const length = whole ? remaining : Math.min(remaining, weapon ? 0.4 : armour ? 0.75 : 1.6);
     node.start(this.ctx.currentTime, onset, Math.min(length, duration ?? length));
   }
   private loadSample(url: string): Promise<void> {
@@ -218,6 +239,9 @@ export class AudioEngine {
         this.impactBus = this.ctx.createGain();
         this.impactBus.gain.value = 0.5;
         this.impactBus.connect(this.master);
+        this.armourBus = this.ctx.createGain();
+        this.armourBus.gain.value = 0.28;
+        this.armourBus.connect(this.master);
       }
       this.samples.set(url, { buffer, onset });
     } catch {

@@ -191,11 +191,12 @@ describe('arcade rules', () => {
   it('transitions boss phases with a two second invulnerable interval', () => {
     const g = new GameState();
     g.start('LASER', 1, true);
-    g.bossHp = 1300;
+    // Phases turn at 60% and 25% of the stage's boss hull.
+    g.bossHp = g.stage.boss.hp * 0.36;
     g.tick(dt);
     expect(g.bossPhase).toBe(2);
     expect(g.bossTransition).toBeGreaterThan(1.9);
-    g.bossHp = 500;
+    g.bossHp = g.stage.boss.hp * 0.14;
     g.tick(dt);
     expect(g.bossPhase).toBe(3);
   });
@@ -309,6 +310,9 @@ describe('arcade rules', () => {
       }
     };
     g.start('LASER', 3);
+    // Hostiles now jink across the ship's firing line, so a stationary gun
+    // thins them out at a rate that has nothing to do with wave build-up.
+    g.autoFire = false;
     fly(5);
     const opening = g.enemies.count;
     expect(opening).toBeGreaterThan(0);

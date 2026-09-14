@@ -25,7 +25,8 @@ export async function createApp(
           styleSrc: ["'self'", "'unsafe-inline'"],
           imgSrc: ["'self'", 'data:', 'blob:'],
           mediaSrc: ["'self'", 'blob:'],
-          connectSrc: ["'self'"],
+          // GLTFLoader's ImageBitmapLoader fetches embedded GLB textures via blob URLs.
+          connectSrc: ["'self'", 'blob:'],
           workerSrc: ["'self'", 'blob:'],
           upgradeInsecureRequests: production ? [] : null,
         },

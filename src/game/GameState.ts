@@ -1,9 +1,12 @@
 import { formationPosition } from './formations';
 import {
   bossSalvo,
+  enemyBank,
+  enemyPitch,
   enemyRotation,
   enemySalvo,
   groundSalvo,
+  heavySalvo,
   type SalvoShot,
 } from './HostilePatterns';
 import fleetDesigns from '../../data/enemies/fleet-designs.json';
@@ -23,6 +26,22 @@ import { Key } from '../core/input/InputManager';
 export type Weapon = keyof typeof weapons;
 export type Mode = 'TRAIL' | 'FREEZE' | 'DIRECTIONAL' | 'ROTATE';
 export type Status = 'menu' | 'playing' | 'paused' | 'continue' | 'gameover' | 'clear' | 'stress';
+/**
+ * Keeps a value inside [low, high] without a hard stop: the last fifth of the
+ * range compresses smoothly, so a weave nearing the edge eases off it.
+ */
+function softLimit(v: number, low: number, high: number) {
+  const mid = (low + high) / 2,
+    half = (high - low) / 2;
+  if (half <= 0) return mid;
+  const u = (v - mid) / half,
+    mag = Math.abs(u);
+  if (mag <= 0.8) return v;
+  return mid + Math.sign(u) * (0.8 + 0.2 * Math.tanh((mag - 0.8) / 0.2)) * half;
+}
+/** Impact bursts kept on screen at once, and how long each one burns. */
+export const IMPACTS = 48;
+export const IMPACT_LIFE = 0.42;
 export const MODES: Mode[] = ['TRAIL', 'FREEZE', 'DIRECTIONAL', 'ROTATE'];
 /** What holding the control key does in each mode, for the on-screen notice. */
 export const MODE_NOTE = ['밀착 대형', '위치 고정', '진행 방향 조준', '기체 공전'];
@@ -59,6 +78,47 @@ export class GameState {
   /** Seconds of hit flash left on each live enemy, so a hull that is being
    *  worn down reads as taking damage rather than shrugging it off. */
   readonly enemyFlash = new Float32Array(tuning.pools.enemies);
+  /**
+   * Roll about each hostile's nose and the tilt of its nose, in radians, both
+   * following its vertical speed: climbing turns the dorsal plating to the
+   * camera, diving shows the underside, as the player's ship does. Read by the
+   * renderer, and by salvos so rounds leave the muzzle where it is drawn.
+   */
+  readonly enemyBank = new Float32Array(tuning.pools.enemies);
+  /**
+   * Recent hits on armoured targets - the boss, its pods and medium gunships -
+   * as a ring of small explosions at the point of impact. `impactAge` counts
+   * up from zero; the renderer draws each one until it burns out.
+   */
+  readonly impactX = new Float32Array(IMPACTS);
+  readonly impactY = new Float32Array(IMPACTS);
+  readonly impactAge = new Float32Array(IMPACTS).fill(IMPACT_LIFE);
+  readonly impactHeavy = new Uint8Array(IMPACTS);
+  private impactHead = 0;
+  /** Counts hits on armoured targets; the runtime plays a blast per hit. */
+  armourHitEvent = 0;
+  /** Seconds of hit flash left on the boss hull. */
+  bossFlash = 0;
+  readonly enemyPitch = new Float32Array(tuning.pools.enemies);
+  /**
+   * Every hostile keeps flying right to left without pause, and weaves on its
+   * own vertical path: two blended waves and a slow drift, each with its own
+   * amplitude, rate and phase, plus a gentle pull toward the player's height.
+   * The path is smooth by construction, so nothing ever jerks or stutters.
+   * A separate generator keeps drops and explosions on their old sequence.
+   */
+  private readonly motion = {
+    rng: new Random(0x5eed1e55),
+    generation: new Uint32Array(tuning.pools.enemies).fill(0xffffffff),
+    /** Seconds since this hull's own clock started (ignores squad delay). */
+    clock: new Float32Array(tuning.pools.enemies),
+    hold: new Float32Array(tuning.pools.enemies),
+    pace: new Float32Array(tuning.pools.enemies),
+    track: new Float32Array(tuning.pools.enemies),
+    pull: new Float32Array(tuning.pools.enemies),
+    /** amplitude, rate and phase for the main wave, the ripple and the drift. */
+    wave: new Float32Array(tuning.pools.enemies * 9),
+  };
   readonly grid = new SpatialHash(tuning.pools.enemies);
   readonly bulletGrid = new SpatialHash(tuning.pools.bullets);
   readonly rng = new Random();
@@ -222,6 +282,10 @@ export class GameState {
           )
         : null;
     this.rng.seed = 0x1a2b3c4d;
+    this.motion.rng.seed = 0x5eed1e55;
+    this.motion.generation.fill(0xffffffff);
+    this.enemyBank.fill(0);
+    this.enemyPitch.fill(0);
     this.status = 'playing';
     this.weapon = weapon;
     this.credits = credits;
@@ -268,6 +332,8 @@ export class GameState {
     this.replayOverflow = false;
     this.flash = this.shake = 0;
     this.enemyFlash.fill(0);
+    this.impactAge.fill(IMPACT_LIFE);
+    this.bossFlash = 0;
     this.announce(
       practice
         ? this.stage.boss.id + ' / 보스 훈련'
@@ -355,6 +421,9 @@ export class GameState {
     this.noticeTime = Math.max(0, this.noticeTime - dt);
     this.shake = Math.max(0, this.shake - dt * 2);
     this.flash = Math.max(0, this.flash - dt * 2);
+    this.bossFlash = Math.max(0, this.bossFlash - dt);
+    for (let k = 0; k < IMPACTS; k++)
+      this.impactAge[k] = Math.min(IMPACT_LIFE, this.impactAge[k] + dt);
     if (this.bossDying) {
       this.updateBossDeath(dt);
       return;
@@ -568,7 +637,7 @@ export class GameState {
       if (this.laneTimer[lane] > 0) continue;
       const wave = this.stage.spawns[this.laneWave[lane]];
       const ordinal = this.laneWave[lane];
-      const count = this.waveSize(wave.count, ordinal);
+      const count = this.waveSize(wave.count, ordinal, wave.type);
       // A squad enters together, with real lateral and depth separation.
       while (this.laneLeft[lane] > 0) {
         const n = this.laneSpawned[lane]++;
@@ -598,7 +667,8 @@ export class GameState {
       if (lane < 0) break;
       const ordinal = this.spawnIndex++;
       this.laneWave[lane] = ordinal;
-      this.laneLeft[lane] = this.waveSize(this.stage.spawns[ordinal].count, ordinal);
+      const next = this.stage.spawns[ordinal];
+      this.laneLeft[lane] = this.waveSize(next.count, ordinal, next.type);
       this.laneSpawned[lane] = 0;
       this.laneTimer[lane] = 0;
     }
@@ -668,17 +738,34 @@ export class GameState {
   /**
    * The first formation launches three ships, the next four, and so on: a
    * ceiling that opens by one per wave until each formation's authored size
-   * takes over. Heavy hulls are authored one or two strong and are unaffected.
+   * takes over. Medium gunships are the exception: see `mediumCount`.
    */
-  private waveSize(count: number, ordinal: number) {
+  private waveSize(count: number, ordinal: number, type: number) {
+    if (fleetHardpoints[type].size === 'medium') return this.mediumCount;
     return (
       Math.max(1, Math.min(count, this.stage.firstWave + ordinal * tuning.spawn.growth)) *
       (this.stageIndex === 2 ? 2 : 1)
     );
   }
+  /** How far through the stage's pre-boss run the sortie is, 0..1. */
+  private get progress() {
+    return clamp(this.time / this.stage.durationSec, 0, 1);
+  }
+  /**
+   * Medium gunships fly as mini-bosses: one at a time early in the first
+   * stage, building with the clock and with each stage to four abreast.
+   */
+  get mediumCount() {
+    return clamp(1 + Math.floor(this.progress * 2.2 + this.stageIndex * 0.7), 1, 4);
+  }
+  /** Medium hull integrity over the base scaling: 2.5x at first, 4x by the last stage's end. */
+  get mediumArmour() {
+    return 2.5 + 1.5 * clamp(this.progress * 0.55 + this.stageIndex * 0.15, 0, 1);
+  }
   private spawnEnemy(type: number, x: number, y: number, pattern: number, n: number) {
     const d = defs[type];
-    const hp = Math.max(1, Math.round(d.hp * this.hullScale));
+    const armour = fleetHardpoints[type].size === 'medium' ? this.mediumArmour : 1;
+    const hp = Math.max(1, Math.round(d.hp * this.hullScale * armour));
     const i = this.enemies.acquire(x, y, -d.speed, 0, type, 30, d.radius, hp);
     if (i >= 0) {
       this.enemyFlash[i] = 0;
@@ -696,13 +783,33 @@ export class GameState {
       e.py[i] = e.y[i];
       e.age[i] += dt;
       this.enemyFlash[i] = Math.max(0, this.enemyFlash[i] - dt);
-      // Turret hulls brake into their lane, hold it, then run for the edge.
-      if (d.hover > -50 && e.x[i] <= d.hover && e.age[i] < 13) e.vx[i] -= e.vx[i] * dt * 2.6;
-      else if (e.vx[i] > -d.speed) e.vx[i] += (-d.speed - e.vx[i]) * dt * 1.5;
+      if (this.motion.generation[i] !== e.generation[i]) this.initMotion(i);
+      const m = this.motion;
+      // A steady run across the field at this hull's own speed.
+      const cruise = d.speed * m.pace[i];
+      if (e.vx[i] > -cruise) e.vx[i] += (-cruise - e.vx[i]) * Math.min(1, dt * 1.5);
       e.x[i] += e.vx[i] * dt;
       const a = e.age[i];
-      const weave = e.aux[i] >= 3 ? 0.18 : e.aux[i] === 1 ? 1.5 : 0.65;
-      e.y[i] = e.life[i] + Math.sin(a * (e.aux[i] === 1 ? 2 : 1.3) * d.freq) * weave * d.amp;
+      const t = (m.clock[i] += dt);
+      // Leaves the squad slot on a smoothstep, so the weave grows in gently.
+      const blend = clamp((t - m.hold[i]) / 1.4, 0, 1);
+      const engage = blend * blend * (3 - 2 * blend);
+      const w = m.wave,
+        k = i * 9;
+      let weave = 0;
+      for (let n = 0; n < 9; n += 3) weave += w[k + n] * Math.sin(t * w[k + n + 1] + w[k + n + 2]);
+      // Low-passed pull toward the player's altitude: a trend, never a snap.
+      const goal = clamp(this.y - e.life[i], -4, 4);
+      m.track[i] += (goal - m.track[i]) * Math.min(1, dt * 0.7);
+      const low = this.stage.minY + d.radius,
+        high = this.stage.maxY - d.radius;
+      e.y[i] = softLimit(e.life[i] + (weave + m.track[i] * m.pull[i]) * engage, low, high);
+      e.vy[i] = dt > 0 ? (e.y[i] - e.py[i]) / dt : 0;
+      // Attitude eases toward what the vertical speed calls for.
+      const view = (fleetHardpoints[e.type[i]].viewDegrees * Math.PI) / 180;
+      const ease = Math.min(1, dt * 5);
+      this.enemyBank[i] += (enemyBank(e.vy[i], view) - this.enemyBank[i]) * ease;
+      this.enemyPitch[i] += (enemyPitch(e.vy[i]) - this.enemyPitch[i]) * ease;
       if (e.x[i] < -18) {
         e.release(i);
         continue;
@@ -710,7 +817,7 @@ export class GameState {
       const period = this.firePeriod(e.type[i]);
       if (a > 0.45 && a % period >= period - dt && e.x[i] < 16.5)
         this.queueSalvo(
-          enemySalvo(
+          this.hostilePlan(
             e.type[i],
             Math.atan2(this.y - e.y[i], this.x - e.x[i]),
             Math.floor(a / period),
@@ -721,6 +828,66 @@ export class GameState {
           parseInt(fleetDesigns[e.type[i]].palette[1].slice(1), 16),
         );
     }
+  }
+  /** Rolls one hull's speed and flight path the first time its slot is seen. */
+  private initMotion(i: number) {
+    const m = this.motion,
+      e = this.enemies,
+      r = m.rng,
+      roll = (min: number, max: number) => min + r.next() * (max - min);
+    m.generation[i] = e.generation[i];
+    m.clock[i] = 0;
+    m.track[i] = 0;
+    this.enemyBank[i] = this.enemyPitch[i] = 0;
+    const small = fleetHardpoints[e.type[i]].size === 'small';
+    // Small hulls are quicker in both directions; no two ships share a speed.
+    m.pace[i] = small ? roll(1.3, 1.8) : roll(1.05, 1.4);
+    m.hold[i] = roll(0.2, 1.1);
+    m.pull[i] = 0;
+    const phase = () => roll(0, Math.PI * 2);
+    const style = r.next();
+    let wave: number[];
+    if (style < 0.45) {
+      // Weaver: two blended waves and a slow drift, loosely following the player.
+      const amp = small ? roll(1.5, 3.1) : roll(0.8, 1.9),
+        rate = small ? roll(0.9, 1.9) : roll(0.5, 1.1);
+      m.pull[i] = r.next() < 0.4 ? 0 : roll(0.15, 0.45);
+      wave = [
+        amp,
+        rate,
+        phase(),
+        amp * roll(0.1, 0.28),
+        rate * roll(1.4, 2.2),
+        phase(),
+        roll(0, 1.8),
+        roll(0.18, 0.42),
+        phase(),
+      ];
+    } else if (style < 0.72) {
+      // Lancer: holds its line dead straight and charges through at speed.
+      m.pace[i] *= small ? roll(1.3, 1.6) : roll(1.1, 1.25);
+      wave = [0, 0, 0, 0, 0, 0, 0, 0, 0];
+    } else if (style < 0.87) {
+      // Diver: level flight that bends into one long swoop at the player's altitude.
+      m.pull[i] = roll(0.75, 1);
+      m.hold[i] += roll(0.4, 1.4);
+      wave = [0, 0, 0, 0, 0, 0, roll(0, 0.6), roll(0.3, 0.5), phase()];
+    } else {
+      // Glider: one broad, unhurried rise and fall across the field.
+      m.pace[i] *= roll(0.85, 1);
+      wave = [roll(2.2, 3.6), roll(0.22, 0.45), phase(), 0, 0, 0, 0, 0, 0];
+    }
+    m.wave.set(wave, i * 9);
+  }
+  /**
+   * A light hull fires its authored salvo. A medium gunship fires like a
+   * mini-boss: its authored salvo opens every third volley, and the two in
+   * between are dense barrages of its own.
+   */
+  private hostilePlan(type: number, aim: number, cycle: number) {
+    return fleetHardpoints[type].size === 'medium' && cycle % 3 !== 0
+      ? heavySalvo(type, aim, cycle)
+      : enemySalvo(type, aim, cycle);
   }
   /** Rocks coast straight through, glancing off the top and bottom of the field. */
   private updateRocks(dt: number) {
@@ -868,14 +1035,18 @@ export class GameState {
       if (source === 'enemy') {
         const mounts = fleetHardpoints[type].muzzles;
         const mount = mounts[shot.mount % mounts.length];
-        const angle = enemyRotation(type, pool.age[index], this.time);
-        x = pool.x[index] + mount[0] * Math.cos(angle) - mount[1] * Math.sin(angle) + shot.dx;
-        y = pool.y[index] + mount[0] * Math.sin(angle) + mount[1] * Math.cos(angle) + shot.dy;
+        const angle = enemyRotation(type, pool.age[index], this.time) + this.enemyPitch[index];
+        const bank = this.enemyBank[index];
+        // Roll about the nose first, then the in-plane turn, as the renderer does.
+        const my = mount[1] * Math.cos(bank) - mount[2] * Math.sin(bank);
+        x = pool.x[index] + mount[0] * Math.cos(angle) - my * Math.sin(angle) + shot.dx;
+        y = pool.y[index] + mount[0] * Math.sin(angle) + my * Math.cos(angle) + shot.dy;
       } else {
+        // Roof craft are the floor model turned over about X: only height flips.
         const sign = pool.aux[index] === 1 ? -1 : 1;
         const mounts = groundHardpoints[type].muzzles;
         const mount = mounts[shot.mount % mounts.length];
-        x = pool.x[index] + (mount[0] + shot.dx) * sign;
+        x = pool.x[index] + mount[0] + shot.dx;
         y = pool.y[index] + (mount[1] + shot.dy) * sign;
       }
     }
@@ -1221,7 +1392,7 @@ export class GameState {
         if (
           segmentCircle(b.px[i], b.py[i], b.x[i], b.y[i], e.x[j], e.y[j], e.radius[j] + b.radius[i])
         ) {
-          this.damageEnemy(j, b.hp[i]);
+          this.damageEnemy(j, b.hp[i], b.px[i], b.py[i]);
           b.lastHit[i] = j;
           if (--b.aux[i] <= 0) {
             b.release(i);
@@ -1244,6 +1415,8 @@ export class GameState {
           )
         ) {
           this.partHp[p] -= b.hp[i];
+          if (this.partHp[p] > 0)
+            this.impact(this.partX[p], this.partY[p], 0.55, b.px[i], b.py[i], false);
           b.release(i);
           if (this.partHp[p] <= 0) {
             this.explode(this.partX[p], this.partY[p], 55);
@@ -1264,6 +1437,8 @@ export class GameState {
         )
       ) {
         this.bossHp -= b.hp[i];
+        this.bossFlash = 0.08;
+        this.impact(this.bossX, this.bossY, this.stage.boss.coreRadius, b.px[i], b.py[i], true);
         b.release(i);
         if (this.bossHp <= 0) {
           this.finish(true);
@@ -1343,11 +1518,57 @@ export class GameState {
           this.hit();
       }
   }
-  damageEnemy(i: number, damage: number) {
+  /**
+   * Marks a hit on an armoured target: a small blast on the hull's surface on
+   * the side the shot came from, a few sparks, and a hit event for the audio.
+   */
+  private impact(
+    cx: number,
+    cy: number,
+    radius: number,
+    fromX: number,
+    fromY: number,
+    heavy: boolean,
+  ) {
+    const dx = fromX - cx,
+      dy = fromY - cy,
+      length = Math.hypot(dx, dy) || 1;
+    // A little scatter so a stream of hits reads as separate blasts.
+    const reach = radius * (0.55 + this.rng.next() * 0.35);
+    const k = this.impactHead++ % IMPACTS;
+    this.impactX[k] = cx + (dx / length) * reach + (this.rng.next() - 0.5) * radius * 0.5;
+    this.impactY[k] = cy + (dy / length) * reach + (this.rng.next() - 0.5) * radius * 0.5;
+    this.impactAge[k] = 0;
+    this.impactHeavy[k] = heavy ? 1 : 0;
+    this.armourHitEvent++;
+    for (let n = 0; n < 3; n++) {
+      const a = this.rng.next() * Math.PI * 2,
+        speed = 3 + this.rng.next() * 4;
+      this.particles.acquire(
+        this.impactX[k],
+        this.impactY[k],
+        Math.cos(a) * speed,
+        Math.sin(a) * speed,
+        n % 2,
+        0.16 + this.rng.next() * 0.12,
+        0.05 + this.rng.next() * 0.04,
+      );
+    }
+  }
+  damageEnemy(i: number, damage: number, fromX = this.x, fromY = this.y) {
     if (!this.enemies.active[i]) return;
     this.enemies.hp[i] -= damage;
     if (this.enemies.hp[i] > 0) {
       this.enemyFlash[i] = 0.09;
+      if (fleetHardpoints[this.enemies.type[i]].size === 'medium')
+        this.impact(
+          this.enemies.x[i],
+          this.enemies.y[i],
+          this.enemies.radius[i],
+          fromX,
+          fromY,
+          false,
+        );
       // Two sparks off the hull. The pool refuses when it is full, so a wall
       // of simultaneous hits costs nothing extra.
       for (let k = 0; k < 2; k++) {

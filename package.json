@@ -32,6 +32,9 @@
   },
   "devDependencies": {
     "@eslint/js": "^9.0.0",
+    "@gltf-transform/core": "^4.5.0",
+    "@gltf-transform/extensions": "^4.5.0",
+    "@gltf-transform/functions": "^4.5.0",
     "@playwright/test": "^1.55.0",
     "@types/node": "^24.0.0",
     "@types/react": "^19.1.0",
@@ -41,6 +44,7 @@
     "concurrently": "^10.0.5",
     "esbuild": "^0.28.2",
     "eslint": "^9.0.0",
+    "meshoptimizer": "^1.2.0",
     "prettier": "^3.9.6",
     "sharp": "^0.35.4",
     "typescript": "~5.9.2",

@@ -1,4 +1,4 @@
-import { buildSectorArchitecture } from './SectorArchitecture';
+import { buildStarField, type StarPalette } from './StarField';
 import * as T from 'three/webgpu';
 import {
   color,
@@ -20,9 +20,6 @@ import fleetDesigns from '../../data/enemies/fleet-designs.json';
 import fleetHardpoints from '../../data/enemies/fleet-hardpoints.json';
 import groundHardpoints from '../../data/enemies/ground-hardpoints.json';
 
-const metal = (c: string, roughness = 0.4) =>
-  new T.MeshStandardNodeMaterial({ color: c, metalness: 0.8, roughness });
-
 export function glow(c: string, intensity = 2) {
   const m = new T.MeshBasicNodeMaterial({ color: c, toneMapped: false });
   m.colorNode = color(c).mul(intensity);
@@ -34,12 +31,14 @@ export function glow(c: string, intensity = 2) {
  * ------------------------------------------------------------------ */
 export { animateShip } from './PlayerShip';
 export {
-  loadBlenderFleet,
-  makeBlenderShip as makeShip,
-  makeBlenderBoss as makeBoss,
-  blenderEnemyGeometry as enemyGeometry,
-  blenderGroundGeometry as groundGeometry,
-} from './BlenderFleet';
+  loadImportedFleet,
+  finishHull,
+  HULL_MATERIALS,
+  makeImportedShip as makeShip,
+  makeImportedBoss as makeBoss,
+  importedEnemyGeometry as enemyGeometry,
+  importedGroundGeometry as groundGeometry,
+} from './ImportedFleet';
 
 /* ------------------------------------------------------------------ *
  * Enemy fleet - 34 individually fitted hulls
@@ -144,7 +143,13 @@ const gem = (r: number, detail: number, x = 0, y = 0, z = 0, sx = 1, sy = 1, sz 
   return g.translate(x, y, z);
 };
 
-export type EnemyHulls = { hull: T.BufferGeometry | null; accent: T.BufferGeometry | null };
+export type EnemyHulls = {
+  hull: T.BufferGeometry | null;
+  accent: T.BufferGeometry | null;
+  /** Imported hulls: base colour and packed metallic-roughness textures. */
+  map?: T.Texture | null;
+  surface?: T.Texture | null;
+};
 
 // Every entry has its own topology, palette and surface finish.
 export const FLEET_STYLE = fleetDesigns.map(
@@ -1153,7 +1158,14 @@ function tiledField(
   return mesh;
 }
 
-function nebulaSheet(rng: Random, width: number, height: number, hexA: string, hexB: string) {
+function nebulaSheet(
+  rng: Random,
+  width: number,
+  height: number,
+  hexA: string,
+  hexB: string,
+  gain = 1,
+) {
   const material = new T.MeshBasicNodeMaterial({
     transparent: true,
     blending: T.AdditiveBlending,
@@ -1166,7 +1178,10 @@ function nebulaSheet(rng: Random, width: number, height: number, hexA: string, h
     .add(0.5);
   const falloff = float(1).sub(p.length().mul(2.05)).clamp(0, 1).pow(1.7);
   material.colorNode = mix(color(hexA), color(hexB), n.pow(1.6));
-  material.opacityNode = n.pow(2.2).mul(falloff).mul(0.5);
+  material.opacityNode = n
+    .pow(2.2)
+    .mul(falloff)
+    .mul(0.5 * gain);
   return new T.Mesh(new T.PlaneGeometry(width, height), material);
 }
 
@@ -1212,6 +1227,8 @@ type RockClass = {
  * a richer scene and gets out of the way of the fight.
  */
 const BELT_DENSITY = 0.5;
+/** Vertical spread of the belt: tall enough that tilting the view never runs out of rocks. */
+const BELT_HEIGHT = 150;
 
 const ROCKS: RockClass[] = [
   // C-type: the big dark carbonaceous bodies drifting furthest out.
@@ -1503,7 +1520,12 @@ function asteroidField(
   const gain = 1 + (mix.max - 1) * rock.bulk;
   const count = Math.max(
     variants.length,
-    Math.round(rock.count * BELT_DENSITY * (1 + (mix.count - 1) * (0.35 + 0.65 * rock.bulk))),
+    Math.round(
+      rock.count *
+        BELT_DENSITY *
+        (BELT_HEIGHT / 95) *
+        (1 + (mix.count - 1) * (0.35 + 0.65 * rock.bulk)),
+    ),
   );
   const min = rock.min * mix.min,
     max = rock.max * gain;
@@ -1522,7 +1544,7 @@ function asteroidField(
     const batch = batches[i % batches.length];
     const slot = filled[i % batches.length]++;
     const x = (rng.next() - 0.5) * span,
-      y = (rng.next() - 0.5) * 95,
+      y = (rng.next() - 0.5) * BELT_HEIGHT,
       z = rock.near - rng.next() * (rock.near - rock.far);
     // A biased roll over the class's size band: mostly small bodies, with the
     // occasional very large one. Raising the bias widens the gap between them.
@@ -1880,6 +1902,8 @@ export type BossModel = {
   core: T.Mesh;
   ring: T.Group;
   pods: T.Group[];
+  /** Strength of the red damage glow across hull and pods, when the model has one. */
+  damage?: { value: number };
 };
 
 function attachKit(target: T.Group, kit: Kit, metalness = 0.55, roughness = 0.38) {
@@ -2491,8 +2515,10 @@ type SceneConfig = {
   skyTint: string;
   skyGain: number;
   nebula: [string, string][];
+  /** How much of the nebula survives over the black sky, 0 to 1. */
+  nebulaGain: number;
+  stars: StarPalette;
   planet: PlanetConfig;
-  station: boolean;
   moons: { radius: number; at: [number, number, number]; speed: number; span: number }[];
   /** Multipliers on the shared rock classes: how many, how big, how varied. */
   rocks: { count: number; min: number; max: number; bias: number };
@@ -2501,8 +2527,21 @@ type SceneConfig = {
 
 const SCENES: Record<SceneName, SceneConfig> = {
   earth: {
-    skyTint: '#8fb2dd',
-    skyGain: 0.28,
+    skyTint: '#6f8fb8',
+    skyGain: 0.035,
+    nebulaGain: 0.22,
+    stars: {
+      tints: [
+        ['#ffffff', 5],
+        ['#cfe0ff', 4],
+        ['#9fbfff', 2],
+        ['#fff2d8', 2],
+        ['#ffd2a1', 1],
+        ['#ffb0a0', 0.4],
+      ],
+      density: 1,
+      twinkle: 0.9,
+    },
     nebula: [
       ['#123a63', '#3f6fb0'],
       ['#3a1450', '#8e3fa0'],
@@ -2528,14 +2567,25 @@ const SCENES: Record<SceneName, SceneConfig> = {
       spin: 0.0125,
       terminator: 0,
     },
-    station: false,
     moons: [{ radius: 4.6, at: [-46, 26, -102], speed: 1.1, span: 260 }],
     rocks: { count: 1, min: 1, max: 1, bias: 2 },
     streakTint: '#9fd0ff',
   },
   mars: {
-    skyTint: '#d8a583',
-    skyGain: 0.24,
+    skyTint: '#a88068',
+    skyGain: 0.03,
+    nebulaGain: 0.2,
+    stars: {
+      tints: [
+        ['#ffffff', 4],
+        ['#ffe9cf', 4],
+        ['#ffc998', 2.5],
+        ['#ff9f86', 1.2],
+        ['#d4e2ff', 1.5],
+      ],
+      density: 1.05,
+      twinkle: 1,
+    },
     nebula: [
       ['#3d1a12', '#a8563a'],
       ['#2a1830', '#7a4470'],
@@ -2557,7 +2607,6 @@ const SCENES: Record<SceneName, SceneConfig> = {
       spin: 0.032,
       terminator: 0.85,
     },
-    station: false,
     // Phobos and Deimos: small, close, and moving fast enough to notice.
     moons: [
       { radius: 1.7, at: [-34, 30, -86], speed: 2.6, span: 220 },
@@ -2569,8 +2618,20 @@ const SCENES: Record<SceneName, SceneConfig> = {
     streakTint: '#ffbf8f',
   },
   jupiter: {
-    skyTint: '#c9a882',
-    skyGain: 0.22,
+    skyTint: '#9c8468',
+    skyGain: 0.03,
+    nebulaGain: 0.18,
+    stars: {
+      tints: [
+        ['#ffffff', 4],
+        ['#fff0c8', 4],
+        ['#ffd98f', 2],
+        ['#c8dcff', 2],
+        ['#ffb27a', 0.8],
+      ],
+      density: 0.95,
+      twinkle: 0.85,
+    },
     nebula: [
       ['#2a1a0c', '#8a5a28'],
       ['#1a1428', '#5a4278'],
@@ -2594,7 +2655,6 @@ const SCENES: Record<SceneName, SceneConfig> = {
       spin: 0.05,
       terminator: 0.7,
     },
-    station: false,
     // Io and Europa, small and quick against the giant.
     moons: [
       { radius: 2.2, at: [-38, -2, -94], speed: 3.2, span: 210 },
@@ -2605,8 +2665,21 @@ const SCENES: Record<SceneName, SceneConfig> = {
     streakTint: '#ffcf9f',
   },
   neptune: {
-    skyTint: '#8fb6d8',
-    skyGain: 0.2,
+    skyTint: '#6c8fae',
+    skyGain: 0.03,
+    nebulaGain: 0.2,
+    stars: {
+      tints: [
+        ['#ffffff', 4],
+        ['#d6ecff', 4],
+        ['#a4d2ff', 3],
+        ['#b8fff4', 1.2],
+        ['#e4d4ff', 1],
+        ['#fff1d6', 1],
+      ],
+      density: 1,
+      twinkle: 0.95,
+    },
     nebula: [
       ['#0b1c33', '#2c5a8e'],
       ['#101a2e', '#3f4f88'],
@@ -2629,7 +2702,6 @@ const SCENES: Record<SceneName, SceneConfig> = {
       spin: 0.038,
       terminator: 0.88,
     },
-    station: false,
     // Triton, retrograde and pale.
     moons: [{ radius: 2.6, at: [-40, 16, -96], speed: 2.4, span: 200 }],
     rocks: { count: 0, min: 1, max: 1, bias: 2.4 },
@@ -2647,9 +2719,12 @@ export function buildBackdrop(
   const layers: Layer[] = [];
   const root = new T.Group();
   scene.add(root);
-
-  const architecture = buildSectorArchitecture(name);
-  root.add(architecture.root);
+  // Everything but the playable surface hangs from a pivot at the camera, so
+  // turning it pans the whole sky as if the camera were looking around.
+  const view = new T.Group();
+  const sky = new T.Group();
+  view.add(sky);
+  root.add(view);
 
   /* --- Milky Way sky shell ------------------------------------------ */
   const skyMaterial = new T.MeshBasicNodeMaterial({
@@ -2657,18 +2732,19 @@ export function buildBackdrop(
     fog: false,
     depthWrite: false,
   });
-  const sky = texture(loadTexture('space/starfield.jpg', true));
-  skyMaterial.colorNode = mix(color('#050912'), sky.mul(color(config.skyTint)), float(0.62)).mul(
+  const skyMap = texture(loadTexture('space/starfield.jpg', true));
+  // Near-black: the painted sky only lends the void a faint depth and tint.
+  skyMaterial.colorNode = mix(color('#000102'), skyMap.mul(color(config.skyTint)), float(0.62)).mul(
     config.skyGain,
   );
   const skybox = new T.Mesh(new T.SphereGeometry(168, 48, 32), skyMaterial);
   skybox.renderOrder = -100;
-  root.add(skybox);
+  sky.add(skybox);
 
   /* --- Nebula sheets ------------------------------------------------- */
   const nebula = new T.Group();
   nebula.position.z = -86;
-  root.add(nebula);
+  sky.add(nebula);
   const nebulaSpan = 320;
   for (let i = 0; i < config.nebula.length; i++) {
     const sheet = nebulaSheet(
@@ -2676,6 +2752,7 @@ export function buildBackdrop(
       150 + rng.next() * 110,
       90 + rng.next() * 60,
       ...config.nebula[i],
+      config.nebulaGain,
     );
     sheet.position.set(
       -nebulaSpan / 2 + (i + rng.next() * 0.6) * (nebulaSpan / config.nebula.length),
@@ -2691,40 +2768,17 @@ export function buildBackdrop(
   }
   layers.push({ object: nebula, speed: 0.55, span: nebulaSpan });
 
-  /* --- Three star bands, each with its own drift --------------------- */
-  const starGeometry = new T.SphereGeometry(1, 5, 4);
-  const starTints = ['#ffffff', '#cfe4ff', '#ffe7c2', '#ffd0c0', '#d6ccff'];
-  const bands = [
-    { count: 420, span: 300, speed: 0.5, z: -128, depth: 34, size: 0.08, bright: 0.24 },
-    { count: 190, span: 240, speed: 1.5, z: -86, depth: 26, size: 0.11, bright: 0.36 },
-    { count: 70, span: 190, speed: 3.4, z: -54, depth: 18, size: 0.13, bright: 0.5 },
-  ];
-  for (const band of bands) {
-    const material = new T.MeshBasicNodeMaterial({ toneMapped: false, fog: false });
-    const field = tiledField(starGeometry, material, band.count, band.span, (dummy, tint) => {
-      dummy.position.set(
-        (rng.next() - 0.5) * band.span,
-        (rng.next() - 0.5) * 150,
-        band.z - rng.next() * band.depth,
-      );
-      dummy.rotation.set(0, 0, 0);
-      // Squared distribution: a few standouts among many faint pinpricks.
-      dummy.scale.setScalar(band.size * (0.35 + rng.next() * rng.next() * 1.9));
-      tint
-        .set(starTints[Math.floor(rng.next() * starTints.length)])
-        .multiplyScalar(band.bright * (0.5 + rng.next() * 0.9));
-    });
-    field.renderOrder = -80;
-    root.add(field);
-    layers.push({ object: field, speed: band.speed, span: band.span });
-  }
+  /* --- Twinkling star field, three parallax depths ------------------ */
+  const stars = buildStarField(4417 + Object.keys(SCENES).indexOf(name) * 7919, config.stars);
+  sky.add(stars.group);
+  layers.push(...stars.layers);
 
   /* --- The planet ---------------------------------------------------- */
   const p = config.planet;
   const planet = new T.Group();
   planet.position.set(...p.position);
   planet.rotation.z = p.tilt;
-  root.add(planet);
+  sky.add(planet);
   const sunDir = vec3(-0.42, 0.58, 0.7);
   const viewDir = cameraPosition.sub(positionWorld).normalize();
   const limb = float(1).sub(normalWorld.dot(viewDir).abs()).pow(3);
@@ -2813,71 +2867,9 @@ export function buildBackdrop(
     echo.position.x += m.span;
     const layer = new T.Group();
     layer.add(moon, echo);
-    root.add(layer);
+    sky.add(layer);
     layers.push({ object: layer, speed: m.speed, span: m.span });
     moons.push(moon, echo);
-  }
-
-  /* --- Orbital ring station, sliding past on the mid plane ----------- */
-  const spinners: T.Object3D[] = [];
-  if (config.station) {
-    const station = new T.Group();
-    station.position.set(0, 6, -34);
-    station.rotation.set(0.23, 0.48, 0);
-    const frameMat = metal('#293a45', 0.72),
-      trim = metal('#55626a', 0.65);
-    const dummy = new T.Object3D();
-    for (const r of [10.4, 11.7])
-      station.add(new T.Mesh(new T.TorusGeometry(r, 0.3, 8, 100), frameMat));
-    const plates = new T.InstancedMesh(new T.BoxGeometry(1.2, 1.8, 0.8), frameMat, 64),
-      strips = new T.InstancedMesh(
-        new T.BoxGeometry(0.035, 1.1, 0.83),
-        new T.MeshBasicNodeMaterial({ color: '#647c83' }),
-        64,
-      );
-    for (let i = 0; i < 64; i++) {
-      const a = (i / 64) * Math.PI * 2;
-      dummy.position.set(Math.cos(a) * 11, Math.sin(a) * 11, 0);
-      dummy.rotation.set(0, 0, a);
-      dummy.scale.set(1, 1, 1);
-      dummy.updateMatrix();
-      plates.setMatrixAt(i, dummy.matrix);
-      strips.setMatrixAt(i, dummy.matrix);
-    }
-    station.add(plates, strips);
-    const windows = new T.InstancedMesh(
-      new T.BoxGeometry(0.09, 0.18, 0.86),
-      glow('#cfe3ea', 1.5),
-      256,
-    );
-    for (let i = 0; i < 256; i++) {
-      const a = (Math.floor(i / 4) / 64) * Math.PI * 2,
-        r = 10.5 + (i % 4) * 0.32;
-      dummy.position.set(Math.cos(a) * r, Math.sin(a) * r, 0);
-      dummy.rotation.set(0, 0, a);
-      dummy.scale.setScalar(1);
-      dummy.updateMatrix();
-      windows.setMatrixAt(i, dummy.matrix);
-    }
-    station.add(windows);
-    for (let i = 0; i < 6; i++) {
-      const a = (i * Math.PI) / 3,
-        spoke = new T.Mesh(new T.BoxGeometry(8, 0.5, 0.5), trim);
-      spoke.position.set(Math.cos(a) * 6, Math.sin(a) * 6, -0.6);
-      spoke.rotation.z = a;
-      station.add(spoke);
-    }
-    const hub = new T.Mesh(new T.CylinderGeometry(2.6, 3, 3, 12), frameMat);
-    hub.rotation.x = Math.PI / 2;
-    station.add(hub);
-    const stationSpan = 190;
-    const stationEcho = station.clone();
-    stationEcho.position.x += stationSpan;
-    const stationLayer = new T.Group();
-    stationLayer.add(station, stationEcho);
-    root.add(stationLayer);
-    layers.push({ object: stationLayer, speed: 3.6, span: stationSpan });
-    spinners.push(station, stationEcho);
   }
 
   /* --- Asteroid belt: five rock classes, each its own lane ----------- */
@@ -2888,7 +2880,7 @@ export function buildBackdrop(
     const span = 150;
     const field = asteroidField(rng, rock, span, config.rocks);
     for (const mesh of field.meshes) {
-      root.add(mesh);
+      sky.add(mesh);
       layers.push({ object: mesh, speed: rock.speed, span });
     }
     belts.push(field);
@@ -2911,16 +2903,16 @@ export function buildBackdrop(
       depthWrite: false,
       fog: false,
     }),
-    36,
+    68,
     streakSpan,
     (d, tint) => {
-      d.position.set((rng.next() - 0.5) * streakSpan, (rng.next() - 0.5) * 34, -6 - rng.next() * 9);
+      d.position.set((rng.next() - 0.5) * streakSpan, (rng.next() - 0.5) * 64, -6 - rng.next() * 9);
       d.rotation.set(0, 0, 0);
       d.scale.set(0.4 + rng.next() * 2.1, 0.012 + rng.next() * 0.022, 0.02);
       tint.set(config.streakTint).multiplyScalar(0.3 + rng.next() * 0.8);
     },
   );
-  root.add(streaks);
+  sky.add(streaks);
   layers.push({ object: streaks, speed: 26, span: streakSpan });
 
   return {
@@ -2928,9 +2920,22 @@ export function buildBackdrop(
     planet,
     globe,
     ground,
-    /** Advances every parallax band; `scale` lets the hangar idle drift slower. */
-    update(t: number, scale = 1) {
-      architecture.update(t * scale);
+    /**
+     * Advances every parallax band; `scale` lets the hangar idle drift slower.
+     * `lookX`/`lookY` (-1..1) are where the ship sits in the field: flying low
+     * tilts the view down toward what lies below, flying high lifts it. A tilt
+     * about the camera moves every depth together; the added lift slides the
+     * near layers further than the far ones, which is what sells the depth.
+     */
+    update(t: number, scale = 1, lookX = 0, lookY = 0, cameraZ = 33.6) {
+      // A surface stage keeps its terrain fixed, so its sky follows more gently.
+      const reach = ground ? 0.45 : 1;
+      view.position.z = cameraZ;
+      sky.position.z = -cameraZ;
+      view.rotation.set(-lookY * 0.21 * reach, lookX * 0.05 * reach, 0);
+      sky.position.x = -lookX * 1.5 * reach;
+      sky.position.y = -lookY * 6 * reach;
+      stars.update(t * scale);
       for (const belt of belts) belt.tumble(t * scale);
       for (const layer of layers) {
         const shift = (t * layer.speed * scale) % layer.span;
@@ -2942,7 +2947,6 @@ export function buildBackdrop(
         clouds.rotation.z = Math.sin(t * 0.03) * 0.02;
       }
       skybox.rotation.y = t * 0.0016;
-      for (const s of spinners) s.rotation.z = t * 0.07;
       for (const m of moons) m.rotation.y = t * 0.006;
     },
   };

@@ -1,6 +1,7 @@
 import { beforeAll, describe, expect, it } from 'vitest';
+import { FLEET_SLOTS, loadImportedFleet } from '../../src/visual/ImportedFleet';
 import { readFile } from 'node:fs/promises';
-import { loadBlenderFleet } from '../../src/visual/BlenderFleet';
+import { readFleetGeometry } from '../../tools/read-fleet-geometry.mjs';
 import { GameState } from '../../src/game/GameState';
 import { formationPosition } from '../../src/game/formations';
 import { STAGES } from '../../src/game/stages';
@@ -13,14 +14,62 @@ import {
   ENEMY_CORE,
   GROUND_TYPES,
 } from '../../src/visual/SceneBuilder';
-import { Mesh } from 'three/webgpu';
+import { Box3, Mesh, Vector3 } from 'three/webgpu';
+import mounts from '../../data/enemies/fleet-hardpoints.json';
+import roster from '../../data/enemies/imported-fleet.json';
 
 beforeAll(async () => {
-  const bytes = await readFile('public/models/voltaris-fleet.glb');
-  await loadBlenderFleet(bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength));
+  await loadImportedFleet(await readFleetGeometry());
 }, 30000);
 
 describe('fleet refit', () => {
+  it('packs a different textured spaceship for every roster slot', async () => {
+    const bytes = await readFile('public/models/imported/voltaris-imported-fleet.glb');
+    const document = JSON.parse(bytes.subarray(20, 20 + bytes.readUInt32LE(12)).toString());
+    expect(document.nodes.map((n: { name: string }) => n.name).sort()).toEqual(
+      [...FLEET_SLOTS].sort(),
+    );
+    const sources = [
+      roster.player,
+      ...roster.enemies,
+      ...roster.ground,
+      ...Object.values(roster.bosses).flatMap((b) => [b.hull, b.pod]),
+    ].map((s) => `${s.pack}/${s.model}`);
+    expect(new Set(sources).size).toBe(FLEET_SLOTS.length);
+    for (const mesh of document.meshes) {
+      expect(mesh.primitives).toHaveLength(1);
+      const part = mesh.primitives[0];
+      expect(part.attributes.TEXCOORD_0).toBeDefined();
+      const texture = document.materials[part.material].pbrMetallicRoughness.baseColorTexture.index;
+      const image = document.images[document.textures[texture].extensions.EXT_texture_webp.source];
+      expect(image.mimeType).toBe('image/webp');
+      // Native artist resolution: never below 1024 texels on a side.
+      expect(document.bufferViews[image.bufferView].byteLength).toBeGreaterThan(20000);
+    }
+    const manifest = JSON.parse(await readFile('public/models/imported/manifest.json', 'utf8'));
+    for (const model of manifest.models)
+      expect(Number(model.texture.split('x')[0])).toBeGreaterThanOrEqual(1024);
+  });
+  it('sizes the player and attaches every muzzle to its imported hull', () => {
+    const ship = makeShip();
+    const hull = ship.children[0] as Mesh;
+    const size = new Box3().setFromObject(hull).getSize(new Vector3());
+    expect(Math.max(size.x, size.y)).toBeCloseTo(3.2, 4);
+    for (let i = 0; i < defs.length; i++) {
+      const parts = enemyGeometry(i);
+      parts.hull!.computeBoundingBox();
+      const box = parts.hull!.boundingBox!;
+      for (const [x, y, z] of mounts[i].muzzles) {
+        expect(x).toBeCloseTo(box.min.x, 5);
+        expect(y).toBeGreaterThanOrEqual(box.min.y);
+        expect(y).toBeLessThanOrEqual(box.max.y);
+        expect(z).toBeGreaterThanOrEqual(box.min.z);
+        expect(z).toBeLessThanOrEqual(box.max.z);
+      }
+      parts.hull!.dispose();
+      parts.accent!.dispose();
+    }
+  });
   it('keeps off-centre charge lamps attached when hulls are rebuilt', () => {
     for (let i = 0; i < defs.length; i++) {
       const first = enemyGeometry(i);

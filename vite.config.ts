@@ -44,7 +44,7 @@ export default defineConfig({
             urlPattern: /\/models\/.*\.glb(?:\?|$)/,
             handler: 'StaleWhileRevalidate',
             options: {
-              cacheName: 'voltaris-blender-fleet',
+              cacheName: 'voltaris-imported-fleet-v2',
               expiration: { maxEntries: 2 },
               cacheableResponse: { statuses: [0, 200] },
             },

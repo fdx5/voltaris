@@ -367,7 +367,7 @@
   "boss": {
     "id": "JOVE ANVIL",
     "design": "jove",
-    "hp": 10400,
+    "hp": 20800,
     "parts": 8,
     "partHp": 300,
     "ringRadius": 5.2,

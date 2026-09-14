@@ -17,7 +17,7 @@
   "boss": {
     "id": "ARES CROWN",
     "design": "ares",
-    "hp": 5200,
+    "hp": 10400,
     "parts": 6,
     "partHp": 220,
     "ringRadius": 4,

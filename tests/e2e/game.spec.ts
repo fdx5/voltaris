@@ -21,6 +21,10 @@ test.beforeEach(async ({ page }) => {
 test('WebGL2 hangar, launch, movement, options, pause and settings', async ({ page }) => {
   const errors: string[] = [];
   page.on('pageerror', (e) => errors.push(e.message));
+  page.on('console', (message) => {
+    if (message.type() === 'error' && /texture|blob:|Content Security Policy/i.test(message.text()))
+      errors.push(message.text());
+  });
   await page.goto('/?webgl=1');
   await expect(page.getByRole('button', { name: 'BEGIN SORTIE 출격 준비' })).toBeEnabled({
     timeout: 45000,
