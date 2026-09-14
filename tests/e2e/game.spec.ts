@@ -18,6 +18,28 @@ test.beforeEach(async ({ page }) => {
     await route.fulfill({ json: body });
   });
 });
+test('title menu supports keyboard selection, records and flight manual', async ({ page }) => {
+  await page.goto('/?webgl=1');
+  const menu = page.getByRole('navigation', { name: '메인 메뉴' });
+  const launch = menu.getByRole('button', { name: 'BEGIN SORTIE 출격 준비' });
+  await expect(launch).toBeEnabled({ timeout: 45000 });
+  await launch.focus();
+  await page.keyboard.press('ArrowDown');
+  await expect(menu.getByRole('button', { name: '비행 기록' })).toBeFocused();
+  await page.keyboard.press('Enter');
+  await expect(page.getByRole('dialog', { name: 'FLIGHT RECORDS' })).toBeVisible();
+  await page.keyboard.press('Escape');
+  await expect(menu.getByRole('button', { name: '비행 기록' })).toBeFocused();
+  await page.keyboard.press('ArrowDown');
+  await page.keyboard.press('Enter');
+  await expect(page.getByRole('dialog', { name: 'FLIGHT MANUAL' })).toBeVisible();
+  await page.keyboard.press('Escape');
+  await page.keyboard.press('End');
+  await expect(menu.getByRole('button', { name: 'SIMULATION 보스 훈련' })).toBeFocused();
+  await page.keyboard.press('ArrowDown');
+  await expect(launch).toBeFocused();
+});
+
 test('WebGL2 hangar, launch, movement, options, pause and settings', async ({ page }) => {
   const errors: string[] = [];
   page.on('pageerror', (e) => errors.push(e.message));

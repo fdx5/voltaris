@@ -222,23 +222,15 @@ function GameApp() {
       {!active && (
         <>
           <div className="flight-scenery" aria-hidden="true">
-            <div className="orbital-dial">
-              <span />
-              <i />
-              <b>V / 01</b>
-            </div>
-            <div className="sortie-watermark">VOLTARIS</div>
+            <div className="flight-slash" />
+            <div className="flight-slash flight-slash-second" />
           </div>
           <header className="header">
             <a className="brand" href="#" onClick={(e) => e.preventDefault()}>
-              <span className="brand-mark">V</span>
               <span>
-                VOLTARIS<small>FLIGHT OPERATIONS / 2186</small>
+                VOLTARIS<small>볼타리스</small>
               </span>
             </a>
-            <div className="nav-caption">
-              <span className="status-dot" /> SYSTEMS {ui.ready ? 'ONLINE' : 'INITIALIZING'}
-            </div>
             <div className="header-tools">
               <span className="guest">
                 PILOT <b>{account.user?.username}</b>
@@ -271,77 +263,95 @@ function GameApp() {
             </div>
           </header>
           <main className="command">
-            <div className="eyebrow">
-              <span /> ORBITAL DEFENSE <b>01 — SORTIE COMMAND</b>
-            </div>
-            <div className="title">
-              <span>INTO THE</span>
-              <span>
-                UNKNOWN<i>↗</i>
-              </span>
-            </div>
-            <p className="tagline">고요의 끝, 당신의 비행이 시작된다.</p>
-            <p className="intro">
-              마지막 방어선을 넘어 미지의 궤도로.
-              <br />
-              작전을 선택하고, 당신의 기체를 출격시키세요.
-            </p>
-            <div className="sortie-destination">
-              <span>
-                현재 작전 <b>0{stage + 1}</b>
-              </span>
-              <strong>{STAGES[stage].name}</strong>
-              <small>{STAGES[stage].subtitle}</small>
-            </div>
-            <div className="main-actions">
+            <nav
+              className="flight-menu"
+              aria-label="메인 메뉴"
+              onKeyDown={(event) => {
+                if (!['ArrowDown', 'ArrowUp', 'Home', 'End'].includes(event.key)) return;
+                const buttons = Array.from(
+                  event.currentTarget.querySelectorAll<HTMLButtonElement>('button:not(:disabled)'),
+                );
+                const current = buttons.indexOf(document.activeElement as HTMLButtonElement);
+                const next =
+                  event.key === 'Home'
+                    ? 0
+                    : event.key === 'End'
+                      ? buttons.length - 1
+                      : (current + (event.key === 'ArrowDown' ? 1 : -1) + buttons.length) %
+                        buttons.length;
+                event.preventDefault();
+                buttons[next]?.focus();
+              }}
+            >
               <button
-                className="launch"
+                className="flight-choice launch"
+                aria-label={ui.ready ? 'BEGIN SORTIE 출격 준비' : '기체 초기화 중'}
                 disabled={!ui.ready || account.launching || account.saving}
                 onClick={() => {
                   setPractice(false);
                   open('launch');
                 }}
               >
-                <span>
-                  <small>BEGIN SORTIE</small>
-                  {ui.ready ? '출격 준비' : '기체 초기화 중'}
+                <span className="choice-index" aria-hidden="true">
+                  01
                 </span>
-                <ArrowUpRight size={28} />
+                <span className="menu-button">
+                  <Play size={18} aria-hidden="true" />
+                  {ui.ready ? '출격' : '기체 준비 중'}
+                  <ChevronRight size={16} aria-hidden="true" />
+                </span>
               </button>
-              <button className="text-button" onClick={() => open('controls')}>
-                <Keyboard size={15} /> 조작 가이드 <ArrowRight size={15} />
+              <button className="flight-choice" onClick={() => open('records')}>
+                <span className="choice-index" aria-hidden="true">
+                  02
+                </span>
+                <span className="menu-button">
+                  <Activity size={18} aria-hidden="true" />
+                  비행 기록
+                  <ChevronRight size={16} aria-hidden="true" />
+                </span>
               </button>
-            </div>
-            <nav className="secondary">
-              <button onClick={() => open('records')}>
-                비행 기록 <ChevronRight />
+              <button className="flight-choice guide-choice" onClick={() => open('controls')}>
+                <span className="choice-index" aria-hidden="true">
+                  03
+                </span>
+                <span className="menu-button">
+                  <Keyboard size={18} aria-hidden="true" />
+                  조작 가이드
+                  <ChevronRight size={16} aria-hidden="true" />
+                </span>
               </button>
-              <button onClick={stress} disabled={!ui.ready || account.launching || account.saving}>
-                테스트 랩 <Activity size={13} />
+              <button
+                className="flight-choice training-choice"
+                aria-label="SIMULATION 보스 훈련"
+                disabled={!ui.ready || account.launching || account.saving}
+                onClick={() => {
+                  setPractice(true);
+                  open('launch');
+                }}
+              >
+                <span className="choice-index" aria-hidden="true">
+                  04
+                </span>
+                <span className="menu-button">
+                  <Target size={18} aria-hidden="true" />
+                  보스 훈련
+                  <ChevronRight size={16} aria-hidden="true" />
+                </span>
               </button>
             </nav>
+            <p className="menu-hint">
+              <span>↑ ↓</span> 선택 <span>ENTER</span> 결정
+            </p>
           </main>
           <div className="ship-label">
-            <span className="bracket" />
-            <small>YOUR INTERCEPTOR / 출격 대기</small>
-            <strong>
-              VL–01 <span> / </span> PEREGRINE
-            </strong>
-            <p>SINGLE ION DRIVE · ADAPTIVE ARMAMENT</p>
-            <div>
-              <span>HULL INTEGRITY</span>
-              <i />
-              <b>100%</b>
-            </div>
+            <small>VL–01</small>
+            <strong>PEREGRINE</strong>
           </div>
-          <aside className="coordinates">
-            <span className="status-dot" /> FLIGHT DECK 01
-            <span>지구 저궤도 · ALT 408 KM</span>
-          </aside>
           <section className="mission-strip" aria-label="작전 항로">
             <div className="mission-heading">
               <span>
-                작전 항로 <em>SECTOR MAP</em>
+                작전 선택 <em>SELECT SECTOR</em>
               </span>
               <small>
                 {String(account.user?.clearedStages.length ?? 0).padStart(2, '0')} /{' '}
@@ -393,34 +403,18 @@ function GameApp() {
                   </button>
                 );
               })}
-              <button
-                className="boss-training"
-                disabled={!ui.ready || account.launching || account.saving}
-                onClick={() => {
-                  setPractice(true);
-                  open('launch');
-                }}
-              >
-                <Target size={23} />
-                <div>
-                  <small>SIMULATION</small>
-                  <strong>보스 훈련</strong>
-                </div>
-                <ChevronRight size={18} />
-              </button>
             </div>
           </section>
           <footer className="footer">
             <span>
-              <span className="status-dot" /> {ui.backend} <i>/</i>{' '}
-              {ui.ready ? `${Math.round(ui.fps)} FPS` : 'CONNECTING'}
+              {ui.ready ? '출격 대기' : '기체 준비 중'} <i>/</i> {ui.backend}
             </span>
             <span>
-              BEYOND THE LAST DEFENSE LINE <i>·</i> VOLTARIS / 0.1
+              {String(account.user?.clearedStages.length ?? 0).padStart(2, '0')} / 04 SECTORS
+              CLEARED
             </span>
-            <button onClick={() => open('controls')}>
-              {ui.gamepad ? <Gamepad2 size={14} /> : <Keyboard size={14} />} KEYBOARD · TOUCH ·
-              GAMEPAD
+            <button onClick={stress} disabled={!ui.ready || account.launching || account.saving}>
+              테스트 랩 <Activity size={12} />
             </button>
           </footer>
         </>

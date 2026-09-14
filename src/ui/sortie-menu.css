@@ -1,4 +1,15 @@
-/* Flight deck composition. Scoped to the hangar so combat keeps its HUD. */
+/* A game title screen: open space, a flyable ship, and four direct commands. */
+.app.sortie-menu {
+  --mint: #f65b42;
+  display: grid;
+  grid-template-columns: 1fr;
+  grid-template-rows: 150px minmax(0, 1fr) 146px 40px;
+  gap: 12px;
+  padding: 0 5%;
+  min-height: 0;
+  overflow: hidden;
+  color: #f2f0e7;
+}
 .flight-scenery {
   position: absolute;
   inset: 0;
@@ -6,854 +17,634 @@
   pointer-events: none;
   z-index: -1;
 }
-.app.sortie-menu {
-  --mint: #ff9666;
-  --muted: #9cabb5;
-  --line: #bbcfdb26;
-  display: grid;
-  grid-template-columns: minmax(320px, 1fr) minmax(240px, 0.85fr) 330px;
-  grid-template-rows: 78px minmax(0, 1fr) 46px;
-  gap: 0 24px;
-  padding: 0 4%;
-  min-height: 0;
-  overflow: hidden;
-  color: #edf0eb;
+.flight-slash {
+  position: absolute;
+  top: -30%;
+  left: 60%;
+  width: 9%;
+  height: 170%;
+  transform: rotate(23deg);
+  background: linear-gradient(#f45c421a, transparent 60%);
+  border-left: 1px solid #f569422b;
+}
+.flight-slash-second {
+  left: 73%;
+  width: 2%;
+  opacity: 0.4;
 }
 .app.sortie-menu .vignette {
   background:
-    linear-gradient(90deg, #060d16f5, #060d1690 32%, #060d1608 57%, #060d16c9 80%, #060d16ef),
-    linear-gradient(0deg, #060d16ed, transparent 38%, #060d1655);
+    linear-gradient(90deg, #060b13e8, #060b1370 32%, transparent 65%),
+    linear-gradient(0deg, #060b13f0, transparent 40%, #060b1344);
 }
 .app.sortie-menu .header {
-  grid-column: 1 / -1;
+  grid-row: 1;
+  position: static;
   height: auto;
   padding: 0;
-  gap: 24px;
-  border-bottom: 1px solid #a8c2d124;
-  z-index: 2;
+  border: 0;
+  align-items: flex-start;
+  padding-top: 35px;
+  gap: 25px;
 }
 .app.sortie-menu .brand {
-  font-size: 14px;
-  letter-spacing: 3px;
-  gap: 12px;
-}
-.app.sortie-menu .brand-mark {
-  border: 0;
-  color: var(--mint);
-  font-size: 34px;
+  display: block;
+  font-size: clamp(45px, 5.8vw, 88px);
+  font-weight: 950;
   font-style: italic;
-  transform: none;
-  padding: 0;
+  letter-spacing: -0.065em;
+  line-height: 0.85;
+  transform: scaleX(1.08);
+  transform-origin: left;
 }
 .app.sortie-menu .brand small {
-  font-size: 7px;
-  letter-spacing: 1.9px;
-  color: #8f9faa;
-}
-.app.sortie-menu .nav-caption {
-  margin-left: 18px;
-  font-size: 8px;
-  letter-spacing: 1px;
+  font-style: normal;
+  font-size: 10px;
+  font-weight: 400;
+  letter-spacing: 12px;
+  margin: 20px 0 0 6px;
+  color: #babfbe;
 }
 .app.sortie-menu .header-tools {
-  gap: 10px;
+  margin-left: auto;
+  gap: 13px;
+  align-items: center;
 }
 .app.sortie-menu .header-tools button {
   min-height: 40px;
   min-width: 36px;
   font-size: 10px;
 }
-.app.sortie-menu .header-tools button:hover {
-  background: #eaf1f00b;
-}
 .app.sortie-menu .guest {
-  max-width: 210px;
+  margin-right: 8px;
+  max-width: 200px;
   overflow: hidden;
-  text-overflow: ellipsis;
   white-space: nowrap;
-  margin: 0 12px 0 0;
+  text-overflow: ellipsis;
+}
+.app.sortie-menu .header-tools svg {
+  color: #c4cbc9;
 }
 .app.sortie-menu .command {
+  grid-row: 2;
   position: relative;
   inset: auto;
-  grid-column: 1;
-  grid-row: 2;
-  align-self: center;
   display: block;
-  width: auto;
-  max-width: none;
-  padding: 20px 0 60px;
-  z-index: 1;
+  align-self: center;
+  width: 350px;
+  max-width: 40%;
+  padding: 0;
 }
-.app.sortie-menu .eyebrow {
-  font-size: 8px;
-  letter-spacing: 1.8px;
-  gap: 10px;
-}
-.app.sortie-menu .eyebrow > span {
-  width: 6px;
-  height: 6px;
-}
-.app.sortie-menu .eyebrow b {
-  color: #8999a5;
-  font-size: 7px;
-  letter-spacing: 1px;
-}
-.app.sortie-menu .title {
+.flight-menu {
   display: flex;
   flex-direction: column;
-  font-size: clamp(43px, 4.55vw, 88px);
-  letter-spacing: -0.065em;
-  line-height: 0.96;
-  margin: 30px 0 23px;
-  font-weight: 900;
-  font-style: italic;
+  gap: 5px;
 }
-.app.sortie-menu .title > span:first-child {
-  color: #f1f0e9;
-}
-.app.sortie-menu .title > span:nth-child(2) {
-  color: var(--mint);
-  white-space: nowrap;
-}
-.app.sortie-menu .title i {
-  font-size: 0.48em;
-  vertical-align: top;
-  margin: 2px 0 0 7px;
-  color: #f1f0e9;
-}
-.app.sortie-menu .tagline {
-  font-size: 14px;
-  letter-spacing: 0.5px;
-  color: #edf0eb;
-  margin: 0 0 14px;
-}
-.app.sortie-menu .intro {
-  font-size: 11px;
-  color: #a0b0bc;
-  line-height: 1.9;
-}
-.sortie-destination {
-  margin: 32px 0 0;
-  padding-left: 14px;
-  border-left: 2px solid var(--mint);
-  display: grid;
-  gap: 7px;
-}
-.sortie-destination > span {
-  font-size: 9px;
-  color: #a3b3be;
-}
-.sortie-destination b {
-  color: var(--mint);
-  margin-left: 8px;
-  font: 11px monospace;
-}
-.sortie-destination strong {
-  font-size: 15px;
-  font-weight: 500;
-  letter-spacing: 0.3px;
-}
-.sortie-destination small {
-  color: #7e939f;
-  font-size: 9px;
-}
-.app.sortie-menu .main-actions {
+.app.sortie-menu .flight-choice {
+  position: relative;
   display: flex;
-  align-items: stretch;
-  flex-direction: column;
-  gap: 9px;
-  margin-top: 24px;
-  max-width: 300px;
-}
-.app.sortie-menu .launch {
+  align-items: center;
+  gap: 18px;
   width: 100%;
-  min-height: 76px;
-  padding: 16px 24px;
-  background: #ff9666;
-  color: #1c1818;
-  clip-path: polygon(0 0, 100% 0, 100% 72%, 93% 100%, 0 100%);
+  min-height: 64px;
+  padding: 10px 16px 10px 0;
+  text-align: left;
+  background: transparent;
+  color: #a6b0b6;
+  clip-path: none;
+  border: 0;
+  transform: none;
 }
-.app.sortie-menu .launch span {
-  font-size: 21px;
-  letter-spacing: 0.5px;
+.app.sortie-menu .flight-choice > span:not(.choice-index) {
+  font-size: 25px;
+  font-weight: 500;
+  letter-spacing: -1px;
 }
-.app.sortie-menu .launch small {
-  font-size: 8px;
-  letter-spacing: 2px;
-  opacity: 0.8;
+.app.sortie-menu .flight-choice .choice-index {
+  font: italic 11px monospace;
+  color: #768693;
+  width: 19px;
+  font-weight: 400;
 }
-.app.sortie-menu .launch:hover:not(:disabled) {
-  background: #ffb58f;
-  color: #1c1818;
-  transform: translateX(4px);
+.app.sortie-menu .flight-choice > small {
+  margin: 3px 0 0 auto;
+  color: #768693;
+  font: 8px monospace;
+  letter-spacing: 1px;
+  opacity: 1;
 }
-.app.sortie-menu .launch:focus-visible {
-  outline-offset: -5px;
-  outline-color: #151d27;
+.app.sortie-menu .flight-choice::before {
+  content: '';
+  position: absolute;
+  left: -23px;
+  width: 9px;
+  height: 17px;
+  background: #f65b42;
+  clip-path: polygon(0 0, 100% 50%, 0 100%);
+  opacity: 0;
+  transform: translateX(-7px);
+  transition:
+    transform 0.18s,
+    opacity 0.18s;
 }
-.app.sortie-menu .text-button {
-  min-height: 38px;
-  font-size: 11px;
-  letter-spacing: 0;
-  color: #b4c0c7;
+.app.sortie-menu .launch,
+.app.sortie-menu .flight-choice:hover:not(:disabled),
+.app.sortie-menu .flight-choice:focus-visible {
+  color: #fff7e9;
+  background: transparent;
 }
-.app.sortie-menu .text-button svg:last-child {
-  margin-left: auto;
+.app.sortie-menu .launch::before,
+.app.sortie-menu .flight-choice:hover:not(:disabled)::before,
+.app.sortie-menu .flight-choice:focus-visible::before {
+  opacity: 1;
+  transform: translateX(0);
 }
-.app.sortie-menu .secondary {
-  margin-top: 13px;
-  gap: 24px;
+.flight-menu:has(.flight-choice:not(.launch):hover) .launch::before,
+.flight-menu:has(.flight-choice:not(.launch):focus-visible) .launch::before {
+  opacity: 0;
 }
-.app.sortie-menu .secondary button {
-  min-height: 38px;
-  color: #9eafb9;
-  font-size: 11px;
+.app.sortie-menu .flight-choice:hover:not(:disabled) > span:not(.choice-index),
+.app.sortie-menu .flight-choice:focus-visible > span:not(.choice-index) {
+  transform: translateX(5px);
+}
+.flight-choice > span {
+  transition: transform 0.18s;
+}
+.app.sortie-menu .flight-choice:focus-visible {
+  outline: 1px solid #e4ded760;
+  outline-offset: 3px;
+}
+.menu-hint {
+  margin: 27px 0 0 36px;
+  font-size: 9px;
+  color: #7f929e;
+}
+.menu-hint span {
+  margin: 0 8px 0 15px;
+  color: #b7c3c9;
+  font: 9px monospace;
+}
+.menu-hint span:first-child {
+  margin-left: 0;
 }
 .app.sortie-menu .ship-label {
   position: absolute;
-  left: 45%;
+  left: auto;
+  right: 9%;
   top: auto;
-  bottom: 19%;
-  width: 240px;
-  padding: 0 0 0 16px;
-  border-left: 1px solid #ced9db70;
-  pointer-events: none;
+  bottom: 30%;
+  width: auto;
+  border: 0;
+  padding: 0;
+  text-align: right;
 }
 .app.sortie-menu .ship-label::before {
   display: none;
 }
 .app.sortie-menu .ship-label small {
-  color: #b2c5ce;
-  letter-spacing: 1px;
-  font-size: 8px;
+  font: 9px monospace;
+  color: #b1bfca;
+  letter-spacing: 2px;
 }
 .app.sortie-menu .ship-label strong {
-  font-size: 16px;
-  margin-top: 10px;
-}
-.app.sortie-menu .ship-label p {
-  font-size: 7px;
-  letter-spacing: 0.7px;
-  color: #9cabb8;
-}
-.app.sortie-menu .ship-label div {
-  margin-top: 15px;
-}
-.app.sortie-menu .ship-label div i {
-  background: #c3d8d8;
-}
-.app.sortie-menu .coordinates {
-  position: absolute;
-  left: 44%;
-  right: auto;
-  top: 18%;
-  font: 8px monospace;
-  line-height: 2;
-  letter-spacing: 1px;
-  color: #b3c4ce;
-}
-.app.sortie-menu .coordinates > span:last-child {
   display: block;
-  color: #8097a7;
-  font-size: 8px;
-}
-.orbital-dial {
-  position: absolute;
-  width: 46vw;
-  height: 46vw;
-  max-width: 760px;
-  max-height: 760px;
-  left: 33%;
-  top: 50%;
-  transform: translateY(-50%) rotate(-24deg);
-  border: 1px solid #b6d3e416;
-  border-radius: 50%;
-  pointer-events: none;
-  z-index: -1;
-}
-.orbital-dial::before,
-.orbital-dial::after {
-  content: '';
-  position: absolute;
-  border-radius: 50%;
-}
-.orbital-dial::before {
-  inset: 7%;
-  border: 1px dashed #b6d3e41c;
-}
-.orbital-dial::after {
-  inset: -2%;
-  border: 2px solid transparent;
-  border-top-color: #ff966668;
-  border-bottom-color: #b6d3e433;
-  transform: rotate(40deg);
-}
-.orbital-dial span {
-  position: absolute;
-  top: 50%;
-  left: -6%;
-  right: -6%;
-  height: 1px;
-  background: #b6d3e41c;
-}
-.orbital-dial i {
-  position: absolute;
-  left: 50%;
-  top: -6%;
-  bottom: -6%;
-  width: 1px;
-  background: #b6d3e41c;
-}
-.orbital-dial b {
-  position: absolute;
-  top: -13px;
-  left: 50%;
-  font: 8px monospace;
-  color: #8ca4b3;
-}
-.sortie-watermark {
-  position: absolute;
-  left: 4%;
-  bottom: 37px;
-  color: #c0d1dd07;
-  font-size: 15.5vw;
-  line-height: 0.86;
-  letter-spacing: -0.065em;
-  font-weight: 900;
+  font-size: 15px;
   font-style: italic;
-  pointer-events: none;
-  z-index: -1;
+  letter-spacing: 3px;
+  margin: 6px 0;
 }
 .app.sortie-menu .mission-strip {
-  position: relative;
+  grid-row: 3;
+  position: static;
   inset: auto;
-  grid-column: 3;
-  grid-row: 2;
-  align-self: center;
-  padding: 22px 0 40px 20px;
   min-width: 0;
 }
 .app.sortie-menu .mission-heading {
   display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-  gap: 8px;
-  margin-bottom: 24px;
-  letter-spacing: 1px;
-}
-.app.sortie-menu .mission-heading > span {
-  font:
-    16px Arial,
-    'Malgun Gothic',
-    sans-serif;
-}
-.app.sortie-menu .mission-heading em {
-  display: block;
-  font: normal 8px monospace;
-  letter-spacing: 2px;
-  color: #8f9fa9;
-  margin-top: 8px;
-}
-.app.sortie-menu .mission-heading small {
-  padding-top: 4px;
-  font-size: 8px;
-  color: #91a3ae;
+  align-items: center;
+  gap: 20px;
+  margin: 0 0 14px;
+  font-size: 10px;
   letter-spacing: 0;
 }
-.app.sortie-menu .mission-cards {
-  display: flex;
-  flex-direction: column;
-  gap: 7px;
-  position: relative;
+.app.sortie-menu .mission-heading em {
+  font: normal 8px monospace;
+  color: #7e909c;
+  letter-spacing: 1px;
+  margin-left: 12px;
 }
-.app.sortie-menu .mission-cards::before {
-  content: '';
-  position: absolute;
-  left: 35px;
-  top: 40px;
-  bottom: 88px;
-  width: 1px;
-  background: linear-gradient(#ff9666, #87a5bc38);
+.app.sortie-menu .mission-heading small {
+  margin-left: auto;
+  font: 8px monospace;
+  color: #93a4ae;
+}
+.app.sortie-menu .mission-cards {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 24px;
 }
 .app.sortie-menu .mission {
-  height: 100px;
-  width: 100%;
-  flex-shrink: 0;
-  overflow: visible;
-  border: 0;
-  border-radius: 0;
+  height: 90px;
+  min-width: 0;
+  display: flex;
+  gap: 17px;
+  align-items: center;
+  padding: 0 8px 10px 0;
+  overflow: hidden;
   background: transparent;
-  padding: 10px 10px 10px 0;
-  gap: 18px;
-}
-.app.sortie-menu .mission:nth-child(2) {
-  margin-left: 12px;
-  width: calc(100% - 12px);
-}
-.app.sortie-menu .mission:nth-child(3) {
-  margin-left: 24px;
-  width: calc(100% - 24px);
-}
-.app.sortie-menu .mission:nth-child(4) {
-  margin-left: 12px;
-  width: calc(100% - 12px);
+  border: 0;
+  border-bottom: 1px solid #a9bdca38;
 }
 .app.sortie-menu .mission.selected {
-  background: linear-gradient(90deg, transparent, #ff966610);
+  background: transparent;
+  border-bottom: 2px solid #f65b42;
 }
 .app.sortie-menu .mission.selected::before {
-  left: auto;
-  right: 0;
-  top: 24px;
-  bottom: 24px;
-  width: 2px;
+  display: none;
 }
 .app.sortie-menu .mission:hover:not(:disabled) {
-  background: #acc9dc0c;
-  transform: translateX(-4px);
+  background: #dbe5ea08;
 }
 .app.sortie-menu .mission-visual {
-  width: 70px;
-  height: 70px;
-  padding: 5px;
+  width: 74px;
+  height: 74px;
+  border: 0;
   border-radius: 50%;
-  border: 1px solid #b0d1e52b;
-  background: #07111d;
-  position: relative;
-}
-.app.sortie-menu .mission.selected .mission-visual {
-  border-color: #ff9666b0;
-  box-shadow: 0 0 24px #ff966618;
+  background: transparent;
+  object-fit: contain;
 }
 .app.sortie-menu .mission > div {
   min-width: 0;
 }
 .app.sortie-menu .mission small {
-  font-size: 8px;
-  color: #aabcc9;
+  font: 8px monospace;
+  color: #a4b3bf;
   gap: 10px;
   letter-spacing: 1px;
 }
 .app.sortie-menu .mission small span {
-  font-size: 7px;
-  color: #bdc9cb;
-  letter-spacing: 0;
-}
-.app.sortie-menu .mission.selected small span {
-  color: var(--mint);
+  font: 7px monospace;
+  color: #91a4b0;
 }
 .app.sortie-menu .mission strong {
-  font-size: 14px;
+  font-size: 13px;
   font-weight: 500;
-  margin-top: 8px;
+  letter-spacing: 0.3px;
+  margin: 8px 0 0;
+  white-space: nowrap;
 }
 .app.sortie-menu .mission p {
-  color: #8b9eac;
   font-size: 9px;
-  margin-top: 7px;
+  color: #9aabb6;
+  margin-top: 6px;
+  white-space: nowrap;
 }
 .app.sortie-menu .mission > svg {
-  width: 14px;
+  width: 13px;
   align-self: center;
-  color: #b7c7cd;
+  color: #a0b3bf;
+  margin-left: auto;
 }
 .app.sortie-menu .mission.locked {
   opacity: 0.55;
 }
-.app.sortie-menu .boss-training {
-  min-height: 58px;
-  border: 0;
-  border-top: 1px solid #b4c5d02b;
-  margin-top: 17px;
-  padding: 12px 5px;
-  background: transparent;
-  justify-content: flex-start;
-  color: #c1cbd0;
-  gap: 14px;
-}
-.app.sortie-menu .boss-training > svg:last-child {
-  margin-left: auto;
-}
-.app.sortie-menu .boss-training strong {
-  margin-top: 5px;
-}
-.app.sortie-menu .boss-training small {
-  color: #8c9ea9;
-  letter-spacing: 1.5px;
-}
 .app.sortie-menu .footer {
+  grid-row: 4;
   position: static;
-  grid-column: 1 / -1;
   height: auto;
   padding: 0;
+  border: 0;
   font-size: 8px;
-  border-top: 1px solid #a8c2d124;
-  z-index: 1;
 }
 .app.sortie-menu .footer button {
-  min-height: 40px;
-  font-size: 8px;
+  min-height: 32px;
+  font-size: 9px;
+  color: #8395a2;
 }
 .app.sortie-menu .modal {
-  --mint: #ff9666;
-  border-top: 2px solid #ff9666;
+  --mint: #f58b6c;
+  border-top: 2px solid #f65b42;
   background: linear-gradient(135deg, #142330fa, #0a141ffa);
 }
 .app.sortie-menu .rotate-overlay {
   display: none;
 }
-
-@media (max-width: 1200px) and (min-width: 1051px) {
-  .app.sortie-menu {
-    grid-template-columns: minmax(310px, 1fr) minmax(100px, 0.6fr) 290px;
-    gap: 0 16px;
+@media (max-width: 1100px) {
+  .app.sortie-menu .mission-cards {
+    gap: 14px;
   }
-  .app.sortie-menu .nav-caption {
+  .app.sortie-menu .mission {
+    gap: 9px;
+  }
+  .app.sortie-menu .mission-visual {
+    width: 54px;
+    height: 54px;
+  }
+  .app.sortie-menu .mission p,
+  .app.sortie-menu .mission small span {
     display: none;
   }
-  .app.sortie-menu .mission-strip {
-    padding-left: 0;
-  }
-  .app.sortie-menu .ship-label {
-    left: 40%;
-    width: 210px;
+  .app.sortie-menu .mission strong {
+    font-size: 11px;
   }
 }
-@media (max-width: 1050px), (max-height: 650px) {
+@media (max-width: 1050px), (max-height: 700px) {
   .app.sortie-menu {
-    grid-template-columns: 1fr;
-    grid-template-rows: 52px minmax(0, 1fr) auto 30px;
+    grid-template-rows: 85px minmax(0, 1fr) 100px 30px;
     gap: 8px;
-    padding: var(--safe-top) max(18px, var(--safe-right)) var(--safe-bottom)
-      max(18px, var(--safe-left));
+    padding: var(--safe-top) max(28px, var(--safe-right)) var(--safe-bottom)
+      max(28px, var(--safe-left));
   }
   .app.sortie-menu .header {
-    grid-column: 1;
-    grid-row: 1;
+    padding-top: 18px;
   }
-  .app.sortie-menu .header .nav-caption {
-    display: none;
+  .app.sortie-menu .brand {
+    font-size: 50px;
   }
-  .app.sortie-menu .header .guest {
+  .app.sortie-menu .brand small {
+    font-size: 7px;
+    letter-spacing: 8px;
+    margin-top: 13px;
+  }
+  .app.sortie-menu .header-tools {
+    gap: 3px;
+  }
+  .app.sortie-menu .header-tools .guest {
     display: none;
   }
   .app.sortie-menu .command {
-    grid-column: 1;
-    grid-row: 2;
-    display: grid;
-    grid-template-columns: 1fr 0.8fr;
-    gap: 8px 30px;
-    padding: 0;
-    align-self: center;
+    width: 290px;
+    max-width: 48%;
   }
-  .app.sortie-menu .eyebrow,
-  .app.sortie-menu .intro,
-  .app.sortie-menu .tagline,
-  .sortie-destination {
-    display: none;
+  .app.sortie-menu .flight-choice {
+    min-height: 44px;
+    gap: 12px;
+    padding: 5px 10px 5px 0;
   }
-  .app.sortie-menu .command .title {
-    grid-column: 1;
-    grid-row: 1 / 3;
-    font-size: clamp(34px, 5.8vw, 70px);
-    margin: 0;
-    align-self: center;
+  .app.sortie-menu .flight-choice > span:not(.choice-index) {
+    font-size: 20px;
   }
-  .app.sortie-menu .command .main-actions {
-    grid-column: 2;
-    margin: 0;
-    gap: 2px;
-    width: 100%;
-    max-width: none;
-  }
-  .app.sortie-menu .launch {
-    min-height: 56px;
-    padding: 10px 18px;
-  }
-  .app.sortie-menu .launch span {
-    font-size: 17px;
-  }
-  .app.sortie-menu .command .secondary {
-    grid-column: 2;
-    margin: 0;
-    gap: 20px;
-  }
-  .app.sortie-menu .secondary button,
-  .app.sortie-menu .text-button {
-    min-height: 34px;
-  }
-  .app.sortie-menu .ship-label,
-  .app.sortie-menu .coordinates {
-    display: none;
-  }
-  .app.sortie-menu .mission-strip {
-    grid-column: 1;
-    grid-row: 3;
-    padding: 0;
-    align-self: auto;
-  }
-  .app.sortie-menu .mission-heading {
-    margin-bottom: 9px;
-    align-items: center;
-  }
-  .app.sortie-menu .mission-heading > span {
-    font-size: 11px;
-  }
-  .app.sortie-menu .mission-heading em {
-    display: inline;
-    margin-left: 10px;
+  .app.sortie-menu .flight-choice > small {
     font-size: 7px;
   }
-  .app.sortie-menu .mission-heading small {
-    padding: 0;
+  .flight-menu {
+    gap: 0;
   }
-  .app.sortie-menu .mission-cards {
-    display: grid;
-    grid-template-columns: repeat(4, minmax(0, 1fr)) 0.8fr;
-    gap: 8px;
+  .menu-hint {
+    display: none;
   }
-  .app.sortie-menu .mission-cards::before {
-    left: 0;
-    right: 17%;
-    top: 27px;
-    bottom: auto;
-    height: 1px;
-    width: auto;
-    background: #b0d1e52b;
+  .app.sortie-menu .ship-label {
+    display: block;
+    bottom: 30%;
+    right: 8%;
   }
-  .app.sortie-menu .mission,
-  .app.sortie-menu .mission:nth-child(n) {
-    width: 100%;
-    height: 88px;
-    margin: 0;
-    padding: 0;
-    flex-direction: column;
-    align-items: flex-start;
-    justify-content: center;
-    gap: 6px;
+  .app.sortie-menu .mission-heading {
+    margin-bottom: 7px;
   }
-  .app.sortie-menu .mission.selected::before {
-    top: auto;
-    bottom: 0;
-    left: 0;
-    right: 0;
-    height: 1px;
-    width: auto;
+  .app.sortie-menu .mission {
+    height: 70px;
+    gap: 10px;
   }
   .app.sortie-menu .mission-visual {
-    width: 42px;
-    height: 42px;
-    padding: 2px;
+    width: 45px;
+    height: 45px;
+  }
+  .app.sortie-menu .mission p,
+  .app.sortie-menu .mission small span,
+  .app.sortie-menu .mission > svg {
+    display: none;
+  }
+  .app.sortie-menu .footer > span:nth-child(2) {
+    display: none;
+  }
+  .app.sortie-menu .footer button {
+    min-height: 28px;
+  }
+}
+@media (max-height: 500px) and (orientation: landscape) {
+  .app.sortie-menu {
+    grid-template-rows: 60px minmax(0, 1fr) 84px 28px;
+    gap: 4px;
+  }
+  .app.sortie-menu .header {
+    padding-top: 10px;
+  }
+  .app.sortie-menu .brand {
+    font-size: 37px;
+  }
+  .app.sortie-menu .brand small {
+    margin-top: 8px;
+    font-size: 6px;
+  }
+  .app.sortie-menu .command {
+    width: 300px;
+    max-width: 55%;
+  }
+  .flight-menu {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 4px 24px;
+  }
+  .app.sortie-menu .flight-choice {
+    min-height: 40px;
+    gap: 7px;
+  }
+  .app.sortie-menu .flight-choice > span:not(.choice-index) {
+    font-size: 16px;
+    white-space: nowrap;
+  }
+  .app.sortie-menu .flight-choice > small {
+    display: none;
+  }
+  .app.sortie-menu .flight-choice::before {
+    left: -13px;
+    width: 6px;
+    height: 11px;
+  }
+  .app.sortie-menu .flight-choice .choice-index {
+    font-size: 9px;
+    width: 15px;
+  }
+  .app.sortie-menu .ship-label {
+    bottom: 38%;
+  }
+  .app.sortie-menu .ship-label strong {
+    font-size: 10px;
+  }
+  .app.sortie-menu .mission {
+    height: 60px;
+    gap: 6px;
+  }
+  .app.sortie-menu .mission-visual {
+    width: 34px;
+    height: 34px;
+    flex-shrink: 0;
   }
   .app.sortie-menu .mission small {
     font-size: 7px;
   }
   .app.sortie-menu .mission strong {
-    font-size: 10px;
-    margin-top: 4px;
+    font-size: 9px;
+    margin-top: 5px;
+    overflow: hidden;
+    text-overflow: ellipsis;
   }
-  .app.sortie-menu .mission small span,
-  .app.sortie-menu .mission p,
-  .app.sortie-menu .mission > svg {
-    display: none;
-  }
-  .app.sortie-menu .boss-training {
-    min-height: 44px;
-    margin: 0;
-    padding: 8px;
-    border-top: 0;
-    border-left: 1px solid #b4c5d02b;
-    justify-content: center;
-  }
-  .app.sortie-menu .boss-training > svg {
-    display: none;
-  }
-  .app.sortie-menu .boss-training small {
-    font-size: 7px;
-    letter-spacing: 0;
-  }
-  .app.sortie-menu .boss-training strong {
-    font-size: 11px;
-  }
-  .app.sortie-menu .footer {
-    grid-row: 4;
-    grid-column: 1;
-    font-size: 7px;
+  .app.sortie-menu .mission-heading {
+    font-size: 9px;
+    margin-bottom: 5px;
   }
   .app.sortie-menu .footer button {
-    min-height: 28px;
-    font-size: 7px;
-  }
-  .app.sortie-menu .footer > span:nth-child(2) {
-    display: none;
-  }
-  .app.sortie-menu .orbital-dial {
-    left: 26%;
-    width: 60vw;
-    height: 60vw;
+    min-height: 26px;
   }
 }
 @media (max-width: 600px) and (orientation: portrait) {
   .app.sortie-menu {
-    grid-template-rows: 52px minmax(0, 1fr) auto 28px;
-    gap: 12px;
+    grid-template-rows: 102px minmax(0, 1fr) 165px 28px;
+    gap: 9px;
+    padding-left: 22px;
+    padding-right: 22px;
+  }
+  .app.sortie-menu .header {
+    flex-wrap: wrap;
+    gap: 6px;
+    padding-top: 17px;
+    align-content: flex-start;
   }
   .app.sortie-menu .brand {
-    font-size: 11px;
-    letter-spacing: 1.8px;
-    gap: 7px;
+    font-size: 45px;
   }
   .app.sortie-menu .brand small {
-    font-size: 5px;
-    letter-spacing: 0.8px;
-  }
-  .app.sortie-menu .brand-mark {
-    font-size: 28px;
+    display: none;
   }
   .app.sortie-menu .header-tools {
-    gap: 1px;
+    width: 100%;
+    justify-content: flex-end;
   }
   .app.sortie-menu .header-tools button {
+    min-height: 34px;
     min-width: 32px;
     font-size: 9px;
-    padding: 4px;
   }
   .app.sortie-menu .header-tools button[aria-label='전체화면'] {
     display: block;
   }
   .app.sortie-menu .command {
-    grid-template-columns: 1fr;
-    gap: 8px;
+    max-width: 100%;
+    width: 260px;
+    align-self: end;
+    padding-bottom: 13px;
   }
-  .app.sortie-menu .command .title {
-    grid-column: 1;
-    grid-row: auto;
-    font-size: clamp(38px, 10.4vw, 62px);
-    margin-bottom: 10px;
+  .app.sortie-menu .flight-choice {
+    min-height: 44px;
   }
-  .app.sortie-menu .command .main-actions {
-    grid-column: 1;
-    display: grid;
-    grid-template-columns: 1fr auto;
-    gap: 14px;
+  .app.sortie-menu .flight-choice > span:not(.choice-index) {
+    font-size: 21px;
   }
-  .app.sortie-menu .command .text-button {
-    font-size: 10px;
-    letter-spacing: 0;
-    gap: 7px;
+  .app.sortie-menu .flight-choice::before {
+    left: -13px;
+    width: 6px;
+    height: 12px;
   }
-  .app.sortie-menu .text-button > svg {
+  .app.sortie-menu .ship-label {
     display: none;
-  }
-  .app.sortie-menu .command .secondary {
-    grid-column: 1;
-    gap: 24px;
-  }
-  .app.sortie-menu .launch {
-    min-height: 60px;
   }
   .app.sortie-menu .mission-cards {
     grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 8px 14px;
+    gap: 5px 14px;
   }
-  .app.sortie-menu .mission-cards::before {
-    display: none;
-  }
-  .app.sortie-menu .mission,
-  .app.sortie-menu .mission:nth-child(n) {
-    height: 70px;
-    flex-direction: row;
-    align-items: center;
-    justify-content: flex-start;
-    gap: 8px;
+  .app.sortie-menu .mission {
+    height: 65px;
+    gap: 7px;
   }
   .app.sortie-menu .mission-visual {
-    width: 44px;
-    height: 44px;
+    width: 38px;
+    height: 38px;
   }
-  .app.sortie-menu .boss-training {
-    grid-column: 1 / -1;
-    border-left: 0;
-    border-top: 1px solid #b4c5d02b;
-    min-height: 44px;
-  }
-  .app.sortie-menu .boss-training > svg:first-child {
-    display: block;
-    width: 16px;
-  }
-  .app.sortie-menu .boss-training div {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-  }
-  .app.sortie-menu .boss-training strong {
-    margin: 0;
-  }
-  .app.sortie-menu .orbital-dial {
-    width: 100vw;
-    height: 100vw;
-    left: 18%;
-    top: 32%;
-  }
-}
-@media (max-height: 380px) and (orientation: landscape) {
-  .app.sortie-menu {
-    grid-template-rows: 42px minmax(0, 1fr) auto 30px;
-    gap: 4px;
-  }
-  .app.sortie-menu .command .title {
-    font-size: 36px;
-  }
-  .app.sortie-menu .command {
-    gap: 0 24px;
-  }
-  .app.sortie-menu .command .main-actions {
-    flex-direction: row;
-    align-items: center;
-    gap: 12px;
-  }
-  .app.sortie-menu .launch {
-    min-height: 46px;
-    padding: 7px 14px;
-  }
-  .app.sortie-menu .launch span {
-    font-size: 14px;
-  }
-  .app.sortie-menu .launch small {
+  .app.sortie-menu .mission small {
     font-size: 7px;
-    margin-bottom: 3px;
   }
-  .app.sortie-menu .command .text-button {
+  .app.sortie-menu .mission strong {
     font-size: 9px;
-    white-space: nowrap;
+    letter-spacing: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
   }
-  .app.sortie-menu .text-button > svg {
-    display: none;
+  .app.sortie-menu .mission-heading em {
+    font-size: 6px;
+    margin-left: 7px;
   }
-  .app.sortie-menu .secondary button {
-    min-height: 30px;
-    font-size: 10px;
+  .app.sortie-menu .mission-heading small {
+    font-size: 7px;
   }
-  .app.sortie-menu .mission,
-  .app.sortie-menu .mission:nth-child(n) {
-    height: 72px;
-    gap: 4px;
-  }
-  .app.sortie-menu .mission-visual {
-    width: 32px;
-    height: 32px;
-  }
-  .app.sortie-menu .mission-heading {
-    margin-bottom: 4px;
+  .app.sortie-menu .vignette {
+    background: linear-gradient(0deg, #060b13ed, #060b1355 65%, #060b1322);
   }
 }
 @media (prefers-reduced-motion: reduce) {
-  .app.sortie-menu button {
+  .app.sortie-menu button,
+  .flight-choice > span,
+  .app.sortie-menu .flight-choice::before {
     transition: none;
   }
-  .app.sortie-menu .launch:hover:not(:disabled),
-  .app.sortie-menu .mission:hover:not(:disabled) {
-    transform: none;
+}
+
+/* Consistent controls, with sortie as the primary action. */
+.app.sortie-menu .flight-choice .menu-button {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex: 1;
+  min-width: 0;
+  min-height: 44px;
+  padding: 10px 14px;
+  border: 1px solid #aabcc36b;
+  border-radius: 3px;
+  background: #b9cbd10b;
+  color: #e0e7e8;
+  font-size: 16px;
+  letter-spacing: 0;
+}
+.app.sortie-menu .menu-button svg:last-child {
+  margin-left: auto;
+  color: #95a9b6;
+}
+.app.sortie-menu .flight-choice:hover:not(:disabled) .menu-button,
+.app.sortie-menu .flight-choice:focus-visible .menu-button {
+  border-color: #efe6d9;
+  background: #b9cbd120;
+  transform: none;
+}
+.app.sortie-menu .training-choice > span:not(.choice-index) {
+  color: #96a6af;
+}
+.app.sortie-menu .training-choice:hover:not(:disabled) > span:not(.choice-index),
+.app.sortie-menu .training-choice:focus-visible > span:not(.choice-index) {
+  color: #fff7e9;
+}
+@media (max-height: 500px) and (orientation: landscape) {
+  .app.sortie-menu .flight-choice .menu-button {
+    min-height: 40px;
+    padding: 7px;
+    font-size: 12px;
+    gap: 6px;
   }
+  .app.sortie-menu .menu-button svg {
+    width: 12px;
+  }
+  .app.sortie-menu .menu-button svg:last-child {
+    display: none;
+  }
+}
+.app.sortie-menu .launch .menu-button {
+  border-color: #f4775bb3;
+  background: #f65b421a;
+  color: #fff0e3;
+}
+.app.sortie-menu .launch:hover:not(:disabled) .menu-button,
+.app.sortie-menu .launch:focus-visible .menu-button {
+  border-color: #ffaf8b;
+  background: #f65b4238;
+}
+.app.sortie-menu .flight-choice:active:not(:disabled) .menu-button {
+  transform: translateY(1px);
 }
