@@ -93,6 +93,11 @@
       "name": "REPAIR DRONE",
       "kills": 60,
       "duration": 8
+    },
+    {
+      "name": "NOVA BOMB",
+      "kills": 45,
+      "duration": 3
     }
   ],
   "score": {
@@ -108,5 +113,13 @@
     "hp": 30,
     "score": 600,
     "hitScale": 0.85
+  },
+  "nova": {
+    "detonateX": 11,
+    "launchSpeed": 6,
+    "acceleration": 34,
+    "maxSpeed": 26,
+    "damage": 200,
+    "blast": 3
   }
 }

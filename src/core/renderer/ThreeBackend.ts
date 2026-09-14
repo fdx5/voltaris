@@ -28,6 +28,7 @@ import { ObjectPool } from '../pool/ObjectPool';
 import { itemMaterial } from '../../visual/ItemDesign';
 import { enemyRotation } from '../../game/HostilePatterns';
 import tuning from '../../../data/tuning.json';
+import { makeNovaMissile } from '../../visual/NovaMissile';
 import fleetHardpoints from '../../../data/enemies/fleet-hardpoints.json';
 
 /**
@@ -265,6 +266,69 @@ export class ThreeBackend implements IRenderBackend {
     }),
     IMPACTS * 2,
   );
+  /** The NOVA BOMB in flight: airframe, motor flame and a blinking arming lamp. */
+  private readonly nova = makeNovaMissile(2.5);
+  private readonly novaFlame = new T.Group();
+  private readonly novaLamp = new T.Mesh(
+    new T.SphereGeometry(1, 12, 8),
+    new T.MeshBasicNodeMaterial({ color: '#ff3b2a', toneMapped: false }),
+  );
+  /**
+   * The NOVA BOMB's three-second detonation: a white-out over the whole view,
+   * a fireball that swells from white through gold to ember red, three
+   * shockwave rings, bursts of fire thrown outward and a rolling smoke pall.
+   */
+  private readonly novaWhiteout = new T.Mesh(
+    new T.PlaneGeometry(1, 1),
+    new T.MeshBasicNodeMaterial({
+      color: '#fff6e6',
+      transparent: true,
+      opacity: 0,
+      blending: T.AdditiveBlending,
+      depthTest: false,
+      depthWrite: false,
+      toneMapped: false,
+    }),
+  );
+  private readonly novaCore = ThreeBackend.glowSphere(40);
+  private readonly novaHalo = ThreeBackend.glowSphere(28);
+  private readonly novaRings = [0, 1, 2].map(
+    () =>
+      new T.Mesh(
+        new T.TorusGeometry(1, 0.012, 8, 160),
+        new T.MeshBasicNodeMaterial({
+          color: '#ffe2b0',
+          transparent: true,
+          blending: T.AdditiveBlending,
+          depthWrite: false,
+          toneMapped: false,
+        }),
+      ),
+  );
+  private readonly novaFire = ThreeBackend.tintable(
+    new T.InstancedMesh(
+      new T.SphereGeometry(1, 16, 12),
+      new T.MeshBasicNodeMaterial({
+        toneMapped: false,
+        transparent: true,
+        opacity: 0.85,
+        blending: T.AdditiveBlending,
+        depthWrite: false,
+      }),
+      48,
+    ),
+  );
+  private readonly novaSmoke = new T.InstancedMesh(
+    new T.IcosahedronGeometry(1, 2),
+    new T.MeshStandardNodeMaterial({
+      color: '#2a2620',
+      roughness: 1,
+      transparent: true,
+      opacity: 0.5,
+      depthWrite: false,
+    }),
+    24,
+  );
   /** Phase of the boss's red damage pulse, advanced at a rate set by its wear. */
   private bossPulse = 0;
   /**
@@ -361,6 +425,42 @@ export class ThreeBackend implements IRenderBackend {
     }
     this.showStage(0);
     this.scene.add(this.ship);
+    // NOVA BOMB: the motor flame trails from the tail toward -X.
+    for (const [gain, hex, length, radius] of [
+      [0.7, '#ff7a2a', 2.6, 0.34],
+      [0.9, '#ffe7a8', 1.2, 0.17],
+    ] as const) {
+      const cone = new T.Mesh(ThreeBackend.flameGeometry(), ThreeBackend.flameMaterial(gain));
+      (cone.material as T.MeshBasicNodeMaterial).color.set(hex).multiplyScalar(1.6);
+      cone.scale.set(length, radius, radius);
+      cone.userData.length = length;
+      this.novaFlame.add(cone);
+    }
+    this.novaFlame.rotation.z = Math.PI;
+    this.novaFlame.position.x = this.nova.tail + 0.05;
+    this.novaLamp.scale.setScalar(0.07);
+    this.novaLamp.position.set(-this.nova.tail * 0.55, 0, this.nova.radius * 0.6);
+    this.nova.root.add(this.novaFlame, this.novaLamp);
+    this.novaWhiteout.renderOrder = 1000;
+    this.novaWhiteout.frustumCulled = false;
+    this.novaCore.renderOrder = this.novaHalo.renderOrder = 60;
+    for (const ring of this.novaRings) ring.frustumCulled = false;
+    for (const batch of [this.novaFire, this.novaSmoke]) {
+      batch.count = 0;
+      batch.frustumCulled = false;
+      batch.instanceMatrix.setUsage(T.DynamicDrawUsage);
+    }
+    const novaParts = [
+      this.nova.root,
+      this.novaWhiteout,
+      this.novaCore,
+      this.novaHalo,
+      ...this.novaRings,
+      this.novaFire,
+      this.novaSmoke,
+    ];
+    this.scene.add(...novaParts);
+    this.deferred.push(...novaParts);
 
     /* --- Projectiles ------------------------------------------------- */
     const batch = (g: T.BufferGeometry, m: T.Material, capacity: number, order = 20) => {
@@ -497,19 +597,9 @@ export class ThreeBackend implements IRenderBackend {
     // trailing behind. It fades along its length and toward its silhouette,
     // so under additive blending it reads as a soft glow, not a solid shape.
     const flame = (gain: number) => {
-      const material = new T.MeshBasicNodeMaterial({
-        transparent: true,
-        blending: T.AdditiveBlending,
-        depthWrite: false,
-        side: T.DoubleSide,
-        toneMapped: false,
-      });
-      const along = float(1).sub(positionGeometry.x.clamp(0, 1)).pow(1.4);
-      const edge = normalView.dot(positionViewDirection).abs().pow(1.3);
-      material.opacityNode = along.mul(edge).mul(gain);
       const mesh = new T.InstancedMesh(
-        new T.ConeGeometry(1, 1, 18, 1, true).rotateZ(-Math.PI / 2).translate(0.5, 0, 0),
-        material,
+        ThreeBackend.flameGeometry(),
+        ThreeBackend.flameMaterial(gain),
         256 * 3,
       );
       mesh.count = 0;
@@ -801,6 +891,35 @@ export class ThreeBackend implements IRenderBackend {
    * created later by `setColorAt` is therefore never read, so every batch that
    * will ever be tinted has to declare it up front.
    */
+  /** An open cone, wide mouth at the origin, tip one unit along +X. */
+  private static flameGeometry() {
+    return new T.ConeGeometry(1, 1, 18, 1, true).rotateZ(-Math.PI / 2).translate(0.5, 0, 0);
+  }
+  /** Fades along the cone and toward its silhouette: a soft additive glow, not a solid. */
+  private static flameMaterial(gain: number) {
+    const material = new T.MeshBasicNodeMaterial({
+      transparent: true,
+      blending: T.AdditiveBlending,
+      depthWrite: false,
+      side: T.DoubleSide,
+      toneMapped: false,
+    });
+    const along = float(1).sub(positionGeometry.x.clamp(0, 1)).pow(1.4);
+    const edge = normalView.dot(positionViewDirection).abs().pow(1.3);
+    material.opacityNode = along.mul(edge).mul(gain);
+    return material;
+  }
+  /** An additive sphere whose edge falls off softly, for fireballs and halos. */
+  private static glowSphere(segments: number) {
+    const material = new T.MeshBasicNodeMaterial({
+      transparent: true,
+      blending: T.AdditiveBlending,
+      depthWrite: false,
+      toneMapped: false,
+    });
+    material.opacityNode = normalView.dot(positionViewDirection).abs().pow(1.6);
+    return new T.Mesh(new T.SphereGeometry(1, segments, Math.round(segments * 0.7)), material);
+  }
   private static tintable(mesh: T.InstancedMesh) {
     const colors = new Float32Array(mesh.instanceMatrix.count * 3).fill(1);
     mesh.instanceColor = new T.InstancedBufferAttribute(colors, 3);
@@ -1335,6 +1454,7 @@ export class ThreeBackend implements IRenderBackend {
       }
     }
     this.commit(this.hitFire);
+    this.syncNova(g, t);
     this.bossShockwave.visible = g.bossDying && death > 6.65;
     if (g.bossDying) {
       for (let j = 0; j < 24; j++) {
@@ -1384,10 +1504,119 @@ export class ThreeBackend implements IRenderBackend {
     this.commit(this.particles);
     this.explosionLight.position.set(g.bossDying ? g.bossX : g.x, g.bossDying ? g.bossY : g.y, 3);
     this.explosionLight.intensity = g.flash * 35;
+    const blast = inactive ? -1 : g.novaBlast;
+    if (blast >= 0) {
+      this.explosionLight.position.set(g.novaBlastX, g.novaBlastY, 4);
+      this.explosionLight.intensity = 90 * Math.exp(-blast * 1.3);
+    }
     const shake = this.reducedMotion ? 0 : g.shake;
     this.camera.position.x = Math.sin(t * 73) * shake * 0.12;
     this.camera.position.y = Math.cos(t * 91) * shake * 0.12;
-    if (this.bloomNode) this.bloomNode.strength.value = this.bloomEnabled ? 0.27 : 0;
+    if (this.bloomNode)
+      this.bloomNode.strength.value = this.bloomEnabled
+        ? 0.27 + (blast >= 0 ? 0.55 * Math.exp(-blast * 1.6) : 0)
+        : 0;
+  }
+  /** Draws the NOVA BOMB in flight and its three-second detonation. */
+  private syncNova(g: Readonly<GameState>, t: number) {
+    const inactive = g.status === 'menu';
+    const flying = !inactive && g.novaActive;
+    this.nova.root.visible = flying;
+    if (flying) {
+      this.nova.root.position.set(g.novaX, g.novaY, 0.3);
+      // A slow barrel roll and a motor that burns longer as it builds speed.
+      this.nova.root.rotation.x = t * 3;
+      const burn = 0.6 + (g.novaSpeed / tuning.nova.maxSpeed) * 0.9;
+      for (const [i, cone] of this.novaFlame.children.entries()) {
+        const flutter = 1 + Math.sin(t * 41 + i * 2) * 0.12 + Math.sin(t * 67 + i) * 0.06;
+        cone.scale.x = (cone.userData.length as number) * burn * flutter;
+      }
+      this.novaLamp.visible = Math.sin(t * 16) > 0;
+    }
+    const u = inactive ? -1 : g.novaBlast;
+    const burning = u >= 0;
+    this.novaWhiteout.visible = this.novaCore.visible = this.novaHalo.visible = burning;
+    for (const ring of this.novaRings) ring.visible = false;
+    this.novaFire.count = this.novaSmoke.count = 0;
+    if (burning) {
+      const x = g.novaBlastX,
+        y = g.novaBlastY;
+      // White-out: full strength almost at once, then draining away.
+      const flash =
+        (u < 0.06 ? u / 0.06 : Math.exp(-(u - 0.06) * 3.2)) * (this.reducedMotion ? 0.45 : 1);
+      (this.novaWhiteout.material as T.MeshBasicNodeMaterial).opacity = flash;
+      const camera = this.camera.position;
+      this.novaWhiteout.position.set(camera.x, camera.y, camera.z - 2);
+      const span = 2 * 2 * Math.tan(T.MathUtils.degToRad(this.camera.fov / 2)) * 1.2;
+      this.novaWhiteout.scale.set(span * this.camera.aspect, span, 1);
+      // Fireball: swells fast, then keeps rolling outward as it cools.
+      const fade = u > 2.2 ? Math.max(0, 1 - (u - 2.2) / 0.8) : 1;
+      const radius = 1.2 + 5.3 * (1 - Math.exp(-u * 2.6));
+      this.novaCore.position.set(x, y, 1.5);
+      this.novaCore.scale.setScalar(radius);
+      const core = this.novaCore.material as T.MeshBasicNodeMaterial;
+      core.color.set(u < 0.25 ? '#fffbef' : u < 0.8 ? '#ffd26a' : u < 1.6 ? '#ff8a2e' : '#d8391a');
+      core.color.multiplyScalar(3.2 * Math.exp(-u * 0.75) * fade);
+      this.novaHalo.position.set(x, y, 1.2);
+      this.novaHalo.scale.setScalar(radius * 1.5);
+      const halo = this.novaHalo.material as T.MeshBasicNodeMaterial;
+      halo.color.set(u < 0.6 ? '#ffc56b' : '#ff5a22');
+      halo.color.multiplyScalar(1.3 * Math.exp(-u * 0.9) * fade);
+      // Three shockwaves, each a little later, wider and tipped in depth.
+      for (const [k, ring] of this.novaRings.entries()) {
+        const age = u - k * 0.22;
+        if (age <= 0 || age > 1.8) continue;
+        ring.visible = true;
+        ring.position.set(x, y, 2);
+        // Tipped only slightly, so the expanding ring never sweeps through the camera.
+        ring.rotation.set(0.18 + k * 0.12, k * 0.1, 0);
+        ring.scale.setScalar(1 + age * (11 + k * 3) * (1 - age * 0.2));
+        const material = ring.material as T.MeshBasicNodeMaterial;
+        material.color.set(k === 0 ? '#fff4d8' : '#ffb56a').multiplyScalar(2.4);
+        material.opacity = Math.max(0, 1 - age / 1.8);
+      }
+      // Fire thrown outward on golden-angle headings, in staggered waves.
+      for (let n = 0; n < 40; n++) {
+        const age = u - (n % 5) * 0.12;
+        if (age <= 0 || age > 1.7) continue;
+        const heading = n * 2.399963,
+          reach = (3 + (n % 7) * 1.1) * (1 - Math.exp(-age * 2.4));
+        const size =
+          (0.6 + (n % 4) * 0.3) * (0.5 + Math.sin(Math.min(1, age / 1.7) * Math.PI) * 1.2);
+        const index = this.novaFire.count;
+        this.push(
+          this.novaFire,
+          x + Math.cos(heading) * reach,
+          y + Math.sin(heading) * reach * 0.8,
+          1.8,
+          size,
+          size,
+          size * 0.8,
+        );
+        this.tint.set(age < 0.2 ? '#fff3b3' : age < 0.6 ? '#ffab32' : '#ff4018');
+        this.tint.multiplyScalar(2.4 * (1 - age / 1.7));
+        this.novaFire.setColorAt(index, this.tint);
+      }
+      // A smoke pall that rises and spreads as the fire dies back.
+      for (let n = 0; n < 20; n++) {
+        const age = u - 0.45 - (n % 4) * 0.1;
+        if (age <= 0) continue;
+        const heading = n * 2.399963 + 0.7,
+          reach = (2 + (n % 5) * 1.3) * (1 - Math.exp(-age * 1.2));
+        const size = (0.8 + (n % 3) * 0.5) * (0.6 + age * 0.9) * fade;
+        this.push(
+          this.novaSmoke,
+          x + Math.cos(heading) * reach,
+          y + Math.sin(heading) * reach * 0.7 + age * 0.9,
+          1,
+          size,
+          size * 0.85,
+          size * 0.7,
+        );
+      }
+    }
+    this.commit(this.novaFire);
+    this.commit(this.novaSmoke);
   }
   render() {
     this.renderer.info.autoReset = false;

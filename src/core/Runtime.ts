@@ -65,6 +65,8 @@ export class Runtime {
   private controller = new AbortController();
   private sounds = new Uint32Array(7);
   private armourHits = 0;
+  private novaLaunches = 0;
+  private novaBlasts = 0;
   /** Visual-clock time of the last armour blast, so a laser does not machine-gun it. */
   private armourSoundAt = -1;
   private pickupSounds = new Uint32Array(4);
@@ -180,6 +182,7 @@ export class Runtime {
       this.pickupSounds.fill(0);
       this.sounds.fill(0);
       this.armourHits = 0;
+      this.novaLaunches = this.novaBlasts = 0;
       if (run.config.loadout) Object.assign(this.game.loadout, run.config.loadout);
       this.game.start(weapon, credits, practice, !!run.config.loadout, stageIndex);
       this.game.autoFire = autoFire;
@@ -339,6 +342,18 @@ export class Runtime {
     if (g.warningEvent !== this.sounds[3]) {
       this.audio.warning();
       this.sounds[3] = g.warningEvent;
+    }
+    if (g.novaLaunchEvent !== this.novaLaunches) {
+      if (g.novaLaunchEvent > this.novaLaunches) this.audio.novaLaunch();
+      this.novaLaunches = g.novaLaunchEvent;
+    }
+    if (g.novaEvent !== this.novaBlasts) {
+      if (g.novaEvent > this.novaBlasts) {
+        this.audio.novaBlast();
+        void this.audio.jingle(WRECK_HEAVY);
+        void this.audio.jingle(PLAYER_DESTROY);
+      }
+      this.novaBlasts = g.novaEvent;
     }
     // Every hit on a boss or gunship sets off the blast again, retriggered no
     // faster than about fourteen times a second.

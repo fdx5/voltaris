@@ -277,6 +277,17 @@ export class AudioEngine {
   warning() {
     this.tone(220, 0.4, 0.2, 330);
   }
+  /** NOVA BOMB ignition: a rising sawtooth roar under a thin whistle. */
+  novaLaunch() {
+    this.tone(140, 0.9, 0.16, 520, 16);
+    this.tone(900, 0.7, 0.05, 2400, 17);
+  }
+  /** NOVA BOMB detonation: a long sub-bass drop under the recorded blasts. */
+  novaBlast() {
+    this.tone(90, 2.8, 0.42, 22, 20);
+    this.tone(55, 3, 0.36, 18, 21);
+    this.tone(320, 1.2, 0.12, 40, 18);
+  }
   private notes = [0, 7, 12, 7, 3, 10, 15, 10, 5, 12, 17, 12, 3, 10, 15, 19];
   tick(active: boolean, boss: boolean) {
     if (this.trackWanted) return;

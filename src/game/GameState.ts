@@ -41,6 +41,8 @@ function softLimit(v: number, low: number, high: number) {
 }
 /** Impact bursts kept on screen at once, and how long each one burns. */
 export const IMPACTS = 48;
+/** Skill index of the NOVA BOMB, fitted to the second special slot (key 2). */
+export const NOVA_SKILL = 6;
 export const IMPACT_LIFE = 0.42;
 export const MODES: Mode[] = ['TRAIL', 'FREEZE', 'DIRECTIONAL', 'ROTATE'];
 /** What holding the control key does in each mode, for the on-screen notice. */
@@ -99,6 +101,22 @@ export class GameState {
   armourHitEvent = 0;
   /** Seconds of hit flash left on the boss hull. */
   bossFlash = 0;
+  /**
+   * The NOVA BOMB. Launched straight ahead from the ship's nose, it builds
+   * speed and detonates on reaching `tuning.nova.detonateX` - about 200 px in
+   * from the right edge of a 1280 px wide view. A fixed world line keeps the
+   * blast deterministic, so a recorded run replays identically on the server.
+   */
+  novaActive = false;
+  novaX = 0;
+  novaY = 0;
+  novaSpeed = 0;
+  /** Seconds since the blast, while its three-second fireball burns; -1 otherwise. */
+  novaBlast = -1;
+  novaBlastX = 0;
+  novaBlastY = 0;
+  novaLaunchEvent = 0;
+  novaEvent = 0;
   readonly enemyPitch = new Float32Array(tuning.pools.enemies);
   /**
    * Every hostile keeps flying right to left without pause, and weaves on its
@@ -130,7 +148,7 @@ export class GameState {
   private historyHead = 0;
   readonly skills = new Int8Array([0, -1, -1]);
   readonly charge = new Float32Array(3);
-  readonly effects = new Float32Array(6);
+  readonly effects = new Float32Array(tuning.skills.length);
   readonly partHp = new Float32Array(10);
   readonly partX = new Float32Array(10);
   readonly partY = new Float32Array(10);
@@ -314,9 +332,13 @@ export class GameState {
     this.bossDefeated = false;
     this.bossTime = this.bonus = this.bossKillTime = this.volley = 0;
     this.effects.fill(0);
-    this.skills.set([0, -1, -1]);
+    this.skills.set([0, NOVA_SKILL, -1]);
     this.skillUnlocked = practice;
     this.charge.fill(practice ? 1 : 0);
+    // Every sortie opens with one NOVA BOMB armed; kills arm the next.
+    this.charge[1] = 1;
+    this.novaActive = false;
+    this.novaBlast = -1;
     this.optionX.fill(-7);
     this.optionY.fill(0);
     this.optionAngle.fill(0);
@@ -377,6 +399,18 @@ export class GameState {
     if (this.status !== 'playing' || this.respawn > 0 || slot < 0 || slot > 2) return;
     const skill = this.skills[slot];
     if (skill < 0 || this.charge[slot] < 0.999 || (!this.skillUnlocked && skill === 0)) return;
+    if (skill === NOVA_SKILL) {
+      // One bomb in the air or burning at a time; the charge is kept until it can fly.
+      if (this.novaActive || this.novaBlast >= 0) return;
+      this.charge[slot] = 0;
+      this.novaActive = true;
+      this.novaX = this.x + 1.1;
+      this.novaY = this.y;
+      this.novaSpeed = tuning.nova.launchSpeed;
+      this.novaLaunchEvent++;
+      this.announce(tuning.skills[skill].name);
+      return;
+    }
     this.charge[slot] = 0;
     this.effects[skill] = tuning.skills[skill].duration;
     this.flash = 0.35;
@@ -422,6 +456,8 @@ export class GameState {
     this.shake = Math.max(0, this.shake - dt * 2);
     this.flash = Math.max(0, this.flash - dt * 2);
     this.bossFlash = Math.max(0, this.bossFlash - dt);
+    // The blast keeps burning through a boss's death sequence, which it may have started.
+    if (this.novaBlast >= 0 && (this.novaBlast += dt) >= tuning.nova.blast) this.novaBlast = -1;
     for (let k = 0; k < IMPACTS; k++)
       this.impactAge[k] = Math.min(IMPACT_LIFE, this.impactAge[k] + dt);
     if (this.bossDying) {
@@ -430,7 +466,8 @@ export class GameState {
     }
     this.invincible = Math.max(0, this.invincible - dt);
     this.respawn = Math.max(0, this.respawn - dt);
-    for (let i = 0; i < 6; i++) this.effects[i] = Math.max(0, this.effects[i] - dt);
+    for (let i = 0; i < this.effects.length; i++)
+      this.effects[i] = Math.max(0, this.effects[i] - dt);
     if (pressed & Key.Mode) this.cycleMode();
     if (pressed & Key.Skill1) this.activate(0);
     if (pressed & Key.Skill2) this.activate(1);
@@ -463,6 +500,7 @@ export class GameState {
     this.updateRocks(enemyDt);
     if (this.terrain) this.updateGround(enemyDt);
     if (this.boss) this.updateBoss(enemyDt);
+    this.updateNova(dt);
     if (this.bossDying) return;
     this.fireTimer -= dt;
     const firing = !this.respawn && (this.autoFire || bits & Key.Fire);
@@ -827,6 +865,67 @@ export class GameState {
           tuning.combat.enemyBulletSpeed * d.fire.speed * (1 + this.rank * 0.0035),
           parseInt(fleetDesigns[e.type[i]].palette[1].slice(1), 16),
         );
+    }
+  }
+  /** Flies the NOVA BOMB to its detonation line and times the burning blast. */
+  private updateNova(dt: number) {
+    const nova = tuning.nova;
+    if (this.novaActive) {
+      this.novaSpeed = Math.min(nova.maxSpeed, this.novaSpeed + nova.acceleration * dt);
+      this.novaX += this.novaSpeed * dt;
+      // A ragged smoke trail spilling from the motor.
+      const a = this.rng.next() - 0.5;
+      this.particles.acquire(
+        this.novaX - 1.25,
+        this.novaY + a * 0.25,
+        -3 - this.rng.next() * 3,
+        a * 1.6,
+        2,
+        0.35 + this.rng.next() * 0.25,
+        0.09 + this.rng.next() * 0.07,
+      );
+      if (this.novaX >= nova.detonateX) this.detonateNova();
+    }
+  }
+  /**
+   * The NOVA BOMB goes off: a white-out flash, every hostile round on the
+   * field erased along with every volley still queued, and one massive hit on
+   * every unit in play - enough to break a stage-three gunship outright.
+   */
+  private detonateNova() {
+    const nova = tuning.nova;
+    this.novaActive = false;
+    this.novaBlast = 0;
+    this.novaBlastX = this.novaX;
+    this.novaBlastY = this.novaY;
+    this.effects[NOVA_SKILL] = nova.blast;
+    this.flash = 1;
+    this.shake = Math.max(this.shake, 1.5);
+    this.novaEvent++;
+    const b = this.bullets;
+    for (let i = 0; i < b.capacity; i++) if (b.active[i] && b.type[i] === 1) b.release(i);
+    this.pendingSalvos.length = 0;
+    const [x, y, damage] = [this.novaBlastX, this.novaBlastY, nova.damage];
+    for (let i = 0; i < this.enemies.capacity; i++)
+      if (this.enemies.active[i]) this.damageEnemy(i, damage, x, y);
+    for (let i = 0; i < this.ground.capacity; i++)
+      if (this.ground.active[i]) this.damageGround(i, damage);
+    for (let i = 0; i < this.rocks.capacity; i++)
+      if (this.rocks.active[i]) this.damageRock(i, damage);
+    if (this.boss && !this.bossDying) {
+      for (let p = 0; p < this.bossParts; p++) {
+        if (this.partHp[p] <= 0) continue;
+        this.partHp[p] -= damage;
+        if (this.partHp[p] <= 0) {
+          this.explode(this.partX[p], this.partY[p], 55);
+          this.score += 4000;
+        }
+      }
+      if (this.bossTransition <= 0) {
+        this.bossHp -= damage;
+        this.bossFlash = 0.08;
+        if (this.bossHp <= 0) this.finish(true);
+      }
     }
   }
   /** Rolls one hull's speed and flight path the first time its slot is seen. */
@@ -1742,6 +1841,7 @@ export class GameState {
       this.bossDeathTime = 0;
       this.bossKillTime = this.bossTime;
       this.bossDeathEvent++;
+      this.novaActive = false;
       this.bullets.clear();
       this.pendingSalvos.length = 0;
       this.enemies.clear();

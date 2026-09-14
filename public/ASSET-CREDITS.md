@@ -26,6 +26,14 @@ https://polyyai.itch.io/3d-spaceships-pack-2
 25 GLB spaceships. Ordinary units use the artist's decimated LOD meshes; boss
 hulls use the full-detail (~100k triangle) meshes simplified to 60k triangles.
 
+## Special weapon — NOVA BOMB airframe
+
+"Missile" by Poly by Google, licensed under CC-BY 3.0
+(https://creativecommons.org/licenses/by/3.0/), via Poly Pizza:
+https://poly.pizza/m/dPVCvXP-S58
+Used unmodified as `/models/special/nova-missile.glb`; the game rescales it and
+applies its own hull finish and motor flame at runtime.
+
 ## Adaptations
 
 `tools/pack-imported-fleet.mjs` bakes node transforms, merges each model into a
