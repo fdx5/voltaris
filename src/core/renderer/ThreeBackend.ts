@@ -211,6 +211,13 @@ export class ThreeBackend implements IRenderBackend {
    * seconds of black screen; they are warmed up straight afterwards.
    */
   private readonly deferred: T.Object3D[] = [];
+  /**
+   * Models kept hidden until the moment they are needed - the blast ring of a
+   * dying boss, the NOVA BOMB and its detonation. A compile pass skips hidden
+   * objects, so `warmup` shows these for its traversal; otherwise their
+   * shaders would build in the very frame they first appear.
+   */
+  private readonly hiddenUntilUsed: T.Object3D[] = [];
   private readonly enemyHulls: T.InstancedMesh[] = [];
   private readonly enemyAccents: (T.InstancedMesh | null)[] = [];
   private readonly enemyCores: T.InstancedMesh;
@@ -414,6 +421,7 @@ export class ThreeBackend implements IRenderBackend {
     this.bossShockwave.visible = false;
     this.scene.add(this.bossShockwave);
     this.deferred.push(this.bossShockwave);
+    this.hiddenUntilUsed.push(this.bossShockwave);
     const scenes: SceneName[] = ['earth', 'mars', 'jupiter', 'neptune'];
     for (let i = 0; i < scenes.length; i++)
       this.skies.push(buildBackdrop(this.scene, scenes[i], STAGES[i]?.surface ?? null));
@@ -461,6 +469,7 @@ export class ThreeBackend implements IRenderBackend {
     ];
     this.scene.add(...novaParts);
     this.deferred.push(...novaParts);
+    this.hiddenUntilUsed.push(...novaParts);
 
     /* --- Projectiles ------------------------------------------------- */
     const batch = (g: T.BufferGeometry, m: T.Material, capacity: number, order = 20) => {
@@ -853,17 +862,45 @@ export class ThreeBackend implements IRenderBackend {
    * shaders build.
    */
   async warmup() {
-    await this.renderer.compileAsync(this.scene, this.camera);
-    // Then each stage's backdrop in turn, so selecting one later does not
-    // stall on shaders that have never been seen.
-    const active = this.stage;
-    for (let i = 0; i < this.skies.length; i++) {
-      if (i === active) continue;
-      this.showStage(i);
-      await this.renderer.compileAsync(this.scene, this.camera);
-    }
-    this.showStage(active);
+    // The compile queue builds one object every few frames, so a full pass
+    // takes a while. The boss hulls stay hidden until their entrance and
+    // compiled last they could still be waiting when a boss arrived - they,
+    // and the other models that appear all at once, go to the front.
+    for (const boss of this.bosses)
+      for (const part of [boss.root, ...boss.pods]) await this.compileShown(part);
+    for (const part of this.hiddenUntilUsed) await this.compileShown(part);
+    // Then the whole scene in one pass: every sector's backdrop, including
+    // the parallax tiles still off screen, which would otherwise stall the
+    // frame they scroll into view.
+    await this.compileShown(this.scene);
     this.warmed = true;
+  }
+  /**
+   * Compiles `target` as though all of it were on screen. `compileAsync`
+   * skips hidden and frustum-culled objects, so everything under `target` is
+   * shown and unculled for the synchronous traversal it starts with - the
+   * queued work holds its own object references - and restored before the
+   * next frame can draw any of it.
+   */
+  private compileShown(target: T.Object3D) {
+    const objects: T.Object3D[] = [];
+    const flags: boolean[] = [];
+    target.traverse((o) => {
+      objects.push(o);
+      flags.push(o.visible, o.frustumCulled);
+      o.visible = true;
+      o.frustumCulled = false;
+    });
+    try {
+      return target === this.scene
+        ? this.renderer.compileAsync(this.scene, this.camera)
+        : this.renderer.compileAsync(target, this.camera, this.scene);
+    } finally {
+      for (let i = 0; i < objects.length; i++) {
+        objects[i].visible = flags[i * 2];
+        objects[i].frustumCulled = flags[i * 2 + 1];
+      }
+    }
   }
   resize() {
     const w = Math.max(1, this.host.clientWidth),

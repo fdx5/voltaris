@@ -119,7 +119,7 @@
     "launchSpeed": 6,
     "acceleration": 34,
     "maxSpeed": 26,
-    "damage": 200,
+    "damage": 600,
     "blast": 3
   }
 }

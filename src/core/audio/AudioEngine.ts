@@ -70,6 +70,40 @@ export class AudioEngine {
     // player actually hears; the mute button still cuts both.
     if (this.music) this.music.volume = this.muted ? 0 : this.musicVolume;
   }
+  /**
+   * A track fetched ahead of time, held as an in-memory blob. Only one is kept:
+   * the boss theme of the sector in play.
+   */
+  private preloaded: { url: string; blob: string } | null = null;
+  private preloading: string | null = null;
+  /**
+   * Downloads a track before it is needed, so switching to it later starts at
+   * once instead of streaming a multi-megabyte file from a standing start -
+   * the boss theme used to drop out for a moment right as the boss arrived.
+   * The same media element plays it, so a phone that allowed the stage theme
+   * allows this one too.
+   */
+  preloadTrack(url: string) {
+    if (this.preloaded?.url === url || this.preloading === url) return;
+    this.preloading = url;
+    fetch(url)
+      .then((response) => {
+        if (!response.ok) throw new Error(`HTTP ${response.status}`);
+        return response.blob();
+      })
+      .then((data) => {
+        if (this.preloading !== url) return;
+        this.preloading = null;
+        const previous = this.preloaded;
+        this.preloaded = { url, blob: URL.createObjectURL(data) };
+        // A blob still playing is released once the element lets go of it.
+        if (previous && this.music?.src !== previous.blob) URL.revokeObjectURL(previous.blob);
+      })
+      .catch(() => {
+        // Streaming the track on arrival still works; it just starts later.
+        if (this.preloading === url) this.preloading = null;
+      });
+  }
   /** Starts (or switches to) a looping stage track. Safe to call repeatedly. */
   playTrack(url: string) {
     if (!this.music) {
@@ -77,8 +111,14 @@ export class AudioEngine {
       this.music.loop = true;
       this.music.preload = 'auto';
     }
-    const absolute = new URL(url, location.href).href;
-    if (this.music.src !== absolute) this.music.src = absolute;
+    const source =
+      this.preloaded?.url === url ? this.preloaded.blob : new URL(url, location.href).href;
+    if (this.music.src !== source) {
+      const previous = this.music.src;
+      this.music.src = source;
+      if (previous.startsWith('blob:') && previous !== this.preloaded?.blob)
+        URL.revokeObjectURL(previous);
+    }
     this.trackWanted = true;
     this.applyMusicGain();
     void this.music.play().catch(() => {});
@@ -317,5 +357,8 @@ export class AudioEngine {
     this.stopTrack();
     this.music?.removeAttribute('src');
     this.music = null;
+    if (this.preloaded) URL.revokeObjectURL(this.preloaded.blob);
+    this.preloaded = null;
+    this.preloading = null;
   }
 }

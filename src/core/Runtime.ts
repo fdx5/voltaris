@@ -258,6 +258,8 @@ export class Runtime {
     const boss = this.game.boss && stage.bossMusic ? stage.bossMusic : null;
     const track = boss ?? stage.music;
     if (track) this.audio.playTrack(asset(track));
+    // Fetch the boss theme while the stage plays, so it cuts in without a gap.
+    if (!boss && stage.bossMusic) this.audio.preloadTrack(asset(stage.bossMusic));
     this.bossTrack = boss !== null;
   }
   menu() {
