@@ -215,17 +215,25 @@ function GameApp() {
   };
   const active = ui.status !== 'menu';
   return (
-    <div className={`app ${active ? 'in-flight' : ''}`}>
+    <div className={`app ${active ? 'in-flight' : 'sortie-menu'}`}>
       <div className="render-host" ref={host} />
       <div className="vignette" />
       <div className="texture" />
       {!active && (
         <>
+          <div className="flight-scenery" aria-hidden="true">
+            <div className="orbital-dial">
+              <span />
+              <i />
+              <b>V / 01</b>
+            </div>
+            <div className="sortie-watermark">VOLTARIS</div>
+          </div>
           <header className="header">
             <a className="brand" href="#" onClick={(e) => e.preventDefault()}>
               <span className="brand-mark">V</span>
               <span>
-                VOLTARIS<small>ORBITAL COMMAND</small>
+                VOLTARIS<small>FLIGHT OPERATIONS / 2186</small>
               </span>
             </a>
             <div className="nav-caption">
@@ -264,19 +272,27 @@ function GameApp() {
           </header>
           <main className="command">
             <div className="eyebrow">
-              <span /> EARTH DEFENSE INITIATIVE <b>2186</b>
+              <span /> ORBITAL DEFENSE <b>01 — SORTIE COMMAND</b>
             </div>
             <div className="title">
-              <span>VOLT</span>
+              <span>INTO THE</span>
               <span>
-                ARIS<i>™</i>
+                UNKNOWN<i>↗</i>
               </span>
             </div>
-            <p className="tagline">THE SILENCE ENDS HERE.</p>
+            <p className="tagline">고요의 끝, 당신의 비행이 시작된다.</p>
             <p className="intro">
-              지구의 마지막 방어선.
-              <br />단 한 기의 창으로, 궤도의 어둠을 돌파하라.
+              마지막 방어선을 넘어 미지의 궤도로.
+              <br />
+              작전을 선택하고, 당신의 기체를 출격시키세요.
             </p>
+            <div className="sortie-destination">
+              <span>
+                현재 작전 <b>0{stage + 1}</b>
+              </span>
+              <strong>{STAGES[stage].name}</strong>
+              <small>{STAGES[stage].subtitle}</small>
+            </div>
             <div className="main-actions">
               <button
                 className="launch"
@@ -293,7 +309,7 @@ function GameApp() {
                 <ArrowUpRight size={28} />
               </button>
               <button className="text-button" onClick={() => open('controls')}>
-                FLIGHT MANUAL <ArrowRight size={15} />
+                <Keyboard size={15} /> 조작 가이드 <ArrowRight size={15} />
               </button>
             </div>
             <nav className="secondary">
@@ -307,7 +323,7 @@ function GameApp() {
           </main>
           <div className="ship-label">
             <span className="bracket" />
-            <small>INTERCEPTOR CLASS</small>
+            <small>YOUR INTERCEPTOR / 출격 대기</small>
             <strong>
               VL–01 <span> / </span> PEREGRINE
             </strong>
@@ -319,13 +335,18 @@ function GameApp() {
             </div>
           </div>
           <aside className="coordinates">
-            N 35° 42′ 18″
-            <br />E 139° 41′ 32″<span>ALTITUDE 408 KM</span>
+            <span className="status-dot" /> FLIGHT DECK 01
+            <span>지구 저궤도 · ALT 408 KM</span>
           </aside>
-          <section className="mission-strip">
+          <section className="mission-strip" aria-label="작전 항로">
             <div className="mission-heading">
-              <span>MISSION SELECT</span>
-              <small>04 / 06 SECTORS</small>
+              <span>
+                작전 항로 <em>SECTOR MAP</em>
+              </span>
+              <small>
+                {String(account.user?.clearedStages.length ?? 0).padStart(2, '0')} /{' '}
+                {String(STAGES.length).padStart(2, '0')} CLEARED
+              </small>
             </div>
             <div className="mission-cards">
               {STAGES.map((mission, index) => {
@@ -338,6 +359,7 @@ function GameApp() {
                       'mission' + (stage === index ? ' selected' : '') + (locked ? ' locked' : '')
                     }
                     disabled={!ui.ready || locked || account.launching || account.saving}
+                    aria-current={stage === index ? 'step' : undefined}
                     title={locked ? `STAGE ${index} 클리어 후 입장할 수 있습니다.` : mission.name}
                     onClick={() => {
                       setStage(index);
@@ -361,7 +383,13 @@ function GameApp() {
                       <strong>{mission.name}</strong>
                       <p>{locked ? `STAGE ${index} 클리어 필요` : mission.subtitle}</p>
                     </div>
-                    {locked ? <Lock size={20} /> : <ArrowUpRight size={20} />}
+                    {locked ? (
+                      <Lock size={20} />
+                    ) : cleared ? (
+                      <Check size={20} />
+                    ) : (
+                      <ArrowUpRight size={20} />
+                    )}
                   </button>
                 );
               })}
@@ -388,7 +416,7 @@ function GameApp() {
               {ui.ready ? `${Math.round(ui.fps)} FPS` : 'CONNECTING'}
             </span>
             <span>
-              ORIGINAL ARCADE SHOOTER <i>·</i> FIRST PLAYABLE / 0.1
+              BEYOND THE LAST DEFENSE LINE <i>·</i> VOLTARIS / 0.1
             </span>
             <button onClick={() => open('controls')}>
               {ui.gamepad ? <Gamepad2 size={14} /> : <Keyboard size={14} />} KEYBOARD · TOUCH ·

@@ -1,6 +1,7 @@
 import ReactDOM from 'react-dom/client';
 import { App } from './ui/App';
 import './ui/styles.css';
+import './ui/sortie-menu.css';
 import { installViewport } from './ui/viewport';
 import { loadImportedFleet } from './visual/ImportedFleet';
 import { loadNovaMissile } from './visual/NovaMissile';

@@ -1405,9 +1405,10 @@ export class ThreeBackend implements IRenderBackend {
       this.camera.position.z,
     );
     if (inactive) {
-      this.ship.position.set(5.5, Math.sin(t * 0.6) * 0.28, 0);
-      this.ship.scale.setScalar(3.05);
-      this.ship.rotation.set(Math.sin(t * 0.3) * 0.025, -0.06, -0.025);
+      // Frame the interceptor between the sortie command and the sector route.
+      this.ship.position.set(1.7, 0.45 + Math.sin(t * 0.6) * 0.2, 0);
+      this.ship.scale.setScalar(2.65);
+      this.ship.rotation.set(-0.18 + Math.sin(t * 0.3) * 0.025, -0.08, 0.14);
       this.ship.visible = true;
     } else {
       this.ship.position.set(
