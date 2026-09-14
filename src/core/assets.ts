@@ -1,3 +1,5 @@
+import { isIOSDevice } from './device';
+
 /**
  * Heavy media - the fleet model, textures and audio - is served from a CDN in
  * production so it does not count against the app host's bandwidth. The build
@@ -8,5 +10,10 @@
 const BASE = (import.meta.env?.VITE_ASSET_BASE ?? '').replace(/\/$/, '');
 
 /** Resolves a public path such as `/audio/win.mp3` to wherever assets are served from. */
-export const asset = (path: string) =>
-  /^[a-z]+:/i.test(path) ? path : BASE + (path.startsWith('/') ? path : `/${path}`);
+export const asset = (path: string) => {
+  if (/^[a-z]+:/i.test(path)) return path;
+  let local = path.startsWith('/') ? path : `/${path}`;
+  if (local.startsWith('/textures/') && isIOSDevice())
+    local = local.replace('/textures/', '/textures-ios/');
+  return BASE + local;
+};

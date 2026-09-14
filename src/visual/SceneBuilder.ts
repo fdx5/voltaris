@@ -1,5 +1,4 @@
 import { asset } from '../core/assets';
-import { isIOSDevice } from '../core/device';
 import { buildStarField, type StarPalette } from './StarField';
 import { terrainMaterial, type TerrainPbr } from './TerrainMaterial';
 import { surfaceEffects } from './SurfaceEffects';
@@ -1123,7 +1122,7 @@ export function legacyEnemyGeometry(type: number): EnemyHulls {
  * invisible and the ship reads as travelling right at speed. Earth and
  * its cloud shell keep their place and simply turn.
  * ------------------------------------------------------------------ */
-const TEXTURE_ROOT = asset(isIOSDevice() ? '/textures-ios/' : '/textures/');
+const TEXTURE_ROOT = asset('/textures/');
 const loader = new T.TextureLoader();
 const textureCache = new Map<string, T.Texture>();
 function loadTexture(path: string, srgb: boolean, repeat = false) {

@@ -263,8 +263,7 @@ export class ThreeBackend implements IRenderBackend {
   /** Solid rocks in the play field, one body and one outline batch per model. */
   private readonly rockBodies: T.InstancedMesh[] = [];
   private readonly rockRims: T.InstancedMesh[] = [];
-  /** One backdrop and one boss model per stage, swapped by visibility so the
-   *  shaders are all compiled up front and a stage change never hitches. */
+  /** Backdrops are created on first entry so startup only loads one sector. */
   private readonly skies: (ReturnType<typeof buildBackdrop> | undefined)[] = [];
   private readonly bosses: BossModel[] = [];
   private stage = 0;

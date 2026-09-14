@@ -1,10 +1,24 @@
-import { expect, it } from 'vitest';
+import { afterEach, expect, it, vi } from 'vitest';
+import { asset } from '../../src/core/assets';
 import { readFile } from 'node:fs/promises';
 import { createHash } from 'node:crypto';
 import sharp from 'sharp';
 import { isIOSDevice } from '../../src/core/device';
 import manifest from '../../data/enemies/ios-fleet.json';
 import { readFleetBytes } from '../../tools/fleet-parts.mjs';
+
+afterEach(() => vi.unstubAllGlobals());
+
+it('routes all terrain, ground-unit and background textures to iOS assets', () => {
+  vi.stubGlobal('navigator', { userAgent: 'iPhone', platform: 'iPhone', maxTouchPoints: 5 });
+  for (const path of [
+    'terrain/snow_01_height.jpg',
+    'materials/metal_plate_02_color.jpg',
+    'planets/earth_color.jpg',
+  ])
+    expect(asset(`/textures/${path}`)).toBe(`/textures-ios/${path}`);
+  expect(asset('/audio/galaxy-dash.mp3')).toBe('/audio/galaxy-dash.mp3');
+});
 
 it('recognizes iPhone and desktop-mode iPad while preserving desktop rendering', () => {
   expect(isIOSDevice({ userAgent: 'iPhone', platform: 'iPhone', maxTouchPoints: 5 })).toBe(true);
