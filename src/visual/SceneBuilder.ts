@@ -1,5 +1,7 @@
 import { asset } from '../core/assets';
 import { buildStarField, type StarPalette } from './StarField';
+import { terrainMaterial, type TerrainPbr } from './TerrainMaterial';
+import { surfaceEffects } from './SurfaceEffects';
 import * as T from 'three/webgpu';
 import {
   color,
@@ -2363,12 +2365,16 @@ export type GroundConfig = {
   crest: string;
   /** Distant terrain fades to this, standing in for depth haze. */
   haze: string;
+  /** Photographic PBR layers; replaces `texture`/`normal`/`roughness` when present. */
+  pbr?: TerrainPbr;
 };
 
 /** Builds one surface strip from a height field. */
 function buildStrip(cfg: GroundConfig, terrain: Terrain, flip: boolean) {
-  const columns = 252,
-    rows = 52;
+  // Photographic surfaces get twice the mesh: their normal maps light the
+  // grain, but the silhouette of every ridge still comes from the geometry.
+  const columns = cfg.pbr ? 504 : 252,
+    rows = cfg.pbr ? 104 : 52;
   const near = (flip ? cfg.roof?.near : undefined) ?? cfg.near,
     far = (flip ? cfg.roof?.far : undefined) ?? cfg.far;
   const width = cfg.span * 3,
@@ -2378,6 +2384,7 @@ function buildStrip(cfg: GroundConfig, terrain: Terrain, flip: boolean) {
   const position = geometry.attributes.position as T.BufferAttribute;
   const uv = geometry.attributes.uv as T.BufferAttribute;
   const colors = new Float32Array(position.count * 3);
+  const lifts = new Float32Array(position.count);
   const valley = new T.Color(cfg.valley).convertSRGBToLinear();
   const crest = new T.Color(cfg.crest).convertSRGBToLinear();
   const haze = new T.Color(cfg.haze).convertSRGBToLinear();
@@ -2401,6 +2408,20 @@ function buildStrip(cfg: GroundConfig, terrain: Terrain, flip: boolean) {
       Math.max(0, (y - z * terrain.depthSlope - terrain.flare * Math.min(0, z) ** 2 - from) / span),
     );
     const away = Math.min(1, Math.max(0, (near - z) / depth));
+    lifts[i] = lift;
+    if (cfg.pbr) {
+      // The scans carry the colour; the vertices only add valley shadow and
+      // the distance haze.
+      shade.setScalar(0.7 + 0.3 * Math.pow(lift, 0.6));
+      shade.lerp(haze, Math.pow(away, 1.5) * (flip ? 0.7 : 0.55));
+      if (flip) shade.multiplyScalar(1.6);
+      colors[i * 3] = shade.r;
+      colors[i * 3 + 1] = shade.g;
+      colors[i * 3 + 2] = shade.b;
+      const tile = cfg.pbr.tile * (flip ? 0.75 : 1);
+      uv.setXY(i, x / tile, z / tile + (flip ? 0.37 : 0));
+      continue;
+    }
     shade.copy(valley).lerp(crest, Math.pow(lift, 0.75));
     // Topographic banding: a soft line at every contour interval, so the
     // height of the ground reads at a glance rather than only in shading.
@@ -2428,7 +2449,13 @@ function buildStrip(cfg: GroundConfig, terrain: Terrain, flip: boolean) {
     uv.setXY(i, x / tile + (cfg.roughness ? z * 0.017 : 0), z / tile + warp + (flip ? 0.37 : 0));
   }
   geometry.setAttribute('color', new T.BufferAttribute(colors, 3));
+  geometry.setAttribute('lift', new T.BufferAttribute(lifts, 1));
   geometry.computeVertexNormals();
+  if (cfg.pbr) {
+    const surface = new T.Mesh(geometry, terrainMaterial(cfg.pbr, flip));
+    surface.frustumCulled = false;
+    return surface;
+  }
   // The vault is seen from below, so the face we look at is the plane's back
   // one. Drawing both sides is enough: the renderer flips the normal for a
   // back face itself, and negating it here as well would cancel that out and
@@ -2482,7 +2509,31 @@ function buildGround(cfg: GroundConfig) {
     : null;
   const mesh = buildStrip(cfg, terrain, false);
   const roof = vault ? buildStrip(cfg, vault, true) : null;
-  return { mesh, roof, terrain, vault, span: cfg.span, speed: cfg.speed };
+  const kind = cfg.pbr?.lava ? 'lava' : cfg.pbr?.glow ? 'ice' : null;
+  const effects = kind
+    ? surfaceEffects(kind, terrain, vault, {
+        span: cfg.span,
+        near: cfg.near,
+        far: cfg.far,
+        base: cfg.base,
+        roofNear: cfg.roof?.near,
+        roofFar: cfg.roof?.far,
+      })
+    : null;
+  // Scenery tied to the ground rides on its mesh, so the scroll carries it.
+  if (effects) {
+    if (effects.deck.length) mesh.add(...effects.deck);
+    if (roof && effects.vault.length) roof.add(...effects.vault);
+  }
+  return {
+    mesh,
+    roof,
+    terrain,
+    vault,
+    span: cfg.span,
+    speed: cfg.speed,
+    atmosphere: effects?.still ?? [],
+  };
 }
 
 /* ------------------------------------------------------------------ *
@@ -2891,6 +2942,7 @@ export function buildBackdrop(
   if (ground) {
     root.add(ground.mesh);
     if (ground.roof) root.add(ground.roof);
+    if (ground.atmosphere.length) root.add(...ground.atmosphere);
   }
 
   const streakSpan = 120;

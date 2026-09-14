@@ -43,6 +43,7 @@ import tuning from '../../../data/tuning.json';
   T.NodeBuilder.prototype as unknown as { getUniformBufferLimit: () => number }
 ).getUniformBufferLimit = () => 0;
 import { makeNovaMissile } from '../../visual/NovaMissile';
+import { groundUnitMaterial } from '../../visual/GroundUnitMaterial';
 import fleetHardpoints from '../../../data/enemies/fleet-hardpoints.json';
 
 /**
@@ -576,10 +577,8 @@ export class ThreeBackend implements IRenderBackend {
     }
     for (let i = 0; i < GROUND_TYPES; i++) {
       const parts = groundGeometry(i);
-      const material = hullMaterial.clone();
-      material.map = parts.map ?? null;
-      finishHull(material, parts.surface ?? null);
-      const hull = new T.InstancedMesh(parts.hull!, material, 64);
+      // Turrets and tanks: sector paint over a scanned metal finish.
+      const hull = new T.InstancedMesh(parts.hull!, groundUnitMaterial(i), 64);
       hull.count = 0;
       hull.frustumCulled = false;
       hull.instanceMatrix.setUsage(T.DynamicDrawUsage);

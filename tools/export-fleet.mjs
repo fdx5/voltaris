@@ -2,7 +2,7 @@
 import { build } from 'esbuild';
 import { readFile, writeFile, unlink, mkdir } from 'node:fs/promises';
 import { Mesh, Vector3 } from 'three/webgpu';
-import { readFleetGeometry } from './read-fleet-geometry.mjs';
+import { readFleetGeometry, readGroundGeometry } from './read-fleet-geometry.mjs';
 const temporary = new URL('./.fleet-models.mjs', import.meta.url);
 await build({
   entryPoints: ['src/visual/SceneBuilder.ts'],
@@ -22,7 +22,7 @@ try {
     FLEET_STYLE,
     GROUND_TYPES,
   } = await import(temporary.href);
-  await loadImportedFleet(await readFleetGeometry());
+  await loadImportedFleet(await readFleetGeometry(), await readGroundGeometry());
   const records = [];
   function meshData(geometry, material, matrix) {
     const p = geometry.attributes.position,

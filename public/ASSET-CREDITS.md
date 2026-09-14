@@ -1,7 +1,8 @@
 # VOLTARIS — imported spaceship assets
 
-Every enemy family (44), surface emplacement (12), boss hull (4), boss escort
-drone (4) and the player flies a **different** downloaded spaceship. No model is
+Every enemy family (44), boss hull (4), boss escort drone (4) and the player
+flies a **different** downloaded spaceship; every surface emplacement (12) is a
+different downloaded turret, launcher or tank. No model is
 recoloured or reused for another roster slot. The slot-by-slot register is
 `data/enemies/imported-fleet.json`; triangle counts and texture sizes of the
 packed result are in `/models/imported/manifest.json`.
@@ -25,6 +26,26 @@ https://polyyai.itch.io/3d-spaceships-pack
 https://polyyai.itch.io/3d-spaceships-pack-2
 25 GLB spaceships. Ordinary units use the artist's decimated LOD meshes; boss
 hulls use the full-detail (~100k triangle) meshes simplified to 60k triangles.
+
+## Quaternius — Turrets Pack and Tanks Pack (surface emplacements)
+
+CC0 1.0 Universal. https://quaternius.com/packs/turrets.html ·
+https://quaternius.com/packs/tanks.html
+Ten turrets and launchers (GearCannon_2, Upwards_3, Cannon_4, Laser_2,
+Teleporter4, Teleporter5, Bomber_2, Upwards_2, Long_2, Cannon_7) and two tanks
+(Tank3, Tank2), exported from the artist's .blend files and packed into
+`/models/imported/voltaris-ground-units.glb` by `tools/pack-ground-units.mjs`.
+The models are untextured; the game paints them per sector.
+
+## Poly Haven — PBR textures (surface stages and emplacement finish)
+
+CC0 1.0 Universal. https://polyhaven.com/license
+Resized and recompressed; stored under `/textures/terrain` and `/textures/materials`.
+
+- Dark Rock (dark_rock) by Amal Kumar - https://polyhaven.com/a/dark_rock
+- Sandstone Cracks (sandstone_cracks) by Rob Tuytel - https://polyhaven.com/a/sandstone_cracks
+- Snow 01 (snow_01) by Rob Tuytel - https://polyhaven.com/a/snow_01
+- Metal Plate 02 (metal_plate_02) by Rob Tuytel - https://polyhaven.com/a/metal_plate_02
 
 ## Special weapon — NOVA BOMB airframe
 

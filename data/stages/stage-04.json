@@ -38,7 +38,25 @@
       "flare": 0.02
     },
     "normal": "surfaces/ice_normal.jpg",
-    "roughness": "surfaces/ice_roughness.jpg"
+    "roughness": "surfaces/ice_roughness.jpg",
+    "pbr": {
+      "tile": 9,
+      "rock": {
+        "color": "surfaces/ice_color.jpg",
+        "normal": "surfaces/ice_normal.jpg",
+        "rough": "surfaces/ice_roughness.jpg",
+        "tint": "#d8ecf6"
+      },
+      "crust": {
+        "color": "terrain/snow_01_color.jpg",
+        "normal": "terrain/snow_01_normal.jpg",
+        "rough": "terrain/snow_01_rough.jpg",
+        "height": "terrain/snow_01_height.jpg",
+        "tint": "#eef6fb"
+      },
+      "glow": "#2f8fd0",
+      "sparkle": 1.6
+    }
   },
   "ground": [
     {

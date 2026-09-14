@@ -1,6 +1,12 @@
 // Offline geometry inspection has no DOM image decoder. Keep material factors
 // and exact mesh buffers, omitting texture references only for this reader.
+import { readFile } from 'node:fs/promises';
 import { readFleetBytes } from './fleet-parts.mjs';
+/** The surface emplacements' GLB carries no textures, so it is read as it is. */
+export async function readGroundGeometry() {
+  const bytes = await readFile('public/models/imported/voltaris-ground-units.glb');
+  return bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength);
+}
 export async function readFleetGeometry() {
   const bytes = await readFleetBytes();
   const length = bytes.readUInt32LE(12);

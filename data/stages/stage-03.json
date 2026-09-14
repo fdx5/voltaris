@@ -23,9 +23,27 @@
     "texture": "rocks/rock_06.jpg",
     "valley": "#7d6349",
     "crest": "#d4b389",
-    "haze": "#5c4a3e",
-    "contour": 0.55,
-    "roof": null
+    "haze": "#3a2c24",
+    "contour": 0,
+    "roof": null,
+    "pbr": {
+      "tile": 5.5,
+      "rock": {
+        "color": "terrain/dark_rock_color.jpg",
+        "normal": "terrain/dark_rock_normal.jpg",
+        "rough": "terrain/dark_rock_rough.jpg",
+        "height": "terrain/dark_rock_height.jpg",
+        "tint": "#6e5c4f"
+      },
+      "crust": {
+        "color": "terrain/sandstone_cracks_color.jpg",
+        "normal": "terrain/sandstone_cracks_normal.jpg",
+        "rough": "terrain/sandstone_cracks_rough.jpg",
+        "height": "terrain/sandstone_cracks_height.jpg",
+        "tint": "#b98f45"
+      },
+      "lava": "#ff4a10"
+    }
   },
   "ground": [
     {

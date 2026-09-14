@@ -8,28 +8,35 @@ import defs from '../../data/enemies/enemy-defs.json';
 import groundDefs from '../../data/enemies/ground-defs.json';
 import roster from '../../data/enemies/imported-fleet.json';
 import fleetParts from '../../data/enemies/imported-fleet-parts.json';
+import groundPack from '../../data/enemies/ground-units-pack.json';
 import { asset } from '../core/assets';
 import fleetHardpoints from '../../data/enemies/fleet-hardpoints.json';
 import groundHardpoints from '../../data/enemies/ground-hardpoints.json';
 
 /**
- * Every hostile family, emplacement, boss hull and escort drone is a different
- * downloaded CC0 spaceship; tools/pack-imported-fleet.mjs packs them into one GLB
- * with one textured primitive per roster slot (see data/enemies/imported-fleet.json).
+ * Every hostile family, boss hull and escort drone is a different downloaded CC0
+ * spaceship; tools/pack-imported-fleet.mjs packs them into one GLB with one
+ * textured primitive per roster slot (see data/enemies/imported-fleet.json).
+ * Surface emplacements are turrets and tanks instead, packed on their own by
+ * tools/pack-ground-units.mjs with paint roles in place of textures.
  */
 export const FLEET_URLS = fleetParts.parts.map((name) =>
   asset(`/models/imported/${name}?v=${fleetParts.sha256.slice(0, 12)}`),
+);
+export const GROUND_URL = asset(
+  `/models/imported/voltaris-ground-units.glb?v=${groundPack.sha256.slice(0, 12)}`,
 );
 const BOSSES = ['gatekeeper', 'ares', 'jove', 'nereid'] as const;
 const pad = (n: number) => String(n).padStart(2, '0');
 export const FLEET_SLOTS = [
   'player',
   ...defs.map((_, i) => `enemy_${pad(i)}`),
-  ...groundDefs.map((_, i) => `ground_${pad(i)}`),
   ...BOSSES.flatMap((b) => [`boss_${b}`, `pod_${b}`]),
 ];
+export const GROUND_SLOTS = groundDefs.map((_, i) => `ground_${pad(i)}`);
 
 let fleet: T.Group | undefined;
+let groundUnits: T.Group | undefined;
 let pending: Promise<void> | undefined;
 
 /** Downloads the fleet's parts side by side and joins them into one GLB. */
@@ -51,18 +58,36 @@ async function downloadFleet() {
   return bytes.buffer;
 }
 
-export function loadImportedFleet(data?: ArrayBuffer): Promise<void> {
+async function downloadGroundUnits() {
+  const response = await fetch(GROUND_URL);
+  if (!response.ok) throw new Error(`Ground units download failed (${response.status})`);
+  return response.arrayBuffer();
+}
+
+/**
+ * Loads the spaceship fleet and the surface emplacements. Tools and tests pass
+ * both GLBs' bytes; the game downloads them.
+ */
+export function loadImportedFleet(data?: ArrayBuffer, groundData?: ArrayBuffer): Promise<void> {
   const loader = new GLTFLoader().setMeshoptDecoder(MeshoptDecoder);
-  return (pending ??= (data ? Promise.resolve(data) : downloadFleet())
-    .then((bytes) => loader.parseAsync(bytes, ''))
-    .then((gltf) => {
+  return (pending ??= Promise.all([
+    (data ? Promise.resolve(data) : downloadFleet()).then((bytes) => loader.parseAsync(bytes, '')),
+    (groundData ? Promise.resolve(groundData) : downloadGroundUnits()).then((bytes) =>
+      loader.parseAsync(bytes, ''),
+    ),
+  ])
+    .then(([gltf, ground]) => {
       for (const name of FLEET_SLOTS) {
         const node = gltf.scene.getObjectByName(name);
         if (!(node instanceof T.Mesh)) throw new Error(`Missing imported spaceship: ${name}`);
         if (!data && !(node.material as T.MeshStandardMaterial).map)
           throw new Error(`Spaceship texture failed to load: ${name}`);
       }
+      for (const name of GROUND_SLOTS)
+        if (!(ground.scene.getObjectByName(name) instanceof T.Mesh))
+          throw new Error(`Missing ground unit: ${name}`);
       fleet = gltf.scene;
+      groundUnits = ground.scene;
     })
     .catch((error: unknown) => {
       pending = undefined;
@@ -81,14 +106,21 @@ export const HULL_MATERIALS = new Set<T.MeshStandardNodeMaterial>();
 /** Meshopt quantises attributes; transforms below need plain float buffers. */
 function floatGeometry(source: T.BufferGeometry) {
   const geometry = new T.BufferGeometry();
-  for (const key of ['position', 'normal', 'uv']) {
+  // A ground unit's vertex colours are paint roles, not colours; they travel as
+  // `paint` so the batch's own `color` attribute stays free for hit flashes.
+  for (const [key, name] of [
+    ['position', 'position'],
+    ['normal', 'normal'],
+    ['uv', 'uv'],
+    ['color', 'paint'],
+  ]) {
     const attribute = source.getAttribute(key);
     if (!attribute) continue;
-    const array = new Float32Array(attribute.count * attribute.itemSize);
+    const size = key === 'color' ? 3 : attribute.itemSize;
+    const array = new Float32Array(attribute.count * size);
     for (let i = 0; i < attribute.count; i++)
-      for (let c = 0; c < attribute.itemSize; c++)
-        array[i * attribute.itemSize + c] = attribute.getComponent(i, c);
-    geometry.setAttribute(key, new T.BufferAttribute(array, attribute.itemSize));
+      for (let c = 0; c < size; c++) array[i * size + c] = attribute.getComponent(i, c);
+    geometry.setAttribute(name, new T.BufferAttribute(array, size));
   }
   const index = source.getIndex();
   if (index) geometry.setIndex(new T.BufferAttribute(Uint32Array.from(index.array), 1));
@@ -107,7 +139,8 @@ type Part = {
  * camera, so each silhouette reads as a three-quarter plan rather than a sliver.
  */
 function part(slot: string, reach: number, facing: 1 | -1, view: number): Part {
-  const source = fleet?.getObjectByName(slot) as T.Mesh | undefined;
+  const source = (slot.startsWith('ground_') ? groundUnits : fleet)?.getObjectByName(slot) as
+    T.Mesh | undefined;
   if (!source) throw new Error(`Imported fleet has not loaded: ${slot}`);
   source.updateWorldMatrix(true, false);
   const geometry = floatGeometry(source.geometry).applyMatrix4(source.matrixWorld);

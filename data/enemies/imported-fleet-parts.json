@@ -1,6 +1,6 @@
 {
-  "size": 25520000,
-  "sha256": "9869748d93292fc4e6b76a0a279c5814a69a7723a66ff22a3b4575cbbab72045",
+  "size": 21603520,
+  "sha256": "395f6e67ee8cf6b612d1b82f9ee1f97ef5e8f37d91d8888f55e1e8a21ba7fed2",
   "parts": [
     "voltaris-imported-fleet.0.bin",
     "voltaris-imported-fleet.1.bin"

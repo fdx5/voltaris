@@ -259,7 +259,6 @@ async function buildModel(slot, spec) {
 const slots = [
   ['player', roster.player],
   ...roster.enemies.map((e, i) => [`enemy_${String(i).padStart(2, '0')}`, e]),
-  ...roster.ground.map((e, i) => [`ground_${String(i).padStart(2, '0')}`, e]),
   ...Object.entries(roster.bosses).flatMap(([name, b]) => [
     [`boss_${name}`, b.hull],
     [`pod_${name}`, b.pod],
