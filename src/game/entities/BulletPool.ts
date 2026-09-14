@@ -29,6 +29,8 @@ export class BulletPool extends ObjectPool {
   /** Per-kind scratch: cruise speed, split timer, bounces left, spin rate. */
   readonly param: Float32Array;
   readonly tint: Uint32Array;
+  /** 1 for a player round fired by an option drone rather than the ship itself. */
+  readonly option: Uint8Array;
   constructor(capacity = 4096) {
     super(capacity);
     this.grazed = new Uint8Array(capacity);
@@ -37,6 +39,7 @@ export class BulletPool extends ObjectPool {
     this.heading = new Float32Array(capacity);
     this.param = new Float32Array(capacity);
     this.tint = new Uint32Array(capacity);
+    this.option = new Uint8Array(capacity);
   }
   fire(
     x: number,
@@ -59,6 +62,7 @@ export class BulletPool extends ObjectPool {
       this.heading[i] = Math.atan2(vy, vx);
       this.param[i] = param;
       this.tint[i] = 0;
+      this.option[i] = 0;
     }
     return i;
   }

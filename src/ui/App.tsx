@@ -404,7 +404,7 @@ function GameApp() {
               SCORE <span>×{ui.graze.toFixed(2)}</span>
             </small>
             <strong aria-label={`점수 ${Math.floor(ui.score).toLocaleString('en-US')}`}>
-              {Math.floor(ui.score).toLocaleString('en-US', { minimumIntegerDigits: 7 })}
+              {Math.floor(ui.score).toLocaleString('en-US')}
             </strong>
             <p>
               STAGE {String(ui.stageIndex + 1).padStart(2, '0')} <i>/</i> {ui.stageName}

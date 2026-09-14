@@ -2982,12 +2982,16 @@ export function buildBackdrop(
      */
     update(t: number, scale = 1, lookX = 0, lookY = 0, cameraZ = 33.6) {
       // A surface stage keeps its terrain fixed, so its sky follows more gently.
+      // Vertically most of all: planet and sky bobbing up and down behind a
+      // fixed deck made players dizzy, so stages three and four rise and fall
+      // a third as far as they used to (0.45 -> 0.15); the sideways pan is kept.
       const reach = ground ? 0.45 : 1;
+      const rise = ground ? 0.15 : 1;
       view.position.z = cameraZ;
       sky.position.z = -cameraZ;
-      view.rotation.set(-lookY * 0.21 * reach, lookX * 0.05 * reach, 0);
+      view.rotation.set(-lookY * 0.21 * rise, lookX * 0.05 * reach, 0);
       sky.position.x = -lookX * 1.5 * reach;
-      sky.position.y = -lookY * 6 * reach;
+      sky.position.y = -lookY * 6 * rise;
       stars.update(t * scale);
       for (const belt of belts) belt.tumble(t * scale);
       for (const layer of layers) {

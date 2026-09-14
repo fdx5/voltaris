@@ -512,7 +512,7 @@ export class GameState {
       this.fireTimer += 1 / weapons[this.weapon][this.level - 1].rate;
       this.fireWeapon(this.x + 0.7, this.y, 0);
       for (let i = 0; i < this.optionCount; i++)
-        this.fireWeapon(this.optionX[i], this.optionY[i], this.optionAngle[i]);
+        this.fireWeapon(this.optionX[i], this.optionY[i], this.optionAngle[i], true);
       this.shotEvent++;
     }
     // Surface stages arm a ground salvo alongside the main gun: two bombs at
@@ -582,29 +582,54 @@ export class GameState {
       this.optionAngle[i] = hold && this.mode === 2 ? this.optionAim : 0;
     }
   }
-  private fireWeapon(x: number, y: number, angle: number) {
+  /**
+   * Fires one volley of the equipped weapon. The ship and its option drones
+   * shoot the same number of rounds for the same damage, but in patterns of
+   * their own - and the renderer colours drone rounds differently - so the
+   * player can always tell their own fire from their escorts'.
+   *
+   * - LASER: the ship fires parallel tracers; drones fire pulses that cross
+   *   and uncross from volley to volley.
+   * - MISSILE: the ship fires a steady fan; drones throw quicker micro-missiles
+   *   in a wider fan.
+   * - SPREAD: the ship sprays a wide, breathing fan; drones fire a tight,
+   *   stuttering stream.
+   */
+  private fireWeapon(x: number, y: number, angle: number, option = false) {
     const w = weapons[this.weapon][this.level - 1];
     const damage = w.damage * (this.effects[0] > 0 ? 2 : 1);
+    const beat = this.shotEvent % 2 ? 1 : -1;
     for (let j = 0; j < w.count; j++) {
       const mid = j - (w.count - 1) / 2;
-      const a =
-        angle +
-        (this.weapon === 'SPREAD'
-          ? mid * (this.shotEvent % 2 ? 0.15 : 0.11)
-          : this.weapon === 'MISSILE'
-            ? mid * 0.28
-            : 0);
+      let spread = 0,
+        offset = 0,
+        speed = 30;
+      if (this.weapon === 'LASER') {
+        offset = mid * (option ? 0.14 : 0.3);
+        spread = option ? mid * beat * 0.07 : 0;
+        speed = option ? 26 : 30;
+      } else if (this.weapon === 'MISSILE') {
+        offset = mid * 0.16;
+        spread = mid * (option ? 0.46 : 0.28);
+        speed = option ? 24 : 18;
+      } else {
+        spread = option ? mid * 0.045 : mid * (beat > 0 ? 0.15 : 0.11);
+        offset = option ? beat * 0.06 : 0;
+      }
+      const a = angle + spread;
       const slot = this.bullets.fire(
         x,
-        y + (this.weapon === 'LASER' ? mid * 0.3 : this.weapon === 'MISSILE' ? mid * 0.16 : 0),
-        Math.cos(a) * (this.weapon === 'MISSILE' ? 18 : 30),
-        Math.sin(a) * (this.weapon === 'MISSILE' ? 18 : 30),
+        y + offset,
+        Math.cos(a) * speed,
+        Math.sin(a) * speed,
         this.weapon === 'MISSILE' ? 2 : 0,
         w.width,
         damage,
         w.pierce,
       );
-      if (slot >= 0 && this.weapon === 'SPREAD') this.bullets.tint[slot] = 0xbca8ff;
+      if (slot < 0) continue;
+      if (this.weapon === 'SPREAD') this.bullets.tint[slot] = 0xbca8ff;
+      if (option) this.bullets.option[slot] = 1;
     }
   }
   /**

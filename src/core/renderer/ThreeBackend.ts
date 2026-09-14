@@ -218,6 +218,12 @@ export class ThreeBackend implements IRenderBackend {
   private readonly missiles: T.InstancedMesh;
   private readonly missileExhaust: T.InstancedMesh;
   private readonly scatter: T.InstancedMesh;
+  /** Option drone rounds: emerald pulses, magenta micro-missiles, amber pellets. */
+  private readonly optionCore: T.InstancedMesh;
+  private readonly optionHalo: T.InstancedMesh;
+  private readonly optionMissiles: T.InstancedMesh;
+  private readonly optionExhaust: T.InstancedMesh;
+  private readonly optionScatter: T.InstancedMesh;
   private readonly lance: T.InstancedMesh;
   private readonly allShotBatches: T.InstancedMesh[] = [];
   /**
@@ -530,6 +536,36 @@ export class ThreeBackend implements IRenderBackend {
       18,
     );
     this.scatter = batch(new T.OctahedronGeometry(1), lit('#d5baff', 2), 1024);
+    const pulse = new T.SphereGeometry(1, 10, 8);
+    this.optionHalo = batch(
+      pulse.clone(),
+      Object.assign(lit('#19e39a', 1.4), {
+        transparent: true,
+        opacity: 0.38,
+        blending: T.AdditiveBlending,
+        depthWrite: false,
+      }),
+      1024,
+      18,
+    );
+    this.optionCore = batch(pulse, lit('#dcfff0', 2.8), 1024);
+    this.optionMissiles = batch(
+      new T.ConeGeometry(1, 3, 6).rotateZ(-Math.PI / 2),
+      lit('#ff8fe4', 2.6),
+      512,
+    );
+    this.optionExhaust = batch(
+      new T.CapsuleGeometry(1, 3, 2, 5).rotateZ(Math.PI / 2),
+      Object.assign(lit('#b35cff', 1.2), {
+        transparent: true,
+        opacity: 0.26,
+        blending: T.AdditiveBlending,
+        depthWrite: false,
+      }),
+      1536,
+      18,
+    );
+    this.optionScatter = batch(new T.TetrahedronGeometry(1), lit('#ffb347', 2.2), 1024);
     this.lance = batch(
       new T.CapsuleGeometry(1, 6, 4, 10).rotateZ(Math.PI / 2),
       lit('#a8ecff', 4),
@@ -1108,11 +1144,12 @@ export class ThreeBackend implements IRenderBackend {
           }
           break;
         }
-        case 2:
+        case 2: {
+          const drone = p.option[i] === 1;
           for (let tail = 1; tail <= 3; tail++) {
             const distance = r * (2 + tail * 2.2);
             this.push(
-              this.missileExhaust,
+              drone ? this.optionExhaust : this.missileExhaust,
               x - Math.cos(aim) * distance,
               y - Math.sin(aim) * distance,
               0.12,
@@ -1122,8 +1159,11 @@ export class ThreeBackend implements IRenderBackend {
               aim,
             );
           }
-          this.push(this.missiles, x, y, 0.15, r * 1.35, r * 0.8, r * 0.8, aim);
+          // A drone's micro-missile is slimmer than the ship's own.
+          if (drone) this.push(this.optionMissiles, x, y, 0.15, r * 1.1, r * 0.55, r * 0.55, aim);
+          else this.push(this.missiles, x, y, 0.15, r * 1.35, r * 0.8, r * 0.8, aim);
           break;
+        }
         case 4:
           // Nose down along its own arc, so a salvo reads as falling ordnance.
           this.push(this.bombs, x, y, 0.15, r * 1.1, r * 2.2, r * 1.1, aim + Math.PI / 2);
@@ -1137,7 +1177,16 @@ export class ThreeBackend implements IRenderBackend {
           break;
         default:
           if (p.tint[i] === 0xbca8ff) {
-            this.push(this.scatter, x, y, 0.15, r * 2.4, r * 0.72, r * 0.5, aim);
+            if (p.option[i] === 1)
+              this.push(this.optionScatter, x, y, 0.15, r * 1.3, r * 1.3, r * 1.3, t * 14 + i);
+            else this.push(this.scatter, x, y, 0.15, r * 2.4, r * 0.72, r * 0.5, aim);
+            break;
+          }
+          if (p.option[i] === 1) {
+            // Drone laser: a round, throbbing pulse rather than a long tracer.
+            const throb = 1 + Math.sin(t * 30 + i) * 0.15;
+            this.push(this.optionCore, x, y, 0.15, r * 1.25, r * 0.7, r * 0.7, aim);
+            this.push(this.optionHalo, x, y, 0.14, r * 2.3 * throb, r * 1.45 * throb, r * 1.2, aim);
             break;
           }
           // A hairline core inside a soft additive sheath reads as a tracer
