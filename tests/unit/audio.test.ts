@@ -78,3 +78,68 @@ it('does not reject launch when the audio device refuses initialization', async 
   );
   await expect(new AudioEngine().unlock()).resolves.toBeUndefined();
 });
+
+it('starts streamed music synchronously and retries a blocked play on the next gesture', async () => {
+  vi.stubGlobal('AudioContext', undefined);
+  vi.stubGlobal('webkitAudioContext', undefined);
+  vi.stubGlobal('location', { href: 'https://game.example/' });
+  const play = vi
+    .fn()
+    .mockRejectedValueOnce(new Error('NotAllowedError'))
+    .mockResolvedValue(undefined);
+  const pause = vi.fn();
+  let element: { src: string; paused: boolean; muted: boolean; volume: number };
+  const construct = vi.fn();
+  vi.stubGlobal(
+    'Audio',
+    class {
+      src = '';
+      paused = true;
+      muted = false;
+      volume = 1;
+      play = play;
+      pause = pause;
+      setAttribute = vi.fn();
+      constructor() {
+        element = this;
+        construct();
+      }
+    },
+  );
+  const audio = new AudioEngine();
+  audio.playTrack('/stage.mp3');
+  expect(play).toHaveBeenCalledTimes(1);
+  await Promise.resolve();
+  const unlock = audio.unlock();
+  expect(play).toHaveBeenCalledTimes(2);
+  await unlock;
+  audio.playTrack('/boss.mp3');
+  expect(construct).toHaveBeenCalledTimes(1);
+  expect(element!.src).toBe('https://game.example/boss.mp3');
+  audio.toggle();
+  expect(element!.muted).toBe(true);
+  audio.toggle();
+  expect(element!.muted).toBe(false);
+  audio.setMusicVolume(0);
+  expect(element!.muted).toBe(true);
+  audio.stopTrack();
+  await audio.unlock();
+  expect(play).toHaveBeenCalledTimes(3);
+});
+
+it('resumes an iOS interrupted audio context', async () => {
+  const resume = vi.fn().mockResolvedValue(undefined);
+  vi.stubGlobal(
+    'AudioContext',
+    class {
+      state = 'interrupted';
+      currentTime = 0;
+      destination = {};
+      createGain = () => ({ gain: { value: 0 }, connect: vi.fn() });
+      createOscillator = () => ({ connect: vi.fn(), start: vi.fn() });
+      resume = resume;
+    },
+  );
+  await new AudioEngine().unlock();
+  expect(resume).toHaveBeenCalledOnce();
+});

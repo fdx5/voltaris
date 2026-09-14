@@ -1,4 +1,5 @@
 import { asset } from '../core/assets';
+import { isIOSDevice } from '../core/device';
 import { buildStarField, type StarPalette } from './StarField';
 import { terrainMaterial, type TerrainPbr } from './TerrainMaterial';
 import { surfaceEffects } from './SurfaceEffects';
@@ -1122,10 +1123,15 @@ export function legacyEnemyGeometry(type: number): EnemyHulls {
  * invisible and the ship reads as travelling right at speed. Earth and
  * its cloud shell keep their place and simply turn.
  * ------------------------------------------------------------------ */
-const TEXTURE_ROOT = asset('/textures/');
+const TEXTURE_ROOT = asset(isIOSDevice() ? '/textures-ios/' : '/textures/');
 const loader = new T.TextureLoader();
+const textureCache = new Map<string, T.Texture>();
 function loadTexture(path: string, srgb: boolean, repeat = false) {
+  const key = `${path}:${srgb}:${repeat}`;
+  const cached = textureCache.get(key);
+  if (cached) return cached;
   const t = loader.load(TEXTURE_ROOT + path);
+  textureCache.set(key, t);
   if (srgb) t.colorSpace = T.SRGBColorSpace;
   if (repeat) t.wrapS = t.wrapT = T.RepeatWrapping;
   // Ground strips are viewed at a grazing angle for the whole stage; 8 was

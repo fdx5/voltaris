@@ -21,6 +21,8 @@ export class AudioEngine {
   musicVolume = 0.5;
   muted = false;
   async unlock() {
+    // Retry blocked/interrupted music within the next user gesture, before awaits.
+    if (this.trackWanted && this.music?.paused) void this.music.play().catch(() => {});
     if (!this.ctx) {
       const Context =
         globalThis.AudioContext ??
@@ -49,7 +51,8 @@ export class AudioEngine {
       }
       this.nextBeat = this.ctx.currentTime;
     }
-    if (this.ctx.state === 'suspended') await this.ctx.resume().catch(() => {});
+    if (this.ctx.state !== 'running' && this.ctx.state !== 'closed')
+      await this.ctx.resume().catch(() => {});
   }
   setVolume(volume: number) {
     this.volume = volume;
@@ -68,7 +71,10 @@ export class AudioEngine {
   private applyMusicGain() {
     // Independent of the effect bus so the slider reading is the level the
     // player actually hears; the mute button still cuts both.
-    if (this.music) this.music.volume = this.muted ? 0 : this.musicVolume;
+    if (this.music) {
+      this.music.muted = this.muted || this.musicVolume === 0;
+      this.music.volume = this.muted ? 0 : this.musicVolume;
+    }
   }
   /**
    * A track fetched ahead of time, held as an in-memory blob. Only one is kept:
@@ -108,6 +114,8 @@ export class AudioEngine {
   playTrack(url: string) {
     if (!this.music) {
       this.music = new Audio();
+      this.music.crossOrigin = 'anonymous';
+      this.music.setAttribute('playsinline', '');
       this.music.loop = true;
       this.music.preload = 'auto';
     }

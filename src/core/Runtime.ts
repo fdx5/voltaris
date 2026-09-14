@@ -8,6 +8,7 @@ import { asset } from './assets';
 import { ThreeBackend } from './renderer/ThreeBackend';
 import type { Quality } from './renderer/IRenderBackend';
 import { useUI } from '../ui/store/useUI';
+import { STAGES } from '../game/stages';
 /** Weapons that fire a recorded sample instead of the synth blip. */
 const FIRE_SAMPLES: Record<Weapon, string> = {
   LASER: asset('/audio/laser.mp3'),
@@ -129,12 +130,17 @@ export class Runtime {
         return;
       }
       this.initialized = true;
-      useUI.setState({ ready: true, error: '', backend: this.visual.backendName });
+      useUI.setState({
+        ready: true,
+        error: '',
+        backend: this.visual.backendName,
+        quality: this.visual.quality,
+      });
       this.visual.sync(this.game, 0, 0);
       this.loop.start();
       this.checkOrientation();
       // Combat shaders build behind the hangar rather than in front of it.
-      void this.visual.warmup();
+      void this.visual.warmup().catch((e) => console.warn('[VOLTARIS] shader warmup skipped', e));
     } catch (e) {
       console.error('[VOLTARIS] renderer init failed', e);
       useUI.setState({ error: graphicsAdvice(e) });
@@ -154,6 +160,10 @@ export class Runtime {
     if (useAccount.getState().launching) return;
     // iOS requires audio activation inside the launch gesture, before network awaits.
     void this.audio.unlock();
+    // Unlock the actual media element too, synchronously in the launch tap.
+    // Resuming Web Audio alone does not authorize HTMLAudioElement on iOS.
+    const launchTrack = STAGES[stageIndex]?.music;
+    if (launchTrack) this.audio.playTrack(asset(launchTrack));
     useAccount.setState({ launching: true, error: '' });
     try {
       await this.finishRun();
@@ -199,6 +209,7 @@ export class Runtime {
       this.checkOrientation();
       this.publish();
     } catch (e) {
+      this.audio.stopTrack();
       useAccount.setState({ error: e instanceof Error ? e.message : '출격할 수 없습니다.' });
       throw e;
     } finally {
@@ -280,6 +291,7 @@ export class Runtime {
   resume() {
     if (this.portrait) return;
     void this.audio.unlock();
+    this.audio.resume();
     if (this.game.status === 'paused') this.game.status = 'playing';
     this.input.clear();
     this.publish();

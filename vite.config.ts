@@ -84,7 +84,9 @@ export default defineConfig({
               '**/*.{js,css,html,ico,png,svg,jpg,webp,webmanifest}',
               '**/audio/{optionadd,powerup,itemadd,destroy,bosskill,win,nova-blast}.mp3',
             ],
-        globIgnores: cdn ? ['**/textures/**', '**/audio/**', '**/models/**'] : [],
+        globIgnores: cdn
+          ? ['**/textures/**', '**/textures-ios/**', '**/audio/**', '**/models/**']
+          : [],
         navigateFallbackDenylist: [/^\/api\//],
         // Stage tracks are far too large to precache, so they are kept out of
         // the install payload and cached the first time they stream.

@@ -2,6 +2,7 @@ import * as T from 'three/webgpu';
 import { float, normalView, pass, positionGeometry, positionViewDirection } from 'three/tsl';
 import { bloom } from 'three/addons/tsl/display/BloomNode.js';
 import type { IRenderBackend, Quality } from './IRenderBackend';
+import { isIOSDevice } from '../device';
 import { IMPACTS, IMPACT_LIFE, type GameState } from '../../game/GameState';
 
 import {
@@ -198,6 +199,8 @@ function shotStyles(): ShotStyle[] {
 }
 
 export class ThreeBackend implements IRenderBackend {
+  private readonly ios = isIOSDevice();
+  private disposed = false;
   renderer: T.WebGPURenderer;
   canvas: HTMLCanvasElement;
   readonly scene = new T.Scene();
@@ -262,7 +265,7 @@ export class ThreeBackend implements IRenderBackend {
   private readonly rockRims: T.InstancedMesh[] = [];
   /** One backdrop and one boss model per stage, swapped by visibility so the
    *  shaders are all compiled up front and a stage change never hitches. */
-  private readonly skies: ReturnType<typeof buildBackdrop>[] = [];
+  private readonly skies: (ReturnType<typeof buildBackdrop> | undefined)[] = [];
   private readonly bosses: BossModel[] = [];
   private stage = 0;
   private readonly shieldMesh: T.Mesh;
@@ -406,7 +409,9 @@ export class ThreeBackend implements IRenderBackend {
      */
     private failFirstBoot = false,
   ) {
-    this.renderer = this.makeRenderer(forceWebGL, true);
+    this.forceWebGL = forceWebGL || this.ios;
+    if (this.ios) this.quality = 'MEDIUM';
+    this.renderer = this.makeRenderer(this.forceWebGL, !this.ios);
     this.canvas = this.attach();
     this.scene.background = new T.Color('#03060c');
     this.scene.fog = new T.FogExp2('#060d16', 0.003);
@@ -440,9 +445,6 @@ export class ThreeBackend implements IRenderBackend {
     this.scene.add(this.bossShockwave);
     this.deferred.push(this.bossShockwave);
     this.hiddenUntilUsed.push(this.bossShockwave);
-    const scenes: SceneName[] = ['earth', 'mars', 'jupiter', 'neptune'];
-    for (let i = 0; i < scenes.length; i++)
-      this.skies.push(buildBackdrop(this.scene, scenes[i], STAGES[i]?.surface ?? null));
     for (const design of ['gatekeeper', 'ares', 'jove', 'nereid'] as const) {
       const model = makeBoss(design);
       this.scene.add(model.root, ...model.pods);
@@ -767,8 +769,19 @@ export class ThreeBackend implements IRenderBackend {
   }
   /** Reveals one stage's backdrop and boss, hiding every other. */
   private showStage(index: number) {
-    this.stage = Math.max(0, Math.min(index, this.skies.length - 1));
-    for (let i = 0; i < this.skies.length; i++) this.skies[i].root.visible = i === this.stage;
+    this.stage = Math.max(0, Math.min(index, STAGES.length - 1));
+    if (!this.skies[this.stage]) {
+      const scenes: SceneName[] = ['earth', 'mars', 'jupiter', 'neptune'];
+      this.skies[this.stage] = buildBackdrop(
+        this.scene,
+        scenes[this.stage],
+        STAGES[this.stage]?.surface ?? null,
+      );
+    }
+    for (let i = 0; i < this.skies.length; i++) {
+      const sky = this.skies[i];
+      if (sky) sky.root.visible = i === this.stage;
+    }
     for (let i = 0; i < this.bosses.length; i++) {
       const active = i === this.stage;
       this.bosses[i].root.visible = false;
@@ -826,17 +839,20 @@ export class ThreeBackend implements IRenderBackend {
     this.lightHulls();
     this.renderer.toneMapping = T.ACESFilmicToneMapping;
     this.renderer.toneMappingExposure = 1.05;
-    const scenePass = pass(this.scene, this.camera);
-    this.scenePass = scenePass;
-    // What the pass would only settle on its first frame: without it the
-    // compile below targets a different buffer and the first frame redoes it.
-    scenePass.renderTarget.samples = this.renderer.samples;
-    scenePass.renderTarget.texture.type = this.renderer.getOutputBufferType();
-    const output = scenePass.getTextureNode('output');
-    this.bloomNode = bloom(output, 0.3, 0.35, 1.15);
-    this.bloomNode.setResolutionScale(0.5);
-    this.pipeline = new T.RenderPipeline(this.renderer);
-    this.pipeline.outputNode = output.add(this.bloomNode);
+    // iOS draws directly to the canvas: avoid HDR/MSAA and bloom render targets.
+    if (!this.ios) {
+      const scenePass = pass(this.scene, this.camera);
+      this.scenePass = scenePass;
+      // What the pass would only settle on its first frame: without it the
+      // compile below targets a different buffer and the first frame redoes it.
+      scenePass.renderTarget.samples = this.renderer.samples;
+      scenePass.renderTarget.texture.type = this.renderer.getOutputBufferType();
+      const output = scenePass.getTextureNode('output');
+      this.bloomNode = bloom(output, 0.3, 0.35, 1.15);
+      this.bloomNode.setResolutionScale(0.5);
+      this.pipeline = new T.RenderPipeline(this.renderer);
+      this.pipeline.outputNode = output.add(this.bloomNode);
+    }
     // `compileAsync` walks the visible scene, so the hangar only pays for what
     // the hangar draws.
     const held = this.deferred.filter((o) => o.visible);
@@ -927,6 +943,8 @@ export class ThreeBackend implements IRenderBackend {
     }
   }
   async warmup() {
+    // Compiling hidden stages uploads their textures and defeats lazy loading.
+    if (this.ios || this.disposed) return;
     // Everything the hangar does not draw, one top-level object at a time and
     // yielding between them, so the hangar keeps drawing while this runs - a
     // single pass over the whole scene held the page for seconds. The boss
@@ -938,6 +956,7 @@ export class ThreeBackend implements IRenderBackend {
     ];
     const rest = this.scene.children.filter((object) => !first.includes(object));
     for (const object of [...first, ...rest]) {
+      if (this.disposed) return;
       await this.compileShown(object);
       await new Promise((resolve) => setTimeout(resolve, 0));
     }
@@ -977,7 +996,7 @@ export class ThreeBackend implements IRenderBackend {
     const scale = this.quality === 'HIGH' ? 1 : this.quality === 'MEDIUM' ? 0.85 : 0.7;
     // Sharp hull textures need the full device resolution on HIGH; lower tiers trade it for speed.
     this.renderer.setPixelRatio(
-      Math.min(devicePixelRatio, this.quality === 'HIGH' ? 2 : 1.75) * scale,
+      Math.min(devicePixelRatio, this.ios ? 1 : this.quality === 'HIGH' ? 2 : 1.75) * scale,
     );
     this.renderer.setSize(w, h);
   }
@@ -1397,7 +1416,7 @@ export class ThreeBackend implements IRenderBackend {
     const ease = 1 - Math.exp(-dt * (this.reducedMotion ? 1.5 : 3.2));
     this.look.x += (lookX - this.look.x) * ease;
     this.look.y += (lookY - this.look.y) * ease;
-    this.skies[this.stage].update(
+    this.skies[this.stage]!.update(
       t,
       inactive ? 0.4 : this.reducedMotion ? 0.5 : 1,
       this.look.x,
@@ -1439,7 +1458,7 @@ export class ThreeBackend implements IRenderBackend {
     this.syncGround(g, alpha);
     this.syncRocks(g, alpha);
     // The surface is periodic, so scrolling it is one translation.
-    const surface = this.skies[this.stage].ground;
+    const surface = this.skies[this.stage]!.ground;
     if (surface) {
       const shift = -(g.scroll % surface.span);
       surface.mesh.position.x = shift;
@@ -1753,6 +1772,7 @@ export class ThreeBackend implements IRenderBackend {
     return this.renderer.info.memory.geometries;
   }
   dispose() {
+    this.disposed = true;
     for (const batch of this.itemBatches)
       (batch.material as T.MeshBasicNodeMaterial).map?.dispose();
     this.scene.traverse((obj) => {

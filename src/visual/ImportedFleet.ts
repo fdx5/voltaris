@@ -10,6 +10,8 @@ import roster from '../../data/enemies/imported-fleet.json';
 import fleetParts from '../../data/enemies/imported-fleet-parts.json';
 import groundPack from '../../data/enemies/ground-units-pack.json';
 import { asset } from '../core/assets';
+import { isIOSDevice } from '../core/device';
+import iosFleet from '../../data/enemies/ios-fleet.json';
 import fleetHardpoints from '../../data/enemies/fleet-hardpoints.json';
 import groundHardpoints from '../../data/enemies/ground-hardpoints.json';
 
@@ -41,6 +43,13 @@ let pending: Promise<void> | undefined;
 
 /** Downloads the fleet's parts side by side and joins them into one GLB. */
 async function downloadFleet() {
+  if (isIOSDevice()) {
+    const response = await fetch(
+      asset(`/models/imported/voltaris-fleet-ios.glb?v=${iosFleet.sha256.slice(0, 12)}`),
+    );
+    if (!response.ok) throw new Error(`Fleet download failed (${response.status})`);
+    return response.arrayBuffer();
+  }
   const chunks = await Promise.all(
     FLEET_URLS.map(async (url) => {
       const response = await fetch(url);
