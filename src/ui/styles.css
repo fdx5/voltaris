@@ -1918,20 +1918,57 @@ kbd {
   padding: 10px 15px;
 }
 .history-scroll {
-  overflow: auto;
+  overflow-y: auto;
+  overflow-x: hidden;
   max-height: calc(var(--viewport-height) * 0.48);
 }
 .online-history table {
   width: 100%;
+  table-layout: fixed;
   border-collapse: collapse;
   font-size: 12px;
-  white-space: nowrap;
 }
 .online-history th,
 .online-history td {
   padding: 12px 10px;
   text-align: left;
   border-bottom: 1px solid #263e52;
+  overflow-wrap: anywhere;
+}
+/* Proportioned so the naturally long columns (pilot, weapon, launch time) get
+   more room than the short ones - keeps wrapping rare without any column
+   spilling past the fixed table width and forcing a scrollbar. */
+.online-history th:nth-child(1),
+.online-history td:nth-child(1) {
+  width: 14%;
+}
+.online-history th:nth-child(2),
+.online-history td:nth-child(2) {
+  width: 13%;
+}
+.online-history th:nth-child(3),
+.online-history td:nth-child(3) {
+  width: 11%;
+}
+.online-history th:nth-child(4),
+.online-history td:nth-child(4) {
+  width: 10%;
+}
+.online-history th:nth-child(5),
+.online-history td:nth-child(5) {
+  width: 18%;
+}
+.online-history th:nth-child(6),
+.online-history td:nth-child(6) {
+  width: 8%;
+}
+.online-history th:nth-child(7),
+.online-history td:nth-child(7) {
+  width: 9%;
+}
+.online-history th:nth-child(8),
+.online-history td:nth-child(8) {
+  width: 17%;
 }
 .online-history th {
   color: #9fcabf;
