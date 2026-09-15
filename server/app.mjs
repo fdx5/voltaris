@@ -288,7 +288,8 @@ export async function createApp(
   app.get('/api/history', async (req, res) => {
     const page = Number(req.query.page || 1),
       stage = Number(req.query.stage || 0),
-      username = String(req.query.username || '').toLowerCase();
+      username = String(req.query.username || '').toLowerCase(),
+      sort = req.query.sort === 'score' ? 'score' : 'recent';
     if (!integer(page, 1, 100000) || !integer(stage, 0, 4) || username.length > 24)
       throw fail(400, '검색 조건이 올바르지 않습니다.');
     const args = [],
@@ -302,6 +303,7 @@ export async function createApp(
       args.push(username);
     }
     const where = conditions.length ? `WHERE ${conditions.join(' AND ')}` : '';
+    const order = sort === 'score' ? 'r.score DESC,r.id DESC' : 'r.started_at DESC,r.id DESC';
     const total = Number(
       (
         await db.execute({
@@ -312,7 +314,7 @@ export async function createApp(
     );
     const rows = (
       await db.execute({
-        sql: `SELECT r.id,u.username,r.stage_id AS stage,s.name AS stageName,r.practice,r.weapon,r.status,r.score,r.kills,r.seconds,r.level,r.credits_used AS credits,r.started_at AS startedAt,r.finished_at AS finishedAt FROM game_runs r JOIN users u ON u.id=r.user_id JOIN stages s ON s.id=r.stage_id ${where} ORDER BY r.started_at DESC,r.id DESC LIMIT 20 OFFSET ?`,
+        sql: `SELECT r.id,u.username,r.stage_id AS stage,s.name AS stageName,r.practice,r.weapon,r.status,r.score,r.kills,r.seconds,r.level,r.credits_used AS credits,r.started_at AS startedAt,r.finished_at AS finishedAt FROM game_runs r JOIN users u ON u.id=r.user_id JOIN stages s ON s.id=r.stage_id ${where} ORDER BY ${order} LIMIT 20 OFFSET ?`,
         args: [...args, (page - 1) * 20],
       })
     ).rows;

@@ -1,4 +1,5 @@
 import { useState, useEffect, type FormEvent } from 'react';
+import { Medal } from 'lucide-react';
 import { api, useAccount, type Pilot } from './store/useAccount';
 import { STAGES } from '../game/stages';
 
@@ -113,10 +114,12 @@ interface HistoryRow {
   level: number;
   startedAt: string;
 }
+/** Gold, silver, bronze - the only ranks the leaderboard decorates. */
+const MEDAL_TIER: Record<number, 'gold' | 'silver' | 'bronze'> = { 1: 'gold', 2: 'silver', 3: 'bronze' };
 export function OnlineHistory() {
   const user = useAccount((s) => s.user);
   const [page, setPage] = useState(1),
-    [stage, setStage] = useState('0'),
+    [stage, setStage] = useState(1),
     [username, setUsername] = useState(''),
     [filter, setFilter] = useState(''),
     [data, setData] = useState<{ rows: HistoryRow[]; total: number; pages: number }>({
@@ -132,7 +135,7 @@ export function OnlineHistory() {
     setLoading(true);
     setError('');
     api<typeof data>(
-      `/history?page=${page}&stage=${stage}&username=${encodeURIComponent(filter)}`,
+      `/history?page=${page}&stage=${stage}&username=${encodeURIComponent(filter)}&sort=score`,
       undefined,
       controller.signal,
     )
@@ -154,8 +157,25 @@ export function OnlineHistory() {
   return (
     <div className="online-history">
       <p className="fine">
-        전체 파일럿의 실제 출격 기록 · 일반 모드 클리어만 다음 스테이지를 해금합니다.
+        스테이지별 최고 점수 순위 · 일반 모드 클리어만 다음 스테이지를 해금합니다.
       </p>
+      <div className="history-tabs" role="tablist" aria-label="스테이지 선택">
+        {STAGES.map((s, i) => (
+          <button
+            key={s.id}
+            role="tab"
+            aria-selected={stage === i + 1}
+            className={`history-tab ${stage === i + 1 ? 'active' : ''}`}
+            onClick={() => {
+              setPage(1);
+              setStage(i + 1);
+            }}
+          >
+            <b>STAGE {i + 1}</b>
+            <small>{s.name}</small>
+          </button>
+        ))}
+      </div>
       <form
         className="history-filters"
         onSubmit={(e) => {
@@ -172,21 +192,6 @@ export function OnlineHistory() {
           placeholder="파일럿 ID (전체 보기: 빈칸)"
           maxLength={24}
         />
-        <select
-          aria-label="스테이지 필터"
-          value={stage}
-          onChange={(e) => {
-            setPage(1);
-            setStage(e.target.value);
-          }}
-        >
-          <option value="0">모든 스테이지</option>
-          {STAGES.map((s, i) => (
-            <option key={s.id} value={i + 1}>
-              STAGE {i + 1}
-            </option>
-          ))}
-        </select>
         <button className="secondary-button" type="submit">
           조회
         </button>
@@ -216,6 +221,7 @@ export function OnlineHistory() {
           <table>
             <thead>
               <tr>
+                <th>순위</th>
                 <th>파일럿</th>
                 <th>스테이지</th>
                 <th>결과</th>
@@ -227,28 +233,41 @@ export function OnlineHistory() {
               </tr>
             </thead>
             <tbody>
-              {data.rows.map((row) => (
-                <tr key={row.id}>
-                  <td>{row.username}</td>
-                  <td>
-                    {row.stage} · {row.stageName}
-                  </td>
-                  <td>
-                    {row.practice ? '훈련 · ' : ''}
-                    {labels[row.status]}
-                  </td>
-                  <td>{row.score.toLocaleString()}</td>
-                  <td>
-                    {row.weapon} Lv.{row.level}
-                  </td>
-                  <td>{row.kills}</td>
-                  <td>
-                    {Math.floor(row.seconds / 60)}:
-                    {String(Math.floor(row.seconds % 60)).padStart(2, '0')}
-                  </td>
-                  <td>{new Date(row.startedAt.replace(' ', 'T') + 'Z').toLocaleString()}</td>
-                </tr>
-              ))}
+              {data.rows.map((row, i) => {
+                const rank = (page - 1) * 20 + i + 1;
+                const tier = MEDAL_TIER[rank];
+                return (
+                  <tr key={row.id} className={tier ? `rank-${tier}` : undefined}>
+                    <td className="rank-cell">
+                      {tier ? (
+                        <span className="rank-medal" title={`${rank}위`}>
+                          <Medal size={16} strokeWidth={2.4} />
+                        </span>
+                      ) : (
+                        rank
+                      )}
+                    </td>
+                    <td className={tier ? 'rank-name' : undefined}>{row.username}</td>
+                    <td>
+                      {row.stage} · {row.stageName}
+                    </td>
+                    <td>
+                      {row.practice ? '훈련 · ' : ''}
+                      {labels[row.status]}
+                    </td>
+                    <td>{row.score.toLocaleString()}</td>
+                    <td>
+                      {row.weapon} Lv.{row.level}
+                    </td>
+                    <td>{row.kills}</td>
+                    <td>
+                      {Math.floor(row.seconds / 60)}:
+                      {String(Math.floor(row.seconds % 60)).padStart(2, '0')}
+                    </td>
+                    <td>{new Date(row.startedAt.replace(' ', 'T') + 'Z').toLocaleString()}</td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
         </div>
