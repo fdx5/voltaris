@@ -866,6 +866,12 @@ kbd {
 .modal-wide {
   width: 700px;
 }
+/* The records table has 8 columns of real data (pilot, weapon, launch
+   timestamp...) - 700px forces most of them to wrap onto a second line.
+   Give it more room on desktop; max-width still caps it on small screens. */
+.modal:has(.online-history) {
+  width: 920px;
+}
 .modal-heading {
   position: relative;
   margin-bottom: 26px;
@@ -1935,20 +1941,20 @@ kbd {
   border-bottom: 1px solid #263e52;
   overflow-wrap: anywhere;
 }
-/* Proportioned so the naturally long columns (pilot, weapon, launch time) get
-   more room than the short ones - keeps wrapping rare without any column
-   spilling past the fixed table width and forcing a scrollbar. */
+/* Proportioned to how much each column's real content actually needs - stage
+   name, result and the localized launch timestamp run long, while score,
+   kills and time are only ever a few digits. */
 .online-history th:nth-child(1),
 .online-history td:nth-child(1) {
-  width: 14%;
+  width: 13%;
 }
 .online-history th:nth-child(2),
 .online-history td:nth-child(2) {
-  width: 13%;
+  width: 16%;
 }
 .online-history th:nth-child(3),
 .online-history td:nth-child(3) {
-  width: 11%;
+  width: 13%;
 }
 .online-history th:nth-child(4),
 .online-history td:nth-child(4) {
@@ -1956,19 +1962,19 @@ kbd {
 }
 .online-history th:nth-child(5),
 .online-history td:nth-child(5) {
-  width: 18%;
+  width: 14%;
 }
 .online-history th:nth-child(6),
 .online-history td:nth-child(6) {
-  width: 8%;
+  width: 6%;
 }
 .online-history th:nth-child(7),
 .online-history td:nth-child(7) {
-  width: 9%;
+  width: 7%;
 }
 .online-history th:nth-child(8),
 .online-history td:nth-child(8) {
-  width: 17%;
+  width: 21%;
 }
 .online-history th {
   color: #9fcabf;
