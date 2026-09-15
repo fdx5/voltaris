@@ -63,6 +63,13 @@ export class Runtime {
   readonly loop: GameLoop;
   private hudTime = 0;
   private qualityTime = 0;
+  /**
+   * Seconds left before the auto-quality watcher starts trusting the FPS
+   * average. Shader compilation and texture upload right after boot can
+   * stall the first few seconds on perfectly capable hardware, which would
+   * otherwise read as "too slow" and downgrade quality that never needed it.
+   */
+  private qualityGrace = 7;
   private initialized = false;
   private disposed = false;
   private recorded = false;
@@ -417,7 +424,10 @@ export class Runtime {
       this.hudTime = 0;
       this.publish();
     }
-    if (this.qualityTime >= 3 && useUI.getState().autoQuality) {
+    if (this.qualityGrace > 0) {
+      this.qualityGrace -= dt;
+      this.qualityTime = 0;
+    } else if (this.qualityTime >= 3 && useUI.getState().autoQuality) {
       this.qualityTime = 0;
       if (this.loop.fps > 0 && this.loop.fps < 45 && this.visual.quality !== 'LOW')
         this.setQuality(this.visual.quality === 'HIGH' ? 'MEDIUM' : 'LOW', true);
