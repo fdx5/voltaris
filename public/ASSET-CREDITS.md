@@ -74,3 +74,31 @@ its collision radius.
 
 The space backdrops (planets, sector structures, asteroid belts and the
 twinkling star field) are the game's own procedural artwork.
+
+## Selectable player fleet and standard ordnance (September 2026)
+
+- KESTREL / MISSILE: **Insurgent**, Quaternius, Ultimate Spaceships Pack,
+  https://quaternius.com/packs/ultimatespaceships.html — CC0-1.0.
+- MANTA / SPREAD: **Spitfire**, Quaternius, same pack and license.
+  The artist's original glTFs were downloaded from their public Drive folder;
+  textures from the CC0 port at
+  https://github.com/Malcolmnixon/Quaternius-Ultimate-Spaceships-Pack.
+  Modified: orange/violet texture paint, orientation, scale and PBR finish.
+- MISSILE main: **Missile**, Jarlan Perez,
+  https://poly.pizza/m/1Xid2Qhqn2s — CC BY 3.0
+  (https://creativecommons.org/licenses/by/3.0/).
+- MISSILE option: **Missile**, Poly by Google,
+  https://poly.pizza/m/dPVCvXP-S58 — CC BY 3.0
+  (https://creativecommons.org/licenses/by/3.0/).
+- SPREAD main: **Rocket**, hat_my_guy,
+  https://poly.pizza/m/9awwTQWYux — CC0-1.0.
+- SPREAD option: **rocket_topA, rocket_fuelA, rocket_finsB**, Kenney Space Kit,
+  https://kenney.nl/assets/space-kit — CC0-1.0.
+
+The four ordnance designs are stored in `/models/player/`. Adaptations include
+reorientation, normalization, assembly of Kenney's modular parts, removal of
+the rocket's static flame, vertex paint, accent bands and metallic finish.
+The game instances each design as one merged mesh and animates its exhaust.
+`tools/import-player-loadout.mjs` records exact download URLs and rebuilds the
+assets. `tools/blender/render-player-loadout.py` renders the real ship assets
+for the three armament card images (existing STRIKER blue, KESTREL, MANTA).

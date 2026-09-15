@@ -280,7 +280,7 @@ export function makeImportedShip(): T.Group {
   const root = new T.Group();
   root.name = 'player';
   root.userData.source = `${roster.player.pack} / ${roster.player.model}`;
-  const hull = mesh('player', 1.6, 1, roster.player.view);
+  const hull = mesh('player', 1.6, 1, 0);
   root.add(hull);
   const bounds = hull.geometry.boundingBox!;
   const exhaust = new T.Group();

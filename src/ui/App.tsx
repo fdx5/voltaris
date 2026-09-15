@@ -14,7 +14,6 @@ import {
   X,
   Pause,
   Play,
-  Crosshair,
   Gamepad2,
   Keyboard,
   Shield,
@@ -31,6 +30,8 @@ import {
   Download,
 } from 'lucide-react';
 import { Runtime } from '../core/Runtime';
+import { PLAYER_CRAFT } from '../visual/PlayerLoadout';
+import { asset } from '../core/assets';
 import { useUI } from './store/useUI';
 import { STAGES } from '../game/stages';
 import { MODES, type Weapon } from '../game/GameState';
@@ -54,13 +55,15 @@ const weaponInfo = {
   },
   MISSILE: {
     title: 'HOMING ARRAY',
-    description: '쌍열에서 펼쳐지는 자동 추적 미사일. 넓게 퍼진 뒤 목표를 추격합니다.',
+    description:
+      'KESTREL · 자동 추적 미사일 전투기. 넓게 펼친 미사일이 목표를 추격하며, 옵션은 소형 보조 미사일을 발사합니다.',
     stat: 'TRACKING',
     value: '★★★★★',
   },
   SPREAD: {
     title: 'SCATTER CANNON',
-    description: '좁고 넓은 탄막을 교차 발사하는 결정탄. 근접 집중 사격과 편대 격파에 특화됩니다.',
+    description:
+      'MANTA · 확산 미사일 전투기. 좁고 넓은 탄도를 교차 발사하며, 옵션은 소형 미사일로 집중 사격합니다.',
     stat: 'COVERAGE',
     value: '★★★★★',
   },
@@ -820,18 +823,25 @@ function GameApp() {
             <span>
               01 <b>SELECT ARMAMENT</b>
             </span>
-            <small>무기 선택</small>
+            <small>기체 · 무기 선택</small>
           </div>
           <div className="weapon-select">
-            {(['LASER', 'MISSILE', 'SPREAD'] as Weapon[]).map((w, i) => (
+            {(['LASER', 'MISSILE', 'SPREAD'] as Weapon[]).map((w) => (
               <button
                 key={w}
                 onClick={() => setWeapon(w)}
+                aria-label={`${w} ${weaponInfo[w].title}`}
+                aria-pressed={weapon === w}
+                style={{ '--craft-color': PLAYER_CRAFT[w].color } as CSSProperties}
                 className={weapon === w ? 'selected' : ''}
               >
-                <span className={`weapon-icon weapon-${i}`}>
-                  {i === 0 ? <Zap /> : i === 1 ? <Target /> : <Crosshair />}
+                <span className="craft-preview">
+                  <img
+                    src={asset(`/images/ships/${w.toLowerCase()}.png`)}
+                    alt={`${PLAYER_CRAFT[w].name} ${PLAYER_CRAFT[w].role}`}
+                  />
                 </span>
+                <span className="craft-name">{PLAYER_CRAFT[w].name}</span>
                 <strong>{w}</strong>
                 <small>{weaponInfo[w].title}</small>
                 {weapon === w && <Check size={15} className="check" />}

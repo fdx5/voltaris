@@ -6,7 +6,6 @@ import { isIOSDevice } from '../device';
 import { IMPACTS, IMPACT_LIFE, type GameState } from '../../game/GameState';
 
 import {
-  makeShip,
   animateShip,
   makeBoss,
   buildBackdrop,
@@ -25,6 +24,7 @@ import {
   type SceneName,
 } from '../../visual/SceneBuilder';
 import { STAGES } from '../../game/stages';
+import { makePlayerCraft, makeOrdnance } from '../../visual/PlayerLoadout';
 import { ObjectPool } from '../pool/ObjectPool';
 import { itemMaterial } from '../../visual/ItemDesign';
 import { enemyRotation } from '../../game/HostilePatterns';
@@ -210,7 +210,12 @@ export class ThreeBackend implements IRenderBackend {
   bloomEnabled = true;
   hitbox = true;
   reducedMotion = false;
-  readonly ship = makeShip();
+  readonly ship = new T.Group();
+  private readonly playerCraft = {
+    LASER: makePlayerCraft('LASER'),
+    MISSILE: makePlayerCraft('MISSILE'),
+    SPREAD: makePlayerCraft('SPREAD'),
+  };
   private readonly dummy = new T.Object3D();
   private readonly white = new T.Color(1, 1, 1);
   private readonly tint = new T.Color();
@@ -451,6 +456,7 @@ export class ThreeBackend implements IRenderBackend {
       this.bosses.push(model);
     }
     this.showStage(0);
+    this.ship.add(...Object.values(this.playerCraft));
     this.scene.add(this.ship);
     // NOVA BOMB: the motor flame trails from the tail toward -X.
     for (const [gain, hex, length, radius] of [
@@ -520,11 +526,11 @@ export class ThreeBackend implements IRenderBackend {
       19,
     );
     this.shotCore = batch(bolt, lit('#e8f8ff', 2.6), 1024);
-    this.missiles = batch(
-      new T.ConeGeometry(1, 3, 6).rotateZ(-Math.PI / 2),
-      lit('#ffcf94', 2.6),
-      512,
-    );
+    const ordnance = (kind: Parameters<typeof makeOrdnance>[0], capacity: number) => {
+      const { geometry, material } = makeOrdnance(kind);
+      return batch(geometry, material, capacity);
+    };
+    this.missiles = ordnance('missile-main', 512);
     this.missileExhaust = batch(
       new T.CapsuleGeometry(1, 3, 2, 5).rotateZ(Math.PI / 2),
       Object.assign(lit('#ffb46c', 1.1), {
@@ -536,7 +542,7 @@ export class ThreeBackend implements IRenderBackend {
       1536,
       18,
     );
-    this.scatter = batch(new T.OctahedronGeometry(1), lit('#d5baff', 2), 1024);
+    this.scatter = ordnance('spread-main', 1024);
     const pulse = new T.SphereGeometry(1, 10, 8);
     this.optionHalo = batch(
       pulse.clone(),
@@ -550,11 +556,7 @@ export class ThreeBackend implements IRenderBackend {
       18,
     );
     this.optionCore = batch(pulse, lit('#dcfff0', 2.8), 1024);
-    this.optionMissiles = batch(
-      new T.ConeGeometry(1, 3, 6).rotateZ(-Math.PI / 2),
-      lit('#ff8fe4', 2.6),
-      512,
-    );
+    this.optionMissiles = ordnance('missile-option', 512);
     this.optionExhaust = batch(
       new T.CapsuleGeometry(1, 3, 2, 5).rotateZ(Math.PI / 2),
       Object.assign(lit('#b35cff', 1.2), {
@@ -566,7 +568,7 @@ export class ThreeBackend implements IRenderBackend {
       1536,
       18,
     );
-    this.optionScatter = batch(new T.TetrahedronGeometry(1), lit('#ffb347', 2.2), 1024);
+    this.optionScatter = ordnance('spread-option', 1024);
     this.lance = batch(
       new T.CapsuleGeometry(1, 6, 4, 10).rotateZ(Math.PI / 2),
       lit('#a8ecff', 4),
@@ -1178,8 +1180,8 @@ export class ThreeBackend implements IRenderBackend {
             );
           }
           // A drone's micro-missile is slimmer than the ship's own.
-          if (drone) this.push(this.optionMissiles, x, y, 0.15, r * 1.1, r * 0.55, r * 0.55, aim);
-          else this.push(this.missiles, x, y, 0.15, r * 1.35, r * 0.8, r * 0.8, aim);
+          if (drone) this.push(this.optionMissiles, x, y, 0.15, r * 1.1, r * 1.1, r * 1.1, aim);
+          else this.push(this.missiles, x, y, 0.15, r * 1.55, r * 1.55, r * 1.55, aim);
           break;
         }
         case 4:
@@ -1196,8 +1198,18 @@ export class ThreeBackend implements IRenderBackend {
         default:
           if (p.tint[i] === 0xbca8ff) {
             if (p.option[i] === 1)
-              this.push(this.optionScatter, x, y, 0.15, r * 1.3, r * 1.3, r * 1.3, t * 14 + i);
-            else this.push(this.scatter, x, y, 0.15, r * 2.4, r * 0.72, r * 0.5, aim);
+              this.push(this.optionScatter, x, y, 0.15, r * 1.3, r * 0.9, r * 0.9, aim);
+            else this.push(this.scatter, x, y, 0.15, r * 1.85, r * 1.3, r * 1.3, aim);
+            this.push(
+              p.option[i] === 1 ? this.optionExhaust : this.missileExhaust,
+              x - Math.cos(aim) * r * 4,
+              y - Math.sin(aim) * r * 4,
+              0.12,
+              r,
+              r * 0.22,
+              r * 0.22,
+              aim,
+            );
             break;
           }
           if (p.option[i] === 1) {
@@ -1442,7 +1454,14 @@ export class ThreeBackend implements IRenderBackend {
         g.respawn <= 0 &&
         (g.effects[0] > 0 || g.invincible <= 0 || Math.floor(g.time * 15) % 2 === 0);
     }
-    animateShip(this.ship, t, inactive ? 0.35 : Math.min(1, Math.abs(g.roll) + Math.abs(g.pitch)));
+    for (const [weapon, craft] of Object.entries(this.playerCraft)) {
+      craft.visible = weapon === g.weapon;
+    }
+    animateShip(
+      this.playerCraft[g.weapon],
+      t,
+      inactive ? 0.35 : Math.min(1, Math.abs(g.roll) + Math.abs(g.pitch)),
+    );
     this.engineLight.position.copy(this.ship.position);
     this.engineLight.position.x -= 1;
     this.engineLight.intensity = inactive ? 12 : 5;

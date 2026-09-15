@@ -5,6 +5,7 @@ import './ui/sortie-menu.css';
 import { installViewport } from './ui/viewport';
 import { loadImportedFleet } from './visual/ImportedFleet';
 import { loadNovaMissile } from './visual/NovaMissile';
+import { loadPlayerLoadout } from './visual/PlayerLoadout';
 installViewport();
 const host = document.getElementById('root')!;
 const root = ReactDOM.createRoot(host);
@@ -14,7 +15,7 @@ function start() {
       VOLTARIS · 기체 격납고를 준비하고 있습니다…
     </div>,
   );
-  void Promise.all([loadImportedFleet(), loadNovaMissile()])
+  void Promise.all([loadImportedFleet(), loadNovaMissile(), loadPlayerLoadout()])
     .then(() => root.render(<App />))
     .catch(() => {
       root.render(

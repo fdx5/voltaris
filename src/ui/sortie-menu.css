@@ -648,3 +648,55 @@
 .app.sortie-menu .flight-choice:active:not(:disabled) .menu-button {
   transform: translateY(1px);
 }
+/* Actual airframe renders: the same hull and paint used in flight. */
+.weapon-select button {
+  overflow: hidden;
+  padding: 12px;
+}
+.weapon-select .craft-preview {
+  display: block;
+  height: clamp(76px, 13vh, 132px);
+  margin: -8px -8px 8px;
+  border-bottom: 1px solid #ffffff0d;
+  background: radial-gradient(ellipse at center, #8eb3c81b, transparent 72%);
+}
+.craft-preview img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  transition: transform 180ms ease;
+}
+.weapon-select button:hover img,
+.weapon-select button.selected img {
+  transform: scale(1.07);
+}
+.weapon-select .craft-name {
+  display: block;
+  margin-bottom: 7px;
+  color: var(--craft-color);
+  font: 10px monospace;
+  letter-spacing: 2px;
+}
+.weapon-select button.selected {
+  border-color: var(--craft-color);
+  box-shadow: inset 0 -2px var(--craft-color);
+}
+.weapon-select button:focus-visible {
+  outline: 2px solid var(--craft-color);
+  outline-offset: 3px;
+}
+@media (max-height: 540px) and (orientation: landscape) {
+  .weapon-select .craft-preview {
+    height: 60px;
+    margin-bottom: 3px;
+  }
+  .weapon-select .craft-name {
+    font-size: 8px;
+    margin-bottom: 3px;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .craft-preview img {
+    transition: none;
+  }
+}

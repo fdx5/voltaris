@@ -509,7 +509,10 @@ export class GameState {
     // way back out, welding its bolts into one solid beam.
     if (!firing) this.fireTimer = Math.max(this.fireTimer, 0);
     else if (this.fireTimer <= 0) {
-      this.fireTimer += 1 / weapons[this.weapon][this.level - 1].rate;
+      // Preserve the authored fan at every level, while reducing rounds per
+      // second (including options) to 1/3 MISSILE and 1/2 SPREAD.
+      const intervalScale = this.weapon === 'MISSILE' ? 3 : this.weapon === 'SPREAD' ? 2 : 1;
+      this.fireTimer += intervalScale / weapons[this.weapon][this.level - 1].rate;
       this.fireWeapon(this.x + 0.7, this.y, 0);
       for (let i = 0; i < this.optionCount; i++)
         this.fireWeapon(this.optionX[i], this.optionY[i], this.optionAngle[i], true);
