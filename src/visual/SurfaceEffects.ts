@@ -2,9 +2,11 @@ import * as T from 'three/webgpu';
 import {
   attribute,
   color,
+  cos,
   float,
   fract,
   mix,
+  mx_noise_float,
   positionLocal,
   sin,
   smoothstep,
@@ -23,8 +25,10 @@ import { asset } from '../core/assets';
  * per-instance seeds and the renderer clock, so none of it costs a draw-call
  * update or a matrix upload per frame.
  *
- * - Io: embers and ash rising off the lava fields, and sulphur plumes - the
- *   umbrella eruptions Io is known for - standing on the far horizon.
+ * - Io: embers and ash rising off the lava fields, sulphur plumes - the
+ *   umbrella eruptions Io is known for - standing on the far horizon, and a
+ *   trio of active volcanoes further back that surge into full eruption on
+ *   a slow cycle.
  * - Glacial vault: icicles hanging from the vault, ice glitter falling through
  *   the corridor, and cold mist rolling over the deck.
  */
@@ -125,6 +129,235 @@ function plumes(terrain: Terrain, span: number, far: number) {
   return group;
 }
 
+/**
+ * A trio of active volcanoes on the horizon: basalt cones laced with lava
+ * veins that breathe with the eruption, a turbulent flame column at each
+ * crater that surges into a full eruption on a slow shared cycle, molten
+ * bombs flung out on ballistic arcs during the surge, and an ash plume
+ * climbing off the flame into the sky.
+ *
+ * Every shape is built in normalised 0-1 (or -1..1) unit space and stretched
+ * to size per instance with an ordinary mesh scale, so one shared material
+ * per part serves every cone/flame/plume - the same trick `plumes` uses.
+ * Only the bombs need world-scale math, done inside the shader in units of
+ * the volcano's own height so a single mesh scale (by height) puts them at
+ * the right reach; that only holds because radius is always a fixed
+ * fraction of height, never randomised independently.
+ */
+function volcano(terrain: Terrain, span: number, far: number) {
+  const RADIUS_RATIO = 0.66;
+  const period = 6.4;
+  // Sudden build, slower fiery decay, then a low simmer for the rest of the
+  // cycle - reads as "explodes, then settles" rather than a steady breathing.
+  const cyclePhase = fract(time.div(period));
+  const surge = smoothstep(0, 0.09, cyclePhase).mul(
+    float(1).sub(smoothstep(0.09, 0.5, cyclePhase)),
+  );
+  const energy = surge.add(0.22);
+
+  const coneGeo = new T.ConeGeometry(1, 1, 10, 4).translate(0, 0.5, 0);
+  const coneMat = new T.MeshStandardNodeMaterial({ roughness: 0.97, metalness: 0 });
+  const ny = positionLocal.y.clamp(0, 1);
+  coneMat.colorNode = mix(color('#140d0a'), color('#402c22'), ny.pow(1.5)).mul(
+    mx_noise_float(positionLocal.mul(3.2)).mul(0.15).add(0.9),
+  );
+  const vein = sin(
+    uv()
+      .x.mul(34)
+      .add(mx_noise_float(vec3(uv().x.mul(4), uv().y.mul(3), 0)).mul(7)),
+  )
+    .mul(0.5)
+    .add(0.5)
+    .clamp(0, 1)
+    .pow(5)
+    .mul(smoothstep(0.1, 0.95, ny));
+  coneMat.emissiveNode = color('#ff4a10').mul(vein.mul(energy.mul(1.4).add(1.2)));
+
+  const craterGeo = new T.CircleGeometry(1, 20);
+  const craterMat = new T.MeshBasicNodeMaterial({
+    transparent: true,
+    blending: T.AdditiveBlending,
+    depthWrite: false,
+    toneMapped: false,
+  });
+  const cr = uv().sub(0.5).length().mul(2);
+  craterMat.colorNode = mix(color('#fff1b0'), color('#ff4a10'), cr.clamp(0, 1)).mul(2.4);
+  craterMat.opacityNode = float(1).sub(cr).clamp(0, 1).pow(1.6).mul(energy.mul(0.8).add(0.4));
+
+  // The camera never swings far around the deck, so - as with `plumes` - a
+  // single plane facing it reads fine; crossing a pair would just double up
+  // brightness along the shared seam and look like a blade, not fire.
+  const flameGeo = new T.PlaneGeometry(1, 1).translate(0, 0.5, 0);
+  const flameMat = new T.MeshBasicNodeMaterial({
+    transparent: true,
+    blending: T.AdditiveBlending,
+    depthWrite: false,
+    side: T.DoubleSide,
+    toneMapped: false,
+  });
+  const fp = uv();
+  // How far up its own plane the flame currently reaches, in 0-1: a low
+  // simmer normally, reaching almost to the top of the plane on the surge.
+  const reach = energy.mul(0.62).add(0.16).clamp(0.1, 1);
+  // Three independently-wobbling tongues, unioned, so the silhouette breaks
+  // up into licks of fire instead of one smooth triangular glow.
+  const tongueAt = (center: number, seed: number, weight: number) => {
+    const wobble = mx_noise_float(
+      vec3(fp.x.mul(2.6).add(seed), fp.y.mul(4).sub(time.mul(2.6 + seed * 0.4)), seed),
+    ).mul(0.15);
+    const jag = mx_noise_float(
+      vec3(fp.y.mul(11).sub(time.mul(4.5)).add(seed), seed * 1.7, fp.x.mul(2)),
+    )
+      .abs()
+      .mul(0.05);
+    const width = float(1)
+      .sub(fp.y.div(reach).clamp(0, 1))
+      .pow(0.7)
+      .mul(0.24)
+      .add(0.018)
+      .add(jag);
+    const cx = fp.x.sub(0.5).sub(center).add(wobble);
+    return float(1).sub(cx.abs().div(width)).clamp(0, 1).mul(weight);
+  };
+  const tongue = tongueAt(0, 0, 1).max(tongueAt(-0.16, 3.1, 0.75)).max(tongueAt(0.17, 6.4, 0.75));
+  // smoothstep is only defined for edge0 < edge1 - GLSL leaves a reversed
+  // pair undefined (this backend just returns ~1 throughout), so the falling
+  // ramp has to be built by inverting an ascending one, not by swapping args.
+  const rise = float(1).sub(smoothstep(reach.mul(0.4), reach.mul(1.05), fp.y));
+  const flicker = mx_noise_float(vec3(fp.x.mul(7), time.mul(10), fp.y.mul(2)))
+    .mul(0.22)
+    .add(0.88);
+  // White only right at the crater mouth; orange through the body, deepening
+  // to red near the tip - keeps bloom from washing the whole flame out white.
+  const heat = fp.y.div(reach.max(0.05)).clamp(0, 1);
+  flameMat.colorNode = mix(
+    mix(color('#fff2c0'), color('#ff9a2e'), heat.pow(0.32)),
+    color('#e02a10'),
+    heat.pow(1.6),
+  ).mul(1.7);
+  // pow()'s base is clamped first: floating-point rounding in tongue*rise
+  // can land a hair below 0, and an unclamped negative base turns pow() into
+  // NaN, which spreads through the bloom pass - see the note in `mist` below.
+  flameMat.opacityNode = tongue
+    .mul(rise)
+    .mul(flicker)
+    .clamp(0, 1)
+    .pow(1.1)
+    .mul(energy.clamp(0.3, 1.3));
+
+  // A soft, non-additive ash plume climbing off the flame. Kept warm and
+  // light enough near the base to read against the void of space, cooling to
+  // grey higher up rather than fading to near-black and vanishing.
+  const smokeGeo = new T.PlaneGeometry(1, 1).translate(0, 0.5, 0);
+  const smokeMat = new T.MeshBasicNodeMaterial({
+    transparent: true,
+    depthWrite: false,
+    side: T.DoubleSide,
+    toneMapped: false,
+  });
+  const sp = uv();
+  // mx_noise_float is already centred on 0 (Perlin, not a 0-1 texture
+  // lookup) - no re-centring needed, unlike the plain uv-texture noise used
+  // elsewhere in this file.
+  const drift = mx_noise_float(vec3(sp.x.mul(2.2), sp.y.mul(1.6).sub(time.mul(0.3)), 0)).mul(
+    sp.y.mul(0.8),
+  );
+  const billow = mx_noise_float(vec3(sp.x.mul(4.5).add(time.mul(0.1)), sp.y.mul(2.6), 4))
+    .mul(0.5)
+    .add(0.5);
+  const scx = sp.x.sub(0.5).add(drift);
+  const body = float(1)
+    .sub(scx.abs().mul(2).div(sp.y.mul(0.7).add(0.22)))
+    .clamp(0, 1);
+  const smokeShape = body
+    .mul(billow.mul(0.6).add(0.4))
+    .mul(smoothstep(0, 0.08, sp.y))
+    .mul(float(1).sub(smoothstep(0.8, 1, sp.y)));
+  // Warm right off the flame, cooling fast to a slate ash so it reads
+  // against a bright backdrop (a planet's limb, not just black space).
+  smokeMat.colorNode = mix(color('#e08a52'), color('#443f46'), sp.y.clamp(0, 1).pow(0.35));
+  smokeMat.opacityNode = smokeShape.mul(energy.clamp(0.5, 1)).mul(0.75);
+
+  const bombGeo = new T.IcosahedronGeometry(1, 0);
+  const bombMat = new T.MeshBasicNodeMaterial({
+    transparent: true,
+    blending: T.AdditiveBlending,
+    depthWrite: false,
+    toneMapped: false,
+  });
+  const s = attribute<'vec4'>('mote', 'vec4');
+  // Each bomb launches once a cycle, in a short window right as the surge
+  // hits, then arcs out and falls - all in units of the volcano's own height.
+  const localCycle = fract(time.div(period).add(s.w.mul(0.08)));
+  const flightT = localCycle.div(0.42).clamp(0, 1);
+  const launched = smoothstep(0, 0.06, localCycle).mul(
+    float(1).sub(smoothstep(0.06, 0.42, localCycle)),
+  );
+  const arc = flightT.mul(float(1).sub(flightT)).mul(4);
+  const upY = arc.mul(1.3).add(s.z.mul(0.4));
+  const ang = s.x.mul(6.2832);
+  const dist = flightT.mul(RADIUS_RATIO).mul(s.y.mul(0.9).add(0.5));
+  const bx = cos(ang).mul(dist);
+  const bz = sin(ang).mul(dist);
+  const size = s.z.mul(0.03).add(0.018);
+  bombMat.positionNode = vec3(bx, float(0.95).add(upY), bz).add(positionLocal.mul(size));
+  bombMat.colorNode = mix(color('#ffdd80'), color('#ff3a10'), flightT).mul(2.1);
+  bombMat.opacityNode = launched
+    .mul(smoothstep(0, 0.05, flightT))
+    .mul(float(1).sub(smoothstep(0.85, 1, flightT)));
+
+  const group = new T.Group();
+  const siting = new Random(48117);
+  for (let tile = -1; tile <= 1; tile++) {
+    const x = span * 0.5 + (siting.next() - 0.5) * 8 + tile * span;
+    const z = far - 14 - siting.next() * 10;
+    const height = 15 + siting.next() * 5;
+    const radius = height * RADIUS_RATIO;
+    const one = new T.Group();
+    one.position.set(x, terrain.height(x, z), z);
+
+    const cone = new T.Mesh(coneGeo, coneMat);
+    cone.scale.set(radius, height, radius);
+    one.add(cone);
+
+    const crater = new T.Mesh(craterGeo, craterMat);
+    crater.scale.setScalar(radius * 0.4);
+    crater.rotation.x = -Math.PI / 2;
+    crater.position.y = height * 0.97;
+    crater.renderOrder = 28;
+    one.add(crater);
+
+    const flameHeight = height * 1.7;
+    const flame = new T.Mesh(flameGeo, flameMat);
+    flame.scale.set(radius * 1.05, flameHeight, 1);
+    flame.position.y = height * 0.92;
+    flame.renderOrder = 31;
+    one.add(flame);
+
+    const smokeHeight = flameHeight * 1.3;
+    const smoke = new T.Mesh(smokeGeo, smokeMat);
+    smoke.scale.set(radius * 2.4, smokeHeight, 1);
+    smoke.position.set(0, height * 0.9 + flameHeight * 0.3, radius * 0.5);
+    smoke.renderOrder = 24;
+    one.add(smoke);
+
+    const count = 26;
+    const bombs = new T.InstancedMesh(bombGeo.clone(), bombMat, count);
+    const seeds = new Float32Array(count * 4);
+    const rng = new Random(2300 + tile * 91);
+    for (let i = 0; i < count * 4; i++) seeds[i] = rng.next();
+    bombs.geometry.setAttribute('mote', new T.InstancedBufferAttribute(seeds, 4));
+    bombs.scale.setScalar(height);
+    bombs.position.y = 0;
+    bombs.frustumCulled = false;
+    bombs.renderOrder = 32;
+    one.add(bombs);
+
+    group.add(one);
+  }
+  return group;
+}
+
 /** Icicles along the vault, seated on its actual height field and tapering down. */
 function icicles(vault: Terrain, span: number, near: number, far: number) {
   const rng = new Random(90431);
@@ -222,7 +455,7 @@ export function surfaceEffects(
 ): SurfaceEffects {
   if (kind === 'lava')
     return {
-      deck: [plumes(deck, cfg.span, cfg.far)],
+      deck: [plumes(deck, cfg.span, cfg.far), volcano(deck, cfg.span, cfg.far)],
       vault: [],
       still: [
         motes(
