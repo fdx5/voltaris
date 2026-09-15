@@ -52,7 +52,9 @@ export type TerrainPbr = {
 
 const loader = new T.TextureLoader();
 const cache = new Map<string, T.Texture>();
-function map(path: string, srgb: boolean) {
+/** Shared texture cache keyed by `/textures/` path, so scenery reusing a
+ * ground scan (the volcano's basalt, say) does not upload it twice. */
+export function map(path: string, srgb: boolean) {
   let tex = cache.get(path);
   if (!tex) {
     tex = loader.load(asset(`/textures/${path}`));
