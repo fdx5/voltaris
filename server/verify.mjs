@@ -5,10 +5,14 @@ export const gameVersion = createHash('sha256')
   .update(readFileSync(new URL('./.generated/replay.mjs', import.meta.url)))
   .digest('hex')
   .slice(0, 16);
-// This exact optimization was differential-tested against the previous rules.
-// The guard automatically expires compatibility after another gameplay build.
-export const canVerifyVersion = (version) =>
-  version === gameVersion || (gameVersion === '31296349396a73cb' && version === '25e65accd2765ac9');
+// A prior compatibility bridge for the packed-replay optimization lived here,
+// safe only because that change was differential-tested to produce identical
+// results to the rules it replaced. A gameplay-affecting change like a
+// balance edit must NOT get the same bridge: an in-flight run's recorded
+// events would replay against different damage than the player actually
+// experienced, so it has to fall through to the 409 "restart" response below
+// instead of being silently (and incorrectly) re-scored.
+export const canVerifyVersion = (version) => version === gameVersion;
 const unavailable = (message) => Object.assign(new Error(message), { status: 503 });
 
 /** Bounded reusable workers retain compiled gameplay code between saves. */

@@ -118,56 +118,56 @@
   "SPREAD": [
     {
       "rate": 10,
-      "damage": 0.75,
+      "damage": 0.975,
       "count": 3,
       "width": 0.052,
       "pierce": 1
     },
     {
       "rate": 11,
-      "damage": 0.8,
+      "damage": 1.04,
       "count": 3,
       "width": 0.055,
       "pierce": 1
     },
     {
       "rate": 11,
-      "damage": 0.85,
+      "damage": 1.105,
       "count": 4,
       "width": 0.058,
       "pierce": 1
     },
     {
       "rate": 12,
-      "damage": 0.9,
+      "damage": 1.17,
       "count": 4,
       "width": 0.06,
       "pierce": 1
     },
     {
       "rate": 13,
-      "damage": 1,
+      "damage": 1.3,
       "count": 5,
       "width": 0.062,
       "pierce": 1
     },
     {
       "rate": 13,
-      "damage": 1.1,
+      "damage": 1.43,
       "count": 5,
       "width": 0.068,
       "pierce": 1
     },
     {
       "rate": 14,
-      "damage": 1.2,
+      "damage": 1.56,
       "count": 6,
       "width": 0.072,
       "pierce": 1
     },
     {
       "rate": 15,
-      "damage": 1.3,
+      "damage": 1.69,
       "count": 7,
       "width": 0.08,
       "pierce": 1

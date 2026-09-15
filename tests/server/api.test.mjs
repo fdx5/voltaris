@@ -280,23 +280,21 @@ test('compressed frame records use the real verifier and cannot forge a clear', 
   assert.equal(saved.body.user.unlockedStage, 1);
 });
 
-test('in-flight runs from the preceding compatible build still save after deployment', async (t) => {
+test('an in-flight run from any other build is rejected, not silently re-scored', async (t) => {
   const { db, request, register } = await fixture(t);
   const user = await register('previous_build_pilot');
+  // A build tag from before a gameplay-affecting change (e.g. a balance
+  // edit) must not verify: the recorded events would replay against rules
+  // the player never actually played under.
   const run = await request('/runs', config, user.cookie);
   await db.execute({
     sql: 'UPDATE game_runs SET game_version=? WHERE id=?',
-    args: ['25e65accd2765ac9', run.body.id],
+    args: ['31296349396a73cb', run.body.id],
   });
   assert.equal(
-    (
-      await request(
-        `/runs/${run.body.id}/finish`,
-        { events: [], outcome: 'abandoned' },
-        user.cookie,
-      )
-    ).status,
-    200,
+    (await request(`/runs/${run.body.id}/finish`, { events: [], outcome: 'abandoned' }, user.cookie))
+      .status,
+    409,
   );
   const incompatible = await request('/runs', config, user.cookie);
   await db.execute({
