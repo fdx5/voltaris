@@ -654,6 +654,7 @@ export class GameState {
       );
       if (slot < 0) continue;
       if (this.weapon === 'SPREAD') this.bullets.tint[slot] = 0xbca8ff;
+      if (this.weapon === 'MISSILE') this.bullets.param[slot] = -1; // no target locked yet
       if (option) this.bullets.option[slot] = 1;
     }
   }
@@ -1467,19 +1468,33 @@ export class GameState {
       b.py[i] = b.y[i];
       b.age[i] += dt;
       if (b.type[i] === 2) {
-        const anyBoss = this.boss || this.midBoss;
-        let tx = anyBoss ? this.bossX : 25,
-          ty = anyBoss ? this.bossY : b.y[i],
-          best = 10000;
-        for (let j = 0; j < this.enemies.limit; j++) {
-          if (!this.enemies.active[j] || this.enemies.x[j] < b.x[i] - 2) continue;
-          const d = (this.enemies.x[j] - b.x[i]) ** 2 + (this.enemies.y[j] - b.y[i]) ** 2;
-          if (d < best) {
-            best = d;
-            tx = this.enemies.x[j];
-            ty = this.enemies.y[j];
+        // Locks onto one enemy and keeps tracking that same one, instead of
+        // re-picking the nearest candidate fresh every frame. Re-picking was
+        // the actual "orbits forever" bug, not a turn-rate problem: an enemy
+        // just behind the missile's nose (x < b.x[i] - 2) is excluded as a
+        // candidate, so a missile mid-turn around a target flickered between
+        // that enemy and the (25, y) straight-ahead fallback every time its
+        // swing carried it past the enemy's x position, which kept dragging
+        // it back around instead of ever letting it close in. `param` is
+        // free scratch for a player shot (see BulletPool) - reused here to
+        // remember the locked target's index, -1 for none yet.
+        let target = b.param[i];
+        if (target < 0 || !this.enemies.active[target]) {
+          target = -1;
+          let best = 10000;
+          for (let j = 0; j < this.enemies.limit; j++) {
+            if (!this.enemies.active[j] || this.enemies.x[j] < b.x[i] - 2) continue;
+            const d = (this.enemies.x[j] - b.x[i]) ** 2 + (this.enemies.y[j] - b.y[i]) ** 2;
+            if (d < best) {
+              best = d;
+              target = j;
+            }
           }
+          b.param[i] = target;
         }
+        const anyBoss = this.boss || this.midBoss;
+        const tx = target >= 0 ? this.enemies.x[target] : anyBoss ? this.bossX : 25,
+          ty = target >= 0 ? this.enemies.y[target] : anyBoss ? this.bossY : b.y[i];
         const dx = tx - b.x[i],
           dy = ty - b.y[i];
         const a = Math.atan2(dy, dx);
