@@ -61,6 +61,13 @@ describe('fixed pools and collision broadphase', () => {
     h.clear();
     expect(h.query(0, 0, 10)).toBe(0);
   });
+  it('indexes entities out past the old +/-14 bound (Section 5 reaches y = +/-21.6)', () => {
+    const h = new SpatialHash(10);
+    h.insert(0, 0, 21.6);
+    h.insert(1, 0, -21.6);
+    expect(h.query(0, 21.6, 0.5)).toBe(1);
+    expect(h.query(0, -21.6, 0.5)).toBe(1);
+  });
   it('detects swept hits that discrete endpoints miss', () => {
     expect(segmentCircle(-2, 0, 2, 0, 0, 0, 0.12)).toBe(true);
     expect(segmentCircle(-2, 1, 2, 1, 0, 0, 0.12)).toBe(false);
