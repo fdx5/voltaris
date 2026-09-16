@@ -31,6 +31,11 @@ type BossConfig = StageDef['boss'];
 const MID_BOSS_TIME = 180;
 /** Guaranteed ordinary combat between a mid-boss's defeat and the real boss. */
 const POST_MID_BOSS_GAP = 150;
+/** Enemy type ids for every medium-tier hull, read off the roster once. */
+const MEDIUM_TYPES = fleetHardpoints.reduce<number[]>((acc, f, i) => {
+  if (f.size === 'medium') acc.push(i);
+  return acc;
+}, []);
 export type Status = 'menu' | 'playing' | 'paused' | 'continue' | 'gameover' | 'clear' | 'stress';
 /**
  * Keeps a value inside [low, high] without a hard stop: the last fifth of the
@@ -223,6 +228,8 @@ export class GameState {
   volley = 0;
   /** How many of the boss fight's every-20-seconds items have gone out already. */
   private bossItemsSent = 0;
+  /** How many of Section 5's every-4.5-seconds boss-fight escort squads have gone out already. */
+  private bossEscortSent = 0;
   /** A stage with a `midBoss` block fights it partway through, independent of the real (final) boss. */
   midBoss = false;
   midBossDefeated = false;
@@ -1315,6 +1322,7 @@ export class GameState {
     this.bossAngle = 0;
     this.volley = 0;
     this.bossItemsSent = 0;
+    this.bossEscortSent = 0;
     this.partHp.fill(0);
     this.partHp.fill(def.partHp, 0, def.parts);
     this.announce('WARNING / ' + def.id + ' 接近', 4);
@@ -1333,6 +1341,35 @@ export class GameState {
       const type = this.rng.next() < 0.5 ? 0 : 1;
       const y = clamp((this.rng.next() - 0.5) * 10, this.stage.minY + 1, this.stage.maxY - 1);
       this.items.acquire(12, y, -4, 0, type, 12, 0.5);
+    }
+    // Section 5 keeps ordinary and medium pressure coming through both of
+    // its boss fights instead of the boss being a quiet one-on-one: a fresh
+    // escort squad arrives every 4.5s of boss time, a medium gunship in
+    // every third squad, small hulls otherwise cycling through the roster.
+    if (this.stageIndex === 4) {
+      const escortDue = Math.floor(this.bossTime / 4.5);
+      if (escortDue > this.bossEscortSent) {
+        this.bossEscortSent = escortDue;
+        const medium = escortDue % 3 === 2;
+        const count = medium ? 1 : 2;
+        const type = medium
+          ? MEDIUM_TYPES[escortDue % MEDIUM_TYPES.length]
+          : escortDue % defs.length;
+        const center = (this.rng.next() - 0.5) * (this.stage.maxY - this.stage.minY) * 0.7;
+        for (let n = 0; n < count; n++) {
+          const pos = formationPosition(
+            escortDue,
+            n,
+            count,
+            defs[type].radius,
+            center,
+            this.stage.minY + defs[type].radius + 0.4,
+            this.stage.maxY - defs[type].radius - 0.4,
+            this.worldScale,
+          );
+          this.spawnEnemy(type, pos.x, pos.y, 3 + (escortDue % 6), n);
+        }
+      }
     }
     this.bossX += (10 - this.bossX) * dt * 0.65;
     this.bossY = Math.sin(this.bossTime * 0.45) * 1.6;

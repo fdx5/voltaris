@@ -5,8 +5,13 @@ import { SpatialHash, segmentCircle } from '../../src/game/systems/SpatialHash';
 import { GameState } from '../../src/game/GameState';
 import { STAGES } from '../../src/game/stages';
 import defs from '../../data/enemies/enemy-defs.json';
+import fleetHardpoints from '../../data/enemies/fleet-hardpoints.json';
 import { Key } from '../../src/core/input/InputManager';
 const dt = 1 / 60;
+const mediumTypes = fleetHardpoints.reduce<number[]>((acc, f, i) => {
+  if (f.size === 'medium') acc.push(i);
+  return acc;
+}, []);
 describe('fixed pools and collision broadphase', () => {
   it('keeps the occupied bound correct across holes, reuse, expiration and reset', () => {
     const p = new ObjectPool(100);
@@ -235,6 +240,18 @@ describe('arcade rules', () => {
     expect(g.bossDefeated).toBe(false);
     expect(g.bossHp).toBeGreaterThan(0);
     expect(g.bossDying).toBe(false);
+  });
+  it('keeps escort squads of small and medium hulls arriving during a Section 5 boss fight', () => {
+    const g = new GameState();
+    g.start('LASER', 9, true, false, 4);
+    expect(g.boss).toBe(true);
+    for (let n = 0; n < 12 * 60; n++) g.tick(dt);
+    expect(g.enemies.count).toBeGreaterThan(0);
+    let mediumSeen = false;
+    for (let i = 0; i < g.enemies.limit; i++) {
+      if (g.enemies.active[i] && mediumTypes.includes(g.enemies.type[i])) mediumSeen = true;
+    }
+    expect(mediumSeen).toBe(true);
   });
   it('stress harness maintains 4000 bullets without overflow', () => {
     const g = new GameState();

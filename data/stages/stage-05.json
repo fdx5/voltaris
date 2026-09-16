@@ -11,7 +11,7 @@
   "pressure": 0.85,
   "hull": 0.6,
   "volley": 0.5,
-  "firstWave": 14,
+  "firstWave": 21,
   "minY": -21.6,
   "maxY": 21.6,
   "surface": null,
@@ -44,1127 +44,1127 @@
       "time": 3,
       "type": 0,
       "y": 8,
-      "count": 10,
+      "count": 15,
       "pattern": 0
     },
     {
       "time": 6.6,
       "type": 1,
       "y": -8,
-      "count": 10,
+      "count": 15,
       "pattern": 1
     },
     {
       "time": 10.2,
       "type": 2,
       "y": 4,
-      "count": 11,
+      "count": 17,
       "pattern": 2
     },
     {
       "time": 13.7,
       "type": 3,
       "y": -4,
-      "count": 11,
+      "count": 17,
       "pattern": 0
     },
     {
       "time": 17.3,
       "type": 4,
       "y": 12,
-      "count": 11,
+      "count": 17,
       "pattern": 1
     },
     {
       "time": 20.9,
       "type": 5,
       "y": -12,
-      "count": 12,
+      "count": 18,
       "pattern": 2
     },
     {
       "time": 24.4,
       "type": 6,
       "y": 0,
-      "count": 12,
+      "count": 18,
       "pattern": 0
     },
     {
       "time": 27.9,
       "type": 7,
       "y": 2,
-      "count": 12,
+      "count": 18,
       "pattern": 1
     },
     {
       "time": 31.5,
       "type": 8,
       "y": -2,
-      "count": 12,
+      "count": 18,
       "pattern": 2
     },
     {
       "time": 35,
       "type": 9,
       "y": 6,
-      "count": 13,
+      "count": 20,
       "pattern": 0
     },
     {
       "time": 38.5,
       "type": 10,
       "y": -6,
-      "count": 13,
+      "count": 20,
       "pattern": 1
     },
     {
       "time": 42,
       "type": 11,
       "y": 16,
-      "count": 13,
+      "count": 20,
       "pattern": 2
     },
     {
       "time": 45.5,
       "type": 12,
       "y": -16,
-      "count": 13,
+      "count": 20,
       "pattern": 0
     },
     {
       "time": 48.9,
       "type": 13,
       "y": 10,
-      "count": 14,
+      "count": 21,
       "pattern": 1
     },
     {
       "time": 52.4,
       "type": 14,
       "y": -10,
-      "count": 14,
+      "count": 21,
       "pattern": 2
     },
     {
       "time": 55.8,
       "type": 15,
       "y": 14,
-      "count": 14,
+      "count": 21,
       "pattern": 0
     },
     {
       "time": 59.3,
       "type": 16,
       "y": -14,
-      "count": 14,
+      "count": 21,
       "pattern": 1
     },
     {
       "time": 62.7,
       "type": 17,
       "y": 1,
-      "count": 15,
+      "count": 23,
       "pattern": 2
     },
     {
       "time": 66.2,
       "type": 18,
       "y": -1,
-      "count": 15,
+      "count": 23,
       "pattern": 0
     },
     {
       "time": 69.6,
       "type": 19,
       "y": 7,
-      "count": 15,
+      "count": 23,
       "pattern": 1
     },
     {
       "time": 73,
       "type": 20,
       "y": -7,
-      "count": 15,
+      "count": 23,
       "pattern": 2
     },
     {
       "time": 76.4,
       "type": 21,
       "y": 8,
-      "count": 16,
+      "count": 24,
       "pattern": 0
     },
     {
       "time": 79.8,
       "type": 22,
       "y": -8,
-      "count": 16,
+      "count": 24,
       "pattern": 1
     },
     {
       "time": 83.1,
       "type": 23,
       "y": 4,
-      "count": 16,
+      "count": 24,
       "pattern": 2
     },
     {
       "time": 86.5,
       "type": 24,
       "y": -4,
-      "count": 16,
+      "count": 24,
       "pattern": 0
     },
     {
       "time": 89.9,
       "type": 25,
       "y": 12,
-      "count": 17,
+      "count": 26,
       "pattern": 1
     },
     {
       "time": 93.2,
       "type": 26,
       "y": -12,
-      "count": 17,
+      "count": 26,
       "pattern": 2
     },
     {
       "time": 96.6,
       "type": 27,
       "y": 0,
-      "count": 17,
+      "count": 26,
       "pattern": 0
     },
     {
       "time": 99.9,
       "type": 28,
       "y": 2,
-      "count": 17,
+      "count": 26,
       "pattern": 1
     },
     {
       "time": 103.2,
       "type": 29,
       "y": -2,
-      "count": 17,
+      "count": 26,
       "pattern": 2
     },
     {
       "time": 106.5,
       "type": 30,
       "y": 6,
-      "count": 18,
+      "count": 27,
       "pattern": 0
     },
     {
       "time": 109.8,
       "type": 31,
       "y": -6,
-      "count": 18,
+      "count": 27,
       "pattern": 1
     },
     {
       "time": 113.1,
       "type": 32,
       "y": 16,
-      "count": 18,
+      "count": 27,
       "pattern": 2
     },
     {
       "time": 116.4,
       "type": 33,
       "y": -16,
-      "count": 18,
+      "count": 27,
       "pattern": 0
     },
     {
       "time": 119.7,
       "type": 34,
       "y": 10,
-      "count": 19,
+      "count": 29,
       "pattern": 1
     },
     {
       "time": 123,
       "type": 35,
       "y": -10,
-      "count": 19,
+      "count": 29,
       "pattern": 2
     },
     {
       "time": 126.2,
       "type": 36,
       "y": 14,
-      "count": 19,
+      "count": 29,
       "pattern": 0
     },
     {
       "time": 129.5,
       "type": 37,
       "y": -14,
-      "count": 19,
+      "count": 29,
       "pattern": 1
     },
     {
       "time": 132.7,
       "type": 38,
       "y": 1,
-      "count": 20,
+      "count": 30,
       "pattern": 2
     },
     {
       "time": 136,
       "type": 39,
       "y": -1,
-      "count": 20,
+      "count": 30,
       "pattern": 0
     },
     {
       "time": 139.2,
       "type": 40,
       "y": 7,
-      "count": 20,
+      "count": 30,
       "pattern": 1
     },
     {
       "time": 142.4,
       "type": 41,
       "y": -7,
-      "count": 20,
+      "count": 30,
       "pattern": 2
     },
     {
       "time": 145.6,
       "type": 42,
       "y": 8,
-      "count": 21,
+      "count": 32,
       "pattern": 0
     },
     {
       "time": 148.8,
       "type": 43,
       "y": -8,
-      "count": 21,
+      "count": 32,
       "pattern": 1
     },
     {
       "time": 152,
       "type": 0,
       "y": 4,
-      "count": 21,
+      "count": 32,
       "pattern": 2
     },
     {
       "time": 155.2,
       "type": 1,
       "y": -4,
-      "count": 21,
+      "count": 32,
       "pattern": 0
     },
     {
       "time": 158.3,
       "type": 2,
       "y": 12,
-      "count": 21,
+      "count": 32,
       "pattern": 1
     },
     {
       "time": 161.5,
       "type": 3,
       "y": -12,
-      "count": 22,
+      "count": 33,
       "pattern": 2
     },
     {
       "time": 164.7,
       "type": 4,
       "y": 0,
-      "count": 22,
+      "count": 33,
       "pattern": 0
     },
     {
       "time": 167.8,
       "type": 5,
       "y": 2,
-      "count": 22,
+      "count": 33,
       "pattern": 1
     },
     {
       "time": 170.9,
       "type": 6,
       "y": -2,
-      "count": 22,
+      "count": 33,
       "pattern": 2
     },
     {
       "time": 174.1,
       "type": 7,
       "y": 6,
-      "count": 23,
+      "count": 35,
       "pattern": 0
     },
     {
       "time": 177.2,
       "type": 8,
       "y": -6,
-      "count": 23,
+      "count": 35,
       "pattern": 1
     },
     {
       "time": 180.3,
       "type": 9,
       "y": 16,
-      "count": 23,
+      "count": 35,
       "pattern": 2
     },
     {
       "time": 183.4,
       "type": 10,
       "y": -16,
-      "count": 23,
+      "count": 35,
       "pattern": 0
     },
     {
       "time": 186.5,
       "type": 11,
       "y": 10,
-      "count": 23,
+      "count": 35,
       "pattern": 1
     },
     {
       "time": 189.6,
       "type": 12,
       "y": -10,
-      "count": 24,
+      "count": 36,
       "pattern": 2
     },
     {
       "time": 192.6,
       "type": 13,
       "y": 14,
-      "count": 24,
+      "count": 36,
       "pattern": 0
     },
     {
       "time": 195.7,
       "type": 14,
       "y": -14,
-      "count": 24,
+      "count": 36,
       "pattern": 1
     },
     {
       "time": 198.8,
       "type": 15,
       "y": 1,
-      "count": 24,
+      "count": 36,
       "pattern": 2
     },
     {
       "time": 201.8,
       "type": 16,
       "y": -1,
-      "count": 25,
+      "count": 38,
       "pattern": 0
     },
     {
       "time": 204.9,
       "type": 17,
       "y": 7,
-      "count": 25,
+      "count": 38,
       "pattern": 1
     },
     {
       "time": 207.9,
       "type": 18,
       "y": -7,
-      "count": 25,
+      "count": 38,
       "pattern": 2
     },
     {
       "time": 210.9,
       "type": 19,
       "y": 8,
-      "count": 25,
+      "count": 38,
       "pattern": 0
     },
     {
       "time": 213.9,
       "type": 20,
       "y": -8,
-      "count": 25,
+      "count": 38,
       "pattern": 1
     },
     {
       "time": 216.9,
       "type": 21,
       "y": 4,
-      "count": 26,
+      "count": 39,
       "pattern": 2
     },
     {
       "time": 219.9,
       "type": 22,
       "y": -4,
-      "count": 26,
+      "count": 39,
       "pattern": 0
     },
     {
       "time": 222.9,
       "type": 23,
       "y": 12,
-      "count": 26,
+      "count": 39,
       "pattern": 1
     },
     {
       "time": 225.9,
       "type": 24,
       "y": -12,
-      "count": 26,
+      "count": 39,
       "pattern": 2
     },
     {
       "time": 228.9,
       "type": 25,
       "y": 0,
-      "count": 27,
+      "count": 41,
       "pattern": 0
     },
     {
       "time": 231.9,
       "type": 26,
       "y": 2,
-      "count": 27,
+      "count": 41,
       "pattern": 1
     },
     {
       "time": 234.8,
       "type": 27,
       "y": -2,
-      "count": 27,
+      "count": 41,
       "pattern": 2
     },
     {
       "time": 237.8,
       "type": 28,
       "y": 6,
-      "count": 27,
+      "count": 41,
       "pattern": 0
     },
     {
       "time": 240.7,
       "type": 29,
       "y": -6,
-      "count": 27,
+      "count": 41,
       "pattern": 1
     },
     {
       "time": 243.6,
       "type": 30,
       "y": 16,
-      "count": 28,
+      "count": 42,
       "pattern": 2
     },
     {
       "time": 246.6,
       "type": 31,
       "y": -16,
-      "count": 28,
+      "count": 42,
       "pattern": 0
     },
     {
       "time": 249.5,
       "type": 32,
       "y": 10,
-      "count": 28,
+      "count": 42,
       "pattern": 1
     },
     {
       "time": 252.4,
       "type": 33,
       "y": -10,
-      "count": 28,
+      "count": 42,
       "pattern": 2
     },
     {
       "time": 255.3,
       "type": 34,
       "y": 14,
-      "count": 28,
+      "count": 42,
       "pattern": 0
     },
     {
       "time": 258.2,
       "type": 35,
       "y": -14,
-      "count": 29,
+      "count": 44,
       "pattern": 1
     },
     {
       "time": 261.1,
       "type": 36,
       "y": 1,
-      "count": 29,
+      "count": 44,
       "pattern": 2
     },
     {
       "time": 264,
       "type": 37,
       "y": -1,
-      "count": 29,
+      "count": 44,
       "pattern": 0
     },
     {
       "time": 266.8,
       "type": 38,
       "y": 7,
-      "count": 29,
+      "count": 44,
       "pattern": 1
     },
     {
       "time": 269.7,
       "type": 39,
       "y": -7,
-      "count": 30,
+      "count": 45,
       "pattern": 2
     },
     {
       "time": 272.5,
       "type": 40,
       "y": 8,
-      "count": 30,
+      "count": 45,
       "pattern": 0
     },
     {
       "time": 275.4,
       "type": 41,
       "y": -8,
-      "count": 30,
+      "count": 45,
       "pattern": 1
     },
     {
       "time": 278.2,
       "type": 42,
       "y": 4,
-      "count": 30,
+      "count": 45,
       "pattern": 2
     },
     {
       "time": 281.1,
       "type": 43,
       "y": -4,
-      "count": 30,
+      "count": 45,
       "pattern": 0
     },
     {
       "time": 283.9,
       "type": 0,
       "y": 12,
-      "count": 31,
+      "count": 47,
       "pattern": 1
     },
     {
       "time": 286.7,
       "type": 1,
       "y": -12,
-      "count": 31,
+      "count": 47,
       "pattern": 2
     },
     {
       "time": 289.5,
       "type": 2,
       "y": 0,
-      "count": 31,
+      "count": 47,
       "pattern": 0
     },
     {
       "time": 292.3,
       "type": 3,
       "y": 2,
-      "count": 31,
+      "count": 47,
       "pattern": 1
     },
     {
       "time": 295.1,
       "type": 4,
       "y": -2,
-      "count": 31,
+      "count": 47,
       "pattern": 2
     },
     {
       "time": 297.9,
       "type": 5,
       "y": 6,
-      "count": 32,
+      "count": 48,
       "pattern": 0
     },
     {
       "time": 300.7,
       "type": 6,
       "y": -6,
-      "count": 32,
+      "count": 48,
       "pattern": 1
     },
     {
       "time": 303.4,
       "type": 7,
       "y": 16,
-      "count": 32,
+      "count": 48,
       "pattern": 2
     },
     {
       "time": 306.2,
       "type": 8,
       "y": -16,
-      "count": 32,
+      "count": 48,
       "pattern": 0
     },
     {
       "time": 308.9,
       "type": 9,
       "y": 10,
-      "count": 32,
+      "count": 48,
       "pattern": 1
     },
     {
       "time": 311.7,
       "type": 10,
       "y": -10,
-      "count": 33,
+      "count": 50,
       "pattern": 2
     },
     {
       "time": 314.4,
       "type": 11,
       "y": 14,
-      "count": 33,
+      "count": 50,
       "pattern": 0
     },
     {
       "time": 317.2,
       "type": 12,
       "y": -14,
-      "count": 33,
+      "count": 50,
       "pattern": 1
     },
     {
       "time": 319.9,
       "type": 13,
       "y": 1,
-      "count": 33,
+      "count": 50,
       "pattern": 2
     },
     {
       "time": 322.6,
       "type": 14,
       "y": -1,
-      "count": 33,
+      "count": 50,
       "pattern": 0
     },
     {
       "time": 325.3,
       "type": 15,
       "y": 7,
-      "count": 34,
+      "count": 51,
       "pattern": 1
     },
     {
       "time": 328,
       "type": 16,
       "y": -7,
-      "count": 34,
+      "count": 51,
       "pattern": 2
     },
     {
       "time": 330.7,
       "type": 17,
       "y": 8,
-      "count": 34,
+      "count": 51,
       "pattern": 0
     },
     {
       "time": 333.4,
       "type": 18,
       "y": -8,
-      "count": 34,
+      "count": 51,
       "pattern": 1
     },
     {
       "time": 336.1,
       "type": 19,
       "y": 4,
-      "count": 34,
+      "count": 51,
       "pattern": 2
     },
     {
       "time": 338.7,
       "type": 20,
       "y": -4,
-      "count": 35,
+      "count": 53,
       "pattern": 0
     },
     {
       "time": 341.4,
       "type": 21,
       "y": 12,
-      "count": 35,
+      "count": 53,
       "pattern": 1
     },
     {
       "time": 344,
       "type": 22,
       "y": -12,
-      "count": 35,
+      "count": 53,
       "pattern": 2
     },
     {
       "time": 346.7,
       "type": 23,
       "y": 0,
-      "count": 35,
+      "count": 53,
       "pattern": 0
     },
     {
       "time": 349.3,
       "type": 24,
       "y": 2,
-      "count": 35,
+      "count": 53,
       "pattern": 1
     },
     {
       "time": 352,
       "type": 25,
       "y": -2,
-      "count": 35,
+      "count": 53,
       "pattern": 2
     },
     {
       "time": 354.6,
       "type": 26,
       "y": 6,
-      "count": 36,
+      "count": 54,
       "pattern": 0
     },
     {
       "time": 357.2,
       "type": 27,
       "y": -6,
-      "count": 36,
+      "count": 54,
       "pattern": 1
     },
     {
       "time": 359.8,
       "type": 28,
       "y": 16,
-      "count": 36,
+      "count": 54,
       "pattern": 2
     },
     {
       "time": 362.4,
       "type": 29,
       "y": -16,
-      "count": 36,
+      "count": 54,
       "pattern": 0
     },
     {
       "time": 365,
       "type": 30,
       "y": 10,
-      "count": 36,
+      "count": 54,
       "pattern": 1
     },
     {
       "time": 367.6,
       "type": 31,
       "y": -10,
-      "count": 37,
+      "count": 56,
       "pattern": 2
     },
     {
       "time": 370.2,
       "type": 32,
       "y": 14,
-      "count": 37,
+      "count": 56,
       "pattern": 0
     },
     {
       "time": 372.8,
       "type": 33,
       "y": -14,
-      "count": 37,
+      "count": 56,
       "pattern": 1
     },
     {
       "time": 375.3,
       "type": 34,
       "y": 1,
-      "count": 37,
+      "count": 56,
       "pattern": 2
     },
     {
       "time": 377.9,
       "type": 35,
       "y": -1,
-      "count": 37,
+      "count": 56,
       "pattern": 0
     },
     {
       "time": 380.5,
       "type": 36,
       "y": 7,
-      "count": 38,
+      "count": 57,
       "pattern": 1
     },
     {
       "time": 383,
       "type": 37,
       "y": -7,
-      "count": 38,
+      "count": 57,
       "pattern": 2
     },
     {
       "time": 385.6,
       "type": 38,
       "y": 8,
-      "count": 38,
+      "count": 57,
       "pattern": 0
     },
     {
       "time": 388.1,
       "type": 39,
       "y": -8,
-      "count": 38,
+      "count": 57,
       "pattern": 1
     },
     {
       "time": 390.6,
       "type": 40,
       "y": 4,
-      "count": 38,
+      "count": 57,
       "pattern": 2
     },
     {
       "time": 393.1,
       "type": 41,
       "y": -4,
-      "count": 38,
+      "count": 57,
       "pattern": 0
     },
     {
       "time": 395.6,
       "type": 42,
       "y": 12,
-      "count": 39,
+      "count": 59,
       "pattern": 1
     },
     {
       "time": 398.2,
       "type": 43,
       "y": -12,
-      "count": 39,
+      "count": 59,
       "pattern": 2
     },
     {
       "time": 400.6,
       "type": 0,
       "y": 0,
-      "count": 39,
+      "count": 59,
       "pattern": 0
     },
     {
       "time": 403.1,
       "type": 1,
       "y": 2,
-      "count": 39,
+      "count": 59,
       "pattern": 1
     },
     {
       "time": 405.6,
       "type": 2,
       "y": -2,
-      "count": 39,
+      "count": 59,
       "pattern": 2
     },
     {
       "time": 408.1,
       "type": 3,
       "y": 6,
-      "count": 40,
+      "count": 60,
       "pattern": 0
     },
     {
       "time": 410.6,
       "type": 4,
       "y": -6,
-      "count": 40,
+      "count": 60,
       "pattern": 1
     },
     {
       "time": 413,
       "type": 5,
       "y": 16,
-      "count": 40,
+      "count": 60,
       "pattern": 2
     },
     {
       "time": 415.5,
       "type": 6,
       "y": -16,
-      "count": 40,
+      "count": 60,
       "pattern": 0
     },
     {
       "time": 417.9,
       "type": 7,
       "y": 10,
-      "count": 40,
+      "count": 60,
       "pattern": 1
     },
     {
       "time": 420.4,
       "type": 8,
       "y": -10,
-      "count": 40,
+      "count": 60,
       "pattern": 2
     },
     {
       "time": 422.8,
       "type": 9,
       "y": 14,
-      "count": 41,
+      "count": 62,
       "pattern": 0
     },
     {
       "time": 425.3,
       "type": 10,
       "y": -14,
-      "count": 41,
+      "count": 62,
       "pattern": 1
     },
     {
       "time": 427.7,
       "type": 11,
       "y": 1,
-      "count": 41,
+      "count": 62,
       "pattern": 2
     },
     {
       "time": 430.1,
       "type": 12,
       "y": -1,
-      "count": 41,
+      "count": 62,
       "pattern": 0
     },
     {
       "time": 432.5,
       "type": 13,
       "y": 7,
-      "count": 41,
+      "count": 62,
       "pattern": 1
     },
     {
       "time": 434.9,
       "type": 14,
       "y": -7,
-      "count": 41,
+      "count": 62,
       "pattern": 2
     },
     {
       "time": 437.3,
       "type": 15,
       "y": 8,
-      "count": 42,
+      "count": 63,
       "pattern": 0
     },
     {
       "time": 439.7,
       "type": 16,
       "y": -8,
-      "count": 42,
+      "count": 63,
       "pattern": 1
     },
     {
       "time": 442.1,
       "type": 17,
       "y": 4,
-      "count": 42,
+      "count": 63,
       "pattern": 2
     },
     {
       "time": 444.5,
       "type": 18,
       "y": -4,
-      "count": 42,
+      "count": 63,
       "pattern": 0
     },
     {
       "time": 446.8,
       "type": 19,
       "y": 12,
-      "count": 42,
+      "count": 63,
       "pattern": 1
     },
     {
       "time": 449.2,
       "type": 20,
       "y": -12,
-      "count": 42,
+      "count": 63,
       "pattern": 2
     },
     {
       "time": 451.6,
       "type": 21,
       "y": 0,
-      "count": 43,
+      "count": 65,
       "pattern": 0
     },
     {
       "time": 453.9,
       "type": 22,
       "y": 2,
-      "count": 43,
+      "count": 65,
       "pattern": 1
     },
     {
       "time": 456.3,
       "type": 23,
       "y": -2,
-      "count": 43,
+      "count": 65,
       "pattern": 2
     },
     {
       "time": 458.6,
       "type": 24,
       "y": 6,
-      "count": 43,
+      "count": 65,
       "pattern": 0
     },
     {
       "time": 460.9,
       "type": 25,
       "y": -6,
-      "count": 43,
+      "count": 65,
       "pattern": 1
     },
     {
       "time": 463.2,
       "type": 26,
       "y": 16,
-      "count": 44,
+      "count": 66,
       "pattern": 2
     },
     {
       "time": 465.6,
       "type": 27,
       "y": -16,
-      "count": 44,
+      "count": 66,
       "pattern": 0
     },
     {
       "time": 467.9,
       "type": 28,
       "y": 10,
-      "count": 44,
+      "count": 66,
       "pattern": 1
     }
   ],
