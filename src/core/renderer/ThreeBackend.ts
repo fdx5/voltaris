@@ -704,7 +704,7 @@ export class ThreeBackend implements IRenderBackend {
     this.deferred.push(this.enemyCores);
     this.scene.add(this.enemyCores);
 
-    for (let i = 0; i < 4; i++) {
+    for (let i = 0; i < 5; i++) {
       // An option is a tumbling core inside a housing that turns with its
       // gun: without the muzzle showing, DIRECTIONAL and ROTATE look the same
       // as trailing along.
@@ -723,6 +723,11 @@ export class ThreeBackend implements IRenderBackend {
       this.options.push(option);
       this.deferred.push(option);
       this.scene.add(option);
+    }
+    // One instanced batch per pickup type (PICKUP_SAMPLES.length in
+    // Runtime.ts), unrelated to how many options a ship can carry - only
+    // coincidentally the same count (4) before options went to 5.
+    for (let i = 0; i < 4; i++) {
       const items = new T.InstancedMesh(new T.PlaneGeometry(1.2, 1.2), itemMaterial(i), 64);
       items.instanceMatrix.setUsage(T.DynamicDrawUsage);
       items.count = 0;
@@ -1527,7 +1532,7 @@ export class ThreeBackend implements IRenderBackend {
       for (const b of this.enemyHulls) this.commit(b);
       for (const b of this.enemyAccents) this.commit(b);
     }
-    for (let i = 0; i < 4; i++) {
+    for (let i = 0; i < 5; i++) {
       const o = this.options[i];
       o.visible = !inactive && i < g.optionCount;
       if (o.visible) {

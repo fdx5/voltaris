@@ -16,7 +16,7 @@
     "invincibleSeconds": 2
   },
   "pools": {
-    "bullets": 4096,
+    "bullets": 6144,
     "enemies": 256,
     "particles": 3000,
     "items": 64,

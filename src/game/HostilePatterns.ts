@@ -11,6 +11,17 @@ export type SalvoShot = {
 };
 const PI = Math.PI,
   TAU = PI * 2;
+/**
+ * `count` angles spanning every direction except a `blindDeg`-wide wedge
+ * directly behind the boss (opposite `aim`, the direction toward the
+ * player) - "fires everywhere but its own back" for Section 5's bosses.
+ */
+function ring(aim: number, count: number, blindDeg: number) {
+  const span = TAU - (blindDeg * PI) / 180;
+  const angles: number[] = [];
+  for (let i = 0; i < count; i++) angles.push(aim - span / 2 + (span * i) / (count - 1));
+  return angles;
+}
 export const enemyRotation = (type: number, age: number, time: number) =>
   Math.sin(age * (type === 5 ? 1.6 : 1) + (type === 29 ? time * 0.15 : 0)) * 0.12;
 /** Nose attitude from vertical speed: a climbing hull (nose at -X) lifts its nose. */
@@ -386,7 +397,18 @@ export function heavySalvo(type: number, aim: number, cycle: number): SalvoShot[
 }
 
 /** New capital-ship attacks. Offsets describe emitter locations in the play plane. */
-export function bossSalvo(stage: number, phase: number, cycle: number, aim: number): SalvoShot[] {
+/**
+ * `final` distinguishes Section 5's two bosses (both `stage === 4`): the
+ * mid-boss (false) and the real, final one (true), which fires a wider,
+ * denser, faster version of the same shapes.
+ */
+export function bossSalvo(
+  stage: number,
+  phase: number,
+  cycle: number,
+  aim: number,
+  final = true,
+): SalvoShot[] {
   const out: SalvoShot[] = [];
   const add = (x: number, y: number, a: number, kind: number, delay = 0, speed = 1) =>
     out.push({ mount: 0, dx: x, dy: y, angle: a, kind, delay, speed });
@@ -394,6 +416,26 @@ export function bossSalvo(stage: number, phase: number, cycle: number, aim: numb
   // Every third salvo is a contrasting phrase, with a deliberate open lane.
   // Alternates replace a salvo instead of layering more density on top.
   if (cycle % 3 === 2) {
+    if (stage === 4) {
+      // A spiral of homing shards, winding a different way each cycle, laced
+      // with a scatter of bouncing debris - the "aimed and unpredictable"
+      // contrast beat to the ring-fire below.
+      const shards = final ? 14 : 10;
+      const spin = (cycle % 5) * 0.34 * sign;
+      for (let j = 0; j < shards; j++)
+        add(
+          0,
+          0,
+          aim + spin + j * ((final ? 0.5 : 0.42) * sign),
+          j % 3 === 0 ? S.HOMING : S.SHARD,
+          j * 0.09,
+          (final ? 0.85 : 0.7) + phase * 0.05,
+        );
+      if (final)
+        for (const a of ring(aim, 10, 90))
+          add(0, 0, a, S.BOUNCE, 0.4 + Math.abs(a - aim) * 0.05, 0.6 + phase * 0.04);
+      return out;
+    }
     if (stage === 0) {
       for (let beat = 0; beat < 3; beat++)
         for (let row = -5; row <= 5; row++) {
@@ -518,7 +560,7 @@ export function bossSalvo(stage: number, phase: number, cycle: number, aim: numb
             j % 3 === 0 ? 0.65 : 0.9,
           );
     }
-  } else {
+  } else if (stage === 3) {
     // Articulated leviathan: spine ripple / jaw scissor / shed scales.
     if (phase === 1)
       for (let m = 0; m < 8; m++)
@@ -546,6 +588,28 @@ export function bossSalvo(stage: number, phase: number, cycle: number, aim: numb
           add(-2 + m * 0.63, side * 0.75, PI + side * (0.18 + m * 0.07), S.SPLIT, m * 0.09, 0.6);
           add(-2 + m * 0.63, side * 0.75, aim + side * 0.1, S.ACCEL, 0.85 + m * 0.03, 0.52);
         }
+  } else if (stage === 4) {
+    // Section 5: fires across nearly the full circle instead of a fixed
+    // narrow cone - only a wedge directly behind the boss stays clear. The
+    // final boss doubles the ring up and narrows its own blind spot further,
+    // on top of everything the mid-boss already throws.
+    const blind = final ? 40 : 60;
+    const count = (final ? 18 : 12) + phase * (final ? 3 : 2);
+    const speed = (final ? 0.95 : 0.75) + phase * 0.06;
+    const kind = phase === 3 ? (final ? S.PLASMA : S.SHARD) : final ? S.SHARD : S.ORB;
+    for (const a of ring(aim + cycle * 0.05, count, blind)) add(0, 0, a, kind, 0, speed);
+    if (final) {
+      // A second, faster ring turning the other way through the same gaps.
+      for (const a of ring(aim - cycle * 0.07, Math.floor(count * 0.6), blind + 20))
+        add(0, 0, a, S.PULSE, 0.35, speed * 1.35);
+      // A slow homing volley - the one part of this pattern that actually
+      // tracks the player through the gaps in the rings above.
+      for (let j = 0; j < 4; j++) add(0, 0, aim + (j - 1.5) * 0.2, S.HOMING, 0.6 + j * 0.1, 0.55);
+    } else if (phase >= 2) {
+      // A few aimed needles punched straight through the ring, so standing
+      // still in a gap stops being safe once the fight escalates.
+      for (let j = 0; j < 3; j++) add(0, 0, aim + (j - 1) * 0.12, S.NEEDLE, 0.5 + j * 0.08, 1.1);
+    }
   }
   return out;
 }

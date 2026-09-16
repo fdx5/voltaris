@@ -562,7 +562,7 @@ function GameApp() {
               </div>
             </div>
             <p>
-              OPTION {ui.optionCount}/4 <i>·</i> SHIELD {ui.shield}
+              OPTION {ui.optionCount}/5 <i>·</i> SHIELD {ui.shield}
             </p>
           </div>
           <div className="skills">

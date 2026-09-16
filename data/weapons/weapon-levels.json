@@ -2,56 +2,56 @@
   "LASER": [
     {
       "rate": 12,
-      "damage": 1,
+      "damage": 1.5,
       "count": 1,
       "width": 0.05,
       "pierce": 1
     },
     {
       "rate": 15.6,
-      "damage": 1,
+      "damage": 1.5,
       "count": 1,
       "width": 0.058,
       "pierce": 1
     },
     {
       "rate": 15.6,
-      "damage": 1,
+      "damage": 1.5,
       "count": 1,
       "width": 0.065,
       "pierce": 3
     },
     {
       "rate": 15.6,
-      "damage": 1,
+      "damage": 1.5,
       "count": 2,
       "width": 0.07,
       "pierce": 3
     },
     {
       "rate": 16,
-      "damage": 1.2,
+      "damage": 1.8,
       "count": 2,
       "width": 0.078,
       "pierce": 4
     },
     {
       "rate": 17,
-      "damage": 1.3,
+      "damage": 1.95,
       "count": 2,
       "width": 0.082,
       "pierce": 255
     },
     {
       "rate": 18,
-      "damage": 1.4,
+      "damage": 2.1,
       "count": 3,
       "width": 0.088,
       "pierce": 255
     },
     {
       "rate": 20,
-      "damage": 1.5,
+      "damage": 2.25,
       "count": 3,
       "width": 0.1,
       "pierce": 255
@@ -60,56 +60,56 @@
   "MISSILE": [
     {
       "rate": 8,
-      "damage": 2.25,
+      "damage": 3.375,
       "count": 1,
       "width": 0.075,
       "pierce": 1
     },
     {
       "rate": 10,
-      "damage": 2.4,
+      "damage": 3.6,
       "count": 1,
       "width": 0.075,
       "pierce": 1
     },
     {
       "rate": 10,
-      "damage": 2.55,
+      "damage": 3.825,
       "count": 2,
       "width": 0.08,
       "pierce": 1
     },
     {
       "rate": 11,
-      "damage": 2.7,
+      "damage": 4.05,
       "count": 2,
       "width": 0.085,
       "pierce": 1
     },
     {
       "rate": 12,
-      "damage": 3,
+      "damage": 4.5,
       "count": 3,
       "width": 0.09,
       "pierce": 1
     },
     {
       "rate": 12,
-      "damage": 3.3,
+      "damage": 4.95,
       "count": 3,
       "width": 0.095,
       "pierce": 1
     },
     {
       "rate": 13,
-      "damage": 3.75,
+      "damage": 5.625,
       "count": 4,
       "width": 0.1,
       "pierce": 1
     },
     {
       "rate": 14,
-      "damage": 4.5,
+      "damage": 6.75,
       "count": 4,
       "width": 0.11,
       "pierce": 1
@@ -118,56 +118,56 @@
   "SPREAD": [
     {
       "rate": 10,
-      "damage": 0.975,
+      "damage": 1.4625,
       "count": 3,
       "width": 0.052,
       "pierce": 1
     },
     {
       "rate": 11,
-      "damage": 1.04,
+      "damage": 1.56,
       "count": 3,
       "width": 0.055,
       "pierce": 1
     },
     {
       "rate": 11,
-      "damage": 1.105,
+      "damage": 1.6575,
       "count": 4,
       "width": 0.058,
       "pierce": 1
     },
     {
       "rate": 12,
-      "damage": 1.17,
+      "damage": 1.755,
       "count": 4,
       "width": 0.06,
       "pierce": 1
     },
     {
       "rate": 13,
-      "damage": 1.3,
+      "damage": 1.95,
       "count": 5,
       "width": 0.062,
       "pierce": 1
     },
     {
       "rate": 13,
-      "damage": 1.43,
+      "damage": 2.145,
       "count": 5,
       "width": 0.068,
       "pierce": 1
     },
     {
       "rate": 14,
-      "damage": 1.56,
+      "damage": 2.34,
       "count": 6,
       "width": 0.072,
       "pierce": 1
     },
     {
       "rate": 15,
-      "damage": 1.69,
+      "damage": 2.535,
       "count": 7,
       "width": 0.08,
       "pierce": 1

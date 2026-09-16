@@ -29,6 +29,8 @@ export type Mode = 'TRAIL' | 'FREEZE' | 'DIRECTIONAL' | 'ROTATE';
 type BossConfig = StageDef['boss'];
 /** When a stage with a `midBoss` block fights it - the 3:00 mark. */
 const MID_BOSS_TIME = 180;
+/** Guaranteed ordinary combat between a mid-boss's defeat and the real boss. */
+const POST_MID_BOSS_GAP = 150;
 export type Status = 'menu' | 'playing' | 'paused' | 'continue' | 'gameover' | 'clear' | 'stress';
 /**
  * Keeps a value inside [low, high] without a hard stop: the last fifth of the
@@ -144,9 +146,9 @@ export class GameState {
   readonly grid = new SpatialHash(tuning.pools.enemies);
   readonly bulletGrid = new SpatialHash(tuning.pools.bullets);
   readonly rng = new Random();
-  readonly optionX = new Float32Array(4);
-  readonly optionY = new Float32Array(4);
-  readonly optionAngle = new Float32Array(4);
+  readonly optionX = new Float32Array(5);
+  readonly optionY = new Float32Array(5);
+  readonly optionAngle = new Float32Array(5);
   readonly historyX = new Float32Array(512);
   readonly historyY = new Float32Array(512);
   private historyHead = 0;
@@ -224,6 +226,11 @@ export class GameState {
   /** A stage with a `midBoss` block fights it partway through, independent of the real (final) boss. */
   midBoss = false;
   midBossDefeated = false;
+  /** `this.time` when the mid-boss went down, or -1 before then - the real
+   * boss on such a stage waits a fixed stretch of ordinary combat after this
+   * rather than a fixed absolute stage time, so a slow or fast mid-boss
+   * fight doesn't shrink or stretch that stretch. */
+  private midBossClearedAt = -1;
   bossDefeated = false;
   bossKillTime = 0;
   bossDying = false;
@@ -323,7 +330,7 @@ export class GameState {
     // Every sortie flies with one option, so option control is something the
     // player has from the first stage rather than a reward for surviving to
     // the first blue ring. Rings still stack it up to four.
-    this.optionCount = practice ? 4 : Math.max(1, carry ? this.loadout.optionCount : 0);
+    this.optionCount = practice ? 5 : Math.max(1, carry ? this.loadout.optionCount : 0);
     this.x = this.previousX = -7;
     this.y = this.previousY = 0;
     this.frame = this.time = this.score = this.kills = this.deaths = this.rank = 0;
@@ -341,6 +348,7 @@ export class GameState {
     this.bossDefeated = false;
     this.midBoss = false;
     this.midBossDefeated = false;
+    this.midBossClearedAt = -1;
     this.bossTime = this.bonus = this.bossKillTime = this.volley = 0;
     this.effects.fill(0);
     this.skills.set([0, NOVA_SKILL, -1]);
@@ -570,7 +578,7 @@ export class GameState {
     const hold = (bits & Key.Hold) !== 0;
     this.optionHold = hold;
     if (hold && (ax || ay)) this.optionAim = Math.atan2(ay, ax);
-    for (let i = 0; i < 4; i++) {
+    for (let i = 0; i < 5; i++) {
       // FREEZE: the drone keeps the position it already holds, and keeps
       // firing from it.
       if (hold && this.mode === 1) continue;
@@ -611,7 +619,10 @@ export class GameState {
    */
   private fireWeapon(x: number, y: number, angle: number, option = false) {
     const w = weapons[this.weapon][this.level - 1];
-    const damage = w.damage * (this.effects[0] > 0 ? 2 : 1);
+    // The hull's own shot hits twice as hard as an option's - every ship
+    // type, so the main gun stays the headline weapon even as more options
+    // come online.
+    const damage = w.damage * (this.effects[0] > 0 ? 2 : 1) * (option ? 1 : 2);
     const beat = this.shotEvent % 2 ? 1 : -1;
     for (let j = 0; j < w.count; j++) {
       const mid = j - (w.count - 1) / 2;
@@ -852,8 +863,15 @@ export class GameState {
       this.time >= MID_BOSS_TIME
     )
       this.spawnBoss('mid');
-    if (this.time >= this.stage.durationSec && !this.boss && !this.midBoss && !this.bossDefeated)
-      this.spawnBoss('final');
+    // A stage with a mid-boss waits a fixed stretch of ordinary combat after
+    // its defeat rather than a fixed absolute stage time, so the real boss
+    // isn't early (a quick mid-boss kill) or immediate (mid-boss cleared
+    // right at/after durationSec). A stage with no mid-boss keeps the
+    // original fixed-duration trigger unchanged.
+    const finalDue = midBossDef
+      ? this.midBossDefeated && this.time >= this.midBossClearedAt + POST_MID_BOSS_GAP
+      : this.time >= this.stage.durationSec;
+    if (finalDue && !this.boss && !this.midBoss && !this.bossDefeated) this.spawnBoss('final');
   }
   /**
    * The first formation launches three ships, the next four, and so on: a
@@ -876,7 +894,10 @@ export class GameState {
    * stage, building with the clock and with each stage to four abreast.
    */
   get mediumCount() {
-    return clamp(1 + Math.floor(this.progress * 2.2 + this.stageIndex * 0.7), 1, 4);
+    // Section 5 runs more small hulls at once instead (see stage-05.json's
+    // spawns[]), so its medium-gunship ceiling comes down from 4 to 3.
+    const max = this.stageIndex === 4 ? 3 : 4;
+    return clamp(1 + Math.floor(this.progress * 2.2 + this.stageIndex * 0.7), 1, max);
   }
   /** Medium hull integrity over the base scaling: 2.5x at first, 4x by the last stage's end. */
   get mediumArmour() {
@@ -993,7 +1014,7 @@ export class GameState {
     for (let i = 0; i < this.ground.limit; i++)
       if (this.ground.active[i]) this.damageGround(i, damage);
     for (let i = 0; i < this.rocks.limit; i++) if (this.rocks.active[i]) this.damageRock(i, damage);
-    if (this.boss && !this.bossDying) {
+    if ((this.boss || this.midBoss) && !this.bossDying) {
       for (let p = 0; p < this.bossParts; p++) {
         if (this.partHp[p] <= 0) continue;
         this.partHp[p] -= damage;
@@ -1198,7 +1219,7 @@ export class GameState {
     let x: number, y: number;
     if (source === 'boss') {
       if (
-        !this.boss ||
+        (!this.boss && !this.midBoss) ||
         this.bossDying ||
         this.bossPhase !== generation ||
         (index >= 0 && this.partHp[index] <= 0)
@@ -1346,7 +1367,7 @@ export class GameState {
       const aim = Math.atan2(this.y - this.bossY, this.x - this.bossX);
       const colors = [0xff9a70, 0xffd377, 0xd1b2ff, 0x80efe4, 0xb0a8ff];
       this.queueSalvo(
-        bossSalvo(this.stageIndex, this.bossPhase, this.volley, aim),
+        bossSalvo(this.stageIndex, this.bossPhase, this.volley, aim, !this.midBoss),
         'boss',
         -1,
         4.4,
@@ -1389,7 +1410,7 @@ export class GameState {
               kind: Shot.PLASMA,
               delay: j * 0.15,
             });
-        } else {
+        } else if (this.stageIndex === 3) {
           for (let j = 0; j < 2; j++)
             plan.push({
               mount: 0,
@@ -1399,6 +1420,34 @@ export class GameState {
               speed: 0.8,
               kind: Shot.WAVE,
               delay: pod * 0.055 + j * 0.22,
+            });
+        } else {
+          // Section 5: every pod fans its own shots wide instead of a narrow
+          // pair aimed dead-on, so the boss's whole ring of pods together
+          // covers nearly every angle around it, not just wherever the
+          // player happens to be standing. The final boss's pods fan wider,
+          // faster, and add a homing shot the mid-boss's don't.
+          const fan = this.midBoss ? 5 : 7;
+          const spread = this.midBoss ? 0.16 : 0.2;
+          for (let j = 0; j < fan; j++)
+            plan.push({
+              mount: 0,
+              dx: 0,
+              dy: 0,
+              angle: angle + (j - (fan - 1) / 2) * spread,
+              speed: (this.midBoss ? 0.78 : 0.95) + this.bossPhase * 0.05,
+              kind: this.bossPhase === 3 ? Shot.SHARD : Shot.WAVE,
+              delay: pod * 0.05 + j * 0.05,
+            });
+          if (!this.midBoss)
+            plan.push({
+              mount: 0,
+              dx: 0,
+              dy: 0,
+              angle,
+              speed: 0.6,
+              kind: Shot.HOMING,
+              delay: 0.3 + pod * 0.05,
             });
         }
         this.queueSalvo(plan, 'boss', pod, 4.6, colors[this.stageIndex]);
@@ -1418,8 +1467,9 @@ export class GameState {
       b.py[i] = b.y[i];
       b.age[i] += dt;
       if (b.type[i] === 2) {
-        let tx = this.boss ? this.bossX : 25,
-          ty = this.boss ? this.bossY : b.y[i],
+        const anyBoss = this.boss || this.midBoss;
+        let tx = anyBoss ? this.bossX : 25,
+          ty = anyBoss ? this.bossY : b.y[i],
           best = 10000;
         for (let j = 0; j < this.enemies.limit; j++) {
           if (!this.enemies.active[j] || this.enemies.x[j] < b.x[i] - 2) continue;
@@ -1892,7 +1942,7 @@ export class GameState {
           } else this.score += 5000;
           this.announce('POWER UP / Lv.' + this.level, 1.3);
         } else if (type === 1) {
-          this.optionCount = Math.min(4, this.optionCount + 1);
+          this.optionCount = Math.min(5, this.optionCount + 1);
           this.announce('OPTION ONLINE / ' + this.optionCount, 1.3);
         } else if (type === 2) {
           this.shield = 3;
@@ -1974,6 +2024,7 @@ export class GameState {
       // run) keeps going, unlike the real boss's finish below.
       this.midBoss = false;
       this.midBossDefeated = defeated;
+      this.midBossClearedAt = this.time;
       this.bossHp = 0;
       this.bossDying = false;
       this.bullets.clear();
