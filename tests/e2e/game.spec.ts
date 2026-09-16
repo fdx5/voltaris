@@ -4,8 +4,8 @@ test.beforeEach(async ({ page }) => {
   const user = {
     id: 'renderer-fixture',
     username: 'renderer_pilot',
-    unlockedStage: 4,
-    clearedStages: [1, 2, 3, 4],
+    unlockedStage: 5,
+    clearedStages: [1, 2, 3, 4, 5],
   };
   await page.route('**/api/**', async (route) => {
     const path = new URL(route.request().url()).pathname;
@@ -146,6 +146,24 @@ test('stage four flies an ice cave with a roof and a deck', async ({ page }) => 
   await page.keyboard.press('Escape');
   await page.getByRole('button', { name: '설정', exact: true }).click();
   await expect(page.getByText('STAGE 04 SKY HIGH')).toBeVisible();
+  expect(errors).toEqual([]);
+});
+test('stage five flies a wide galaxy rim sector with a tripled vertical range', async ({
+  page,
+}) => {
+  const errors: string[] = [];
+  page.on('pageerror', (e) => errors.push(e.message));
+  await page.goto('/?webgl=1');
+  await expect(page.getByRole('button', { name: /GALACTIC RIM/ })).toBeEnabled({ timeout: 45000 });
+  await page.getByRole('button', { name: /GALACTIC RIM/ }).click();
+  await expect(page.getByRole('dialog')).toContainText('MISSION 05 / GALACTIC RIM');
+  await page.getByRole('button', { name: '출격 · LAUNCH MISSION' }).click();
+  await expect(page.locator('.hud.top-left')).toContainText('GALACTIC RIM');
+  await page.waitForTimeout(9000);
+  await page.screenshot({ path: 'test-results/stage-05.png' });
+  await page.keyboard.press('Escape');
+  await page.getByRole('button', { name: '설정', exact: true }).click();
+  await expect(page.getByText('STAGE 05 LEVEL5 1 BGM')).toBeVisible();
   expect(errors).toEqual([]);
 });
 test('falls back to WebGL 2 when WebGPU advertises itself and then refuses', async ({ page }) => {

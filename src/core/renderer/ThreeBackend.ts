@@ -21,6 +21,7 @@ import {
   HAZARD_VARIANTS,
   hazardRock,
   type BossModel,
+  type BossDesign,
   type SceneName,
 } from '../../visual/SceneBuilder';
 import { STAGES } from '../../game/stages';
@@ -449,8 +450,11 @@ export class ThreeBackend implements IRenderBackend {
     this.scene.add(this.bossShockwave);
     this.deferred.push(this.bossShockwave);
     this.hiddenUntilUsed.push(this.bossShockwave);
-    for (const design of ['gatekeeper', 'ares', 'jove', 'nereid'] as const) {
-      const model = makeBoss(design);
+    // One boss model per stage slot, not per unique design - `this.bosses` is
+    // indexed positionally by stage index (see `this.bosses[this.stage]`
+    // below), so a stage reusing another's design still needs its own entry.
+    for (const stage of STAGES) {
+      const model = makeBoss(stage.boss.design as BossDesign);
       this.scene.add(model.root, ...model.pods);
       this.deferred.push(model.root, ...model.pods);
       this.bosses.push(model);
@@ -772,10 +776,9 @@ export class ThreeBackend implements IRenderBackend {
   private showStage(index: number) {
     this.stage = Math.max(0, Math.min(index, STAGES.length - 1));
     if (!this.skies[this.stage]) {
-      const scenes: SceneName[] = ['earth', 'mars', 'jupiter', 'neptune'];
       this.skies[this.stage] = buildBackdrop(
         this.scene,
-        scenes[this.stage],
+        (STAGES[this.stage]?.scene as SceneName) ?? 'earth',
         STAGES[this.stage]?.surface ?? null,
       );
     }
@@ -1443,6 +1446,7 @@ export class ThreeBackend implements IRenderBackend {
       this.look.x,
       this.look.y * (this.reducedMotion ? 0.5 : 1),
       this.camera.position.z,
+      T.MathUtils.clamp(g.time / g.stage.durationSec, 0, 1),
     );
     if (inactive) {
       // The title screen frames the ship above the sector selector.

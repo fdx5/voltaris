@@ -12,7 +12,7 @@ CREATE TABLE IF NOT EXISTS sessions (
 );
 CREATE INDEX IF NOT EXISTS sessions_expiry ON sessions(expires_at);
 CREATE TABLE IF NOT EXISTS stages (
-  id INTEGER PRIMARY KEY CHECK(id BETWEEN 1 AND 4),
+  id INTEGER PRIMARY KEY CHECK(id >= 1),
   name TEXT NOT NULL,
   planet TEXT NOT NULL
 );

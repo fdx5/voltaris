@@ -382,8 +382,8 @@ function GameApp() {
                   >
                     <img
                       className="mission-visual"
-                      src={`/images/missions/${['earth', 'mars', 'jupiter', 'neptune'][index]}.webp`}
-                      alt={['지구', '화성', '목성', '해왕성'][index]}
+                      src={`/images/missions/${['earth', 'mars', 'jupiter', 'neptune', 'milkyway'][index]}.webp`}
+                      alt={['지구', '화성', '목성', '해왕성', '은하'][index]}
                       width="65"
                       height="63"
                       decoding="async"
@@ -413,8 +413,8 @@ function GameApp() {
               {ui.ready ? '출격 대기' : '기체 준비 중'} <i>/</i> {ui.backend}
             </span>
             <span>
-              {String(account.user?.clearedStages.length ?? 0).padStart(2, '0')} / 04 SECTORS
-              CLEARED
+              {String(account.user?.clearedStages.length ?? 0).padStart(2, '0')} /{' '}
+              {String(STAGES.length).padStart(2, '0')} SECTORS CLEARED
             </span>
             <button onClick={stress} disabled={!ui.ready || account.launching || account.saving}>
               테스트 랩 <Activity size={12} />

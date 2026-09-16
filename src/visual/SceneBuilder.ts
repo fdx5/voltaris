@@ -2544,7 +2544,7 @@ function buildGround(cfg: GroundConfig) {
 /* ------------------------------------------------------------------ *
  * Backdrop scenes
  * ------------------------------------------------------------------ */
-export type SceneName = 'earth' | 'mars' | 'jupiter' | 'neptune';
+export type SceneName = 'earth' | 'mars' | 'jupiter' | 'neptune' | 'milkyway';
 
 type PlanetConfig = {
   map: string;
@@ -2580,6 +2580,19 @@ type SceneConfig = {
   /** Multipliers on the shared rock classes: how many, how big, how varied. */
   rocks: { count: number; min: number; max: number; bias: number };
   streakTint: string;
+  /**
+   * A real photograph, panned into view over a stage's run rather than
+   * tiled - see the `progress` param on `update()`. Omit for a scene with
+   * no such backdrop.
+   */
+  galaxy?: {
+    /** Final, fully-framed resting position (progress 1). */
+    position: [number, number, number];
+    /** World units the plane starts offset to +X at progress 0. */
+    travel: number;
+    width: number;
+    height: number;
+  };
 };
 
 const SCENES: Record<SceneName, SceneConfig> = {
@@ -2764,6 +2777,53 @@ const SCENES: Record<SceneName, SceneConfig> = {
     rocks: { count: 0, min: 1, max: 1, bias: 2.4 },
     streakTint: '#bfe4ff',
   },
+  milkyway: {
+    skyTint: '#5a6fb0',
+    skyGain: 0.032,
+    nebulaGain: 0.16,
+    stars: {
+      tints: [
+        ['#ffffff', 5],
+        ['#cfe0ff', 4],
+        ['#e6d4ff', 2],
+        ['#fff2d8', 1.4],
+        ['#a4d2ff', 1.2],
+      ],
+      density: 1.15,
+      twinkle: 1,
+    },
+    // Kept dark and sparse relative to the other scenes - the galaxy photo
+    // itself is the hero backdrop; painted nebula sheets would compete with it.
+    nebula: [
+      ['#0d1230', '#2c3f8e'],
+      ['#160d30', '#4a2f8e'],
+      ['#0a1c33', '#255a7a'],
+    ],
+    // A small, distant, unlit planetoid glimpsed at the field's edge - a
+    // way-marker for a deep-space transit, not a scene-dominating world.
+    planet: {
+      map: 'planets/moon_color.jpg',
+      radius: 7,
+      position: [-48, -30, -108],
+      tilt: 0.32,
+      tint: '#8a90a8',
+      halo: ['#6a7fd8', '#c2ccff'],
+      haloGain: 0.12,
+      glow: '#4a5aa0',
+      glowGain: 0.04,
+      spin: 0.02,
+      terminator: 0.6,
+    },
+    moons: [],
+    rocks: { count: 0, min: 1, max: 1, bias: 2.4 },
+    streakTint: '#b8c4ff',
+    galaxy: {
+      position: [8, 5, -150],
+      travel: 130,
+      width: 160,
+      height: 160,
+    },
+  },
 };
 
 export function buildBackdrop(
@@ -2943,6 +3003,28 @@ export function buildBackdrop(
     belts.push(field);
   }
 
+  /* --- Galaxy backdrop: a real photo, panned into view over the stage --- */
+  let galaxyPlane: T.Mesh | null = null;
+  if (config.galaxy) {
+    const g = config.galaxy;
+    const galaxyMaterial = new T.MeshBasicNodeMaterial({
+      transparent: true,
+      depthWrite: false,
+      fog: false,
+      toneMapped: false,
+    });
+    const galaxyMap = texture(loadTexture('space/galaxy.jpg', true));
+    galaxyMaterial.colorNode = galaxyMap.rgb;
+    // The source photo already fades near-black at its own edges; this just
+    // guarantees no hard rectangular seam against the procedural sky behind it.
+    const edge = uv().sub(0.5).length().mul(2).clamp(0, 1);
+    galaxyMaterial.opacityNode = float(1).sub(edge).pow(1.2);
+    galaxyPlane = new T.Mesh(new T.PlaneGeometry(g.width, g.height), galaxyMaterial);
+    galaxyPlane.position.set(g.position[0] + g.travel, g.position[1], g.position[2]);
+    galaxyPlane.renderOrder = -95;
+    sky.add(galaxyPlane);
+  }
+
   const ground = groundConfig ? buildGround(groundConfig) : null;
   if (ground) {
     root.add(ground.mesh);
@@ -2984,8 +3066,12 @@ export function buildBackdrop(
      * tilts the view down toward what lies below, flying high lifts it. A tilt
      * about the camera moves every depth together; the added lift slides the
      * near layers further than the far ones, which is what sells the depth.
+     *
+     * `progress` (0-1, elapsed stage time / duration) drives the galaxy
+     * backdrop's one-shot reveal pan - unlike the parallax layers above it
+     * must not loop, so it stays out of `layers` and is driven directly here.
      */
-    update(t: number, scale = 1, lookX = 0, lookY = 0, cameraZ = 33.6) {
+    update(t: number, scale = 1, lookX = 0, lookY = 0, cameraZ = 33.6, progress = 0) {
       // A surface stage keeps its terrain fixed, so its sky follows more gently.
       // Vertically most of all: planet and sky bobbing up and down behind a
       // fixed deck made players dizzy, so stages three and four rise and fall
@@ -3010,6 +3096,10 @@ export function buildBackdrop(
       }
       skybox.rotation.y = t * 0.0016;
       for (const m of moons) m.rotation.y = t * 0.006;
+      if (galaxyPlane && config.galaxy) {
+        const g = config.galaxy;
+        galaxyPlane.position.x = g.position[0] + g.travel * (1 - T.MathUtils.clamp(progress, 0, 1));
+      }
     },
   };
 }

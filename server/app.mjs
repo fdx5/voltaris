@@ -171,7 +171,7 @@ export async function createApp(
       previousRunId,
     } = req.body || {};
     if (
-      !integer(stage, 1, 4) ||
+      !integer(stage, 1, 5) ||
       !['LASER', 'MISSILE', 'SPREAD'].includes(weapon) ||
       !integer(credits, 1, 9) ||
       typeof practice !== 'boolean' ||
@@ -290,7 +290,7 @@ export async function createApp(
       stage = Number(req.query.stage || 0),
       username = String(req.query.username || '').toLowerCase(),
       sort = req.query.sort === 'score' ? 'score' : 'recent';
-    if (!integer(page, 1, 100000) || !integer(stage, 0, 4) || username.length > 24)
+    if (!integer(page, 1, 100000) || !integer(stage, 0, 5) || username.length > 24)
       throw fail(400, '검색 조건이 올바르지 않습니다.');
     const args = [],
       conditions = [];

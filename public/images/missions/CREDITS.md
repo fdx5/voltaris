@@ -8,5 +8,6 @@ Photographic spacecraft/telescope imagery, cropped around the full planetary dis
 | 02 | mars.webp | NASA / JPL-Caltech / USGS, Viking image mosaic PIA04304 | [Mars](https://science.nasa.gov/mars/) · [original photograph](https://science.nasa.gov/wp-content/uploads/2024/03/pia04304-mars.jpg) |
 | 03 | jupiter.webp | NASA, ESA, A. Simon (Goddard Space Flight Center), M.H. Wong (University of California, Berkeley) | [Jupiter (2019), Hubble](https://science.nasa.gov/asset/hubble/jupiter-2019/) |
 | 04 | neptune.webp | NASA / JPL, Voyager 2, PIA01492 | [Neptune](https://science.nasa.gov/neptune/) · [original photograph](https://science.nasa.gov/wp-content/uploads/2024/03/pia01492-neptune-full-disk-16x9-1.jpg) |
+| 05 | milkyway.webp | ESO, VLT/FORS2 (eso9845d) | [NGC 1232](https://www.eso.org/public/images/eso9845d/) |
 
-Mission imagery may combine camera exposures and use the source institution's published colour processing. These are observational images, not claims of unprocessed naked-eye colour.
+Mission imagery may combine camera exposures and use the source institution's published colour processing. These are observational images, not claims of unprocessed naked-eye colour. Stage 05's image is a real photograph of an external grand-design spiral galaxy (NGC 1232), standing in for "our galaxy's shape" — no photograph of the Milky Way's own face-on shape can exist, since we are inside it.

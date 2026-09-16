@@ -1276,10 +1276,10 @@ export class GameState {
     if (this.bossShot <= 0) {
       this.bossShot =
         (this.bossPhase === 1 ? 1.9 : this.bossPhase === 2 ? 1.55 : 1.2) *
-        [1, 0.88, 0.76, 0.65][this.stageIndex] *
+        [1, 0.88, 0.76, 0.65, 0.58][this.stageIndex] *
         (this.bossTime > tuning.combat.bossLimit ? 0.8 : 1);
       const aim = Math.atan2(this.y - this.bossY, this.x - this.bossX);
-      const colors = [0xff9a70, 0xffd377, 0xd1b2ff, 0x80efe4];
+      const colors = [0xff9a70, 0xffd377, 0xd1b2ff, 0x80efe4, 0xb0a8ff];
       this.queueSalvo(
         bossSalvo(this.stageIndex, this.bossPhase, this.volley, aim),
         'boss',

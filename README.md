@@ -24,7 +24,7 @@
 2. GitHub를 연결하고 `fdx5/voltaris` 저장소, `main` 브랜치를 선택합니다.
 3. 루트의 `render.yaml` 설정을 확인합니다. 서비스명 `voltaris`, 리전 `Singapore`, Node Web Service가 생성됩니다.
 4. **`TURSO_AUTH_TOKEN`에 본인의 Turso DB 토큰을 비밀 환경변수로 입력**합니다. 토큰은 저장소에 없습니다. DB URL은 Blueprint에 들어 있습니다.
-5. Apply / Deploy를 실행합니다. 첫 서버 시작 시 스키마와 4개 스테이지 기준 데이터가 자동 생성됩니다. 기존 사용자·게임 이력은 삭제하지 않습니다.
+5. Apply / Deploy를 실행합니다. 첫 서버 시작 시 스키마와 5개 스테이지 기준 데이터가 자동 생성됩니다. 기존 사용자·게임 이력은 삭제하지 않습니다.
 6. 발급된 `https://…onrender.com` 주소로 접속하여 회원가입 후 STAGE 01을 시작합니다.
 
 `render.yaml`은 Free 인스턴스를 기본값으로 사용합니다. 필요에 따라 Render에서 사양을 변경할 수 있습니다. 무료 서비스는 유휴 후 재시작 시 첫 요청이 느릴 수 있습니다.
@@ -104,7 +104,7 @@ http://localhost:3001 에서 빌드된 게임과 API를 함께 제공합니다. 
 | `schema_migrations` | 적용한 스키마 버전                                                             |
 | `users`             | 고유 ID, 파일럿 ID, scrypt 비밀번호 해시, 생성 시각                            |
 | `sessions`          | 세션 토큰 SHA-256 해시, 사용자, 만료 시각                                      |
-| `stages`            | 4개 스테이지 ID / 이름 / 행성 기준 데이터                                      |
+| `stages`            | 5개 스테이지 ID / 이름 / 행성 기준 데이터                                      |
 | `game_runs`         | 출격 설정, 검증 게임 버전, 결과, 점수·격추·시간, 이어하기 장비, 시작·종료 시각 |
 | `stage_progress`    | 사용자·스테이지별 최초 일반 모드 클리어와 해당 출격 ID                         |
 
