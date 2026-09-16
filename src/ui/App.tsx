@@ -871,8 +871,8 @@ function GameApp() {
               <b>{credits.toString().padStart(2, '0')}</b>
               <button
                 aria-label="크레딧 증가"
-                disabled={credits === 9}
-                onClick={() => setCredits((n) => Math.min(9, n + 1))}
+                disabled={credits === 15}
+                onClick={() => setCredits((n) => Math.min(15, n + 1))}
               >
                 <ChevronRight />
               </button>

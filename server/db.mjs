@@ -80,7 +80,7 @@ export async function migrate(db) {
         stage_id INTEGER NOT NULL REFERENCES stages(id),
         practice INTEGER NOT NULL DEFAULT 0 CHECK(practice IN (0,1)),
         weapon TEXT NOT NULL CHECK(weapon IN ('LASER','MISSILE','SPREAD')),
-        credits INTEGER NOT NULL CHECK(credits BETWEEN 1 AND 9),
+        credits INTEGER NOT NULL CHECK(credits BETWEEN 1 AND 15),
         config_json TEXT NOT NULL,
         game_version TEXT NOT NULL,
         status TEXT NOT NULL DEFAULT 'started' CHECK(status IN ('started','clear','gameover','abandoned')),
@@ -106,6 +106,58 @@ export async function migrate(db) {
       DROP TABLE game_runs;
       ALTER TABLE game_runs_fixed RENAME TO game_runs;
       ALTER TABLE stage_progress_fixed RENAME TO stage_progress;
+      CREATE INDEX IF NOT EXISTS runs_recent ON game_runs(started_at DESC, id DESC);
+      CREATE INDEX IF NOT EXISTS runs_user_recent ON game_runs(user_id, started_at DESC);
+      COMMIT;
+      PRAGMA foreign_keys=ON;
+    `);
+  }
+  // Same recreate-in-dependency-order dance as above, this time for widening
+  // credits' cap from 9 to 15 - CHECK(credits BETWEEN 1 AND 9) is baked into
+  // an existing game_runs table the same way stages.id's old CHECK was, and
+  // game_runs has its own incoming FK (stage_progress.first_run_id), so a
+  // bare rename would trip the exact same auto-rewrite trap fixed above.
+  const gameRunsDdlNow =
+    gameRunsDdl ??
+    (
+      await db.execute("SELECT sql FROM sqlite_master WHERE type='table' AND name='game_runs'")
+    ).rows[0]?.sql;
+  if (typeof gameRunsDdlNow === 'string' && gameRunsDdlNow.includes('credits BETWEEN 1 AND 9')) {
+    await db.executeMultiple(`
+      PRAGMA foreign_keys=OFF;
+      BEGIN IMMEDIATE;
+      CREATE TABLE game_runs_v2 (
+        id TEXT PRIMARY KEY,
+        user_id TEXT NOT NULL REFERENCES users(id),
+        stage_id INTEGER NOT NULL REFERENCES stages(id),
+        practice INTEGER NOT NULL DEFAULT 0 CHECK(practice IN (0,1)),
+        weapon TEXT NOT NULL CHECK(weapon IN ('LASER','MISSILE','SPREAD')),
+        credits INTEGER NOT NULL CHECK(credits BETWEEN 1 AND 15),
+        config_json TEXT NOT NULL,
+        game_version TEXT NOT NULL,
+        status TEXT NOT NULL DEFAULT 'started' CHECK(status IN ('started','clear','gameover','abandoned')),
+        score INTEGER NOT NULL DEFAULT 0,
+        kills INTEGER NOT NULL DEFAULT 0,
+        seconds REAL NOT NULL DEFAULT 0,
+        level INTEGER NOT NULL DEFAULT 1,
+        credits_used INTEGER NOT NULL DEFAULT 1,
+        loadout_json TEXT,
+        started_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        finished_at TEXT
+      );
+      INSERT INTO game_runs_v2 SELECT * FROM game_runs;
+      CREATE TABLE stage_progress_v2 (
+        user_id TEXT NOT NULL REFERENCES users(id),
+        stage_id INTEGER NOT NULL REFERENCES stages(id),
+        first_run_id TEXT NOT NULL REFERENCES game_runs_v2(id),
+        cleared_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        PRIMARY KEY(user_id,stage_id)
+      );
+      INSERT INTO stage_progress_v2 SELECT * FROM stage_progress;
+      DROP TABLE stage_progress;
+      DROP TABLE game_runs;
+      ALTER TABLE game_runs_v2 RENAME TO game_runs;
+      ALTER TABLE stage_progress_v2 RENAME TO stage_progress;
       CREATE INDEX IF NOT EXISTS runs_recent ON game_runs(started_at DESC, id DESC);
       CREATE INDEX IF NOT EXISTS runs_user_recent ON game_runs(user_id, started_at DESC);
       COMMIT;

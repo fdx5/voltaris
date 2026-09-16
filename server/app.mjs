@@ -173,7 +173,7 @@ export async function createApp(
     if (
       !integer(stage, 1, 5) ||
       !['LASER', 'MISSILE', 'SPREAD'].includes(weapon) ||
-      !integer(credits, 1, 9) ||
+      !integer(credits, 1, 15) ||
       typeof practice !== 'boolean' ||
       typeof autoFire !== 'boolean'
     )

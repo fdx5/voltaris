@@ -215,6 +215,8 @@ export class GameState {
   bossAngle = 0;
   /** Counts fired boss volleys so patterns can rotate between them. */
   volley = 0;
+  /** How many of the boss fight's every-20-seconds items have gone out already. */
+  private bossItemsSent = 0;
   bossDefeated = false;
   bossKillTime = 0;
   bossDying = false;
@@ -1240,6 +1242,7 @@ export class GameState {
     this.bossShot = 2;
     this.bossAngle = 0;
     this.volley = 0;
+    this.bossItemsSent = 0;
     this.partHp.fill(0);
     this.partHp.fill(this.stage.boss.partHp, 0, this.bossParts);
     this.announce('WARNING / ' + this.stage.boss.id + ' 接近', 4);
@@ -1247,6 +1250,18 @@ export class GameState {
   }
   private updateBoss(dt: number) {
     this.bossTime += dt;
+    // A boss fight is the one stretch of a stage with no scripted items, and
+    // by far the longest single stretch without a power-up - so it gets its
+    // own clock instead, guaranteeing one every 20 seconds rather than
+    // leaving the player to fight the whole encounter on whatever loadout
+    // they arrived with.
+    const itemsDue = Math.floor(this.bossTime / 20);
+    if (itemsDue > this.bossItemsSent) {
+      this.bossItemsSent = itemsDue;
+      const type = this.rng.next() < 0.5 ? 0 : 1;
+      const y = clamp((this.rng.next() - 0.5) * 10, this.stage.minY + 1, this.stage.maxY - 1);
+      this.items.acquire(12, y, -4, 0, type, 12, 0.5);
+    }
     this.bossX += (10 - this.bossX) * dt * 0.65;
     this.bossY = Math.sin(this.bossTime * 0.45) * 1.6;
     this.bossAngle += dt * (0.22 + this.bossPhase * 0.08);
@@ -1763,6 +1778,12 @@ export class GameState {
     this.lives--;
     this.deaths++;
     this.graze = 1;
+    // A destroyed ship comes back with both specials armed and ready - a
+    // guaranteed way back into the fight rather than leaving the comeback to
+    // however charge happened to sit at the moment of death.
+    this.skillUnlocked = true;
+    this.charge[0] = 1;
+    this.charge[1] = 1;
     // Losing a well-upgraded ship costs the most, so it drops the most back:
     // three at Lv.8, two from Lv.3, one below that. These are the main way
     // power returns to the player, which is why enemy drops stay rare.

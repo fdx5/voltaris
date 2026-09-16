@@ -22,7 +22,7 @@ CREATE TABLE IF NOT EXISTS game_runs (
   stage_id INTEGER NOT NULL REFERENCES stages(id),
   practice INTEGER NOT NULL DEFAULT 0 CHECK(practice IN (0,1)),
   weapon TEXT NOT NULL CHECK(weapon IN ('LASER','MISSILE','SPREAD')),
-  credits INTEGER NOT NULL CHECK(credits BETWEEN 1 AND 9),
+  credits INTEGER NOT NULL CHECK(credits BETWEEN 1 AND 15),
   config_json TEXT NOT NULL,
   game_version TEXT NOT NULL,
   status TEXT NOT NULL DEFAULT 'started' CHECK(status IN ('started','clear','gameover','abandoned')),
