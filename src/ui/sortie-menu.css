@@ -1,9 +1,12 @@
-/* A game title screen: open space, a flyable ship, and four direct commands. */
+/* A game title screen: open space, a flyable ship, and direct commands. */
 .app.sortie-menu {
   --mint: #f65b42;
   display: grid;
   grid-template-columns: 1fr;
-  grid-template-rows: 150px minmax(0, 1fr) 146px 40px;
+  /* The mission strip sizes to its own content (heading + one row of
+     cards) rather than a fixed height, so it never clips or overlaps as
+     the sector count grows - the middle 1fr track absorbs the rest. */
+  grid-template-rows: 150px minmax(0, 1fr) auto 40px;
   gap: 12px;
   padding: 0 5%;
   min-height: 0;
@@ -218,6 +221,7 @@
   position: static;
   inset: auto;
   min-width: 0;
+  padding-bottom: 12px;
 }
 .app.sortie-menu .mission-heading {
   display: flex;
@@ -240,8 +244,8 @@
 }
 .app.sortie-menu .mission-cards {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 24px;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 20px;
 }
 .app.sortie-menu .mission {
   height: 90px;
@@ -350,7 +354,7 @@
 }
 @media (max-width: 1050px), (max-height: 700px) {
   .app.sortie-menu {
-    grid-template-rows: 85px minmax(0, 1fr) 100px 30px;
+    grid-template-rows: 85px minmax(0, 1fr) auto 30px;
     gap: 8px;
     padding: var(--safe-top) max(28px, var(--safe-right)) var(--safe-bottom)
       max(28px, var(--safe-left));
@@ -423,7 +427,7 @@
 }
 @media (max-height: 500px) and (orientation: landscape) {
   .app.sortie-menu {
-    grid-template-rows: 60px minmax(0, 1fr) 84px 28px;
+    grid-template-rows: 60px minmax(0, 1fr) auto 28px;
     gap: 4px;
   }
   .app.sortie-menu .header {
@@ -499,7 +503,7 @@
 }
 @media (max-width: 600px) and (orientation: portrait) {
   .app.sortie-menu {
-    grid-template-rows: 102px minmax(0, 1fr) 165px 28px;
+    grid-template-rows: 102px minmax(0, 1fr) auto 28px;
     gap: 9px;
     padding-left: 22px;
     padding-right: 22px;
