@@ -11,6 +11,11 @@
  * come from Poly Haven (CC0). Sources ship at 1-8K and are resized here to
  * what a backdrop actually needs.
  *
+ * Section 5's galaxy backdrop is a real ESO VLT photograph of NGC 1232, a
+ * grand-design spiral (CC BY 4.0 - https://www.eso.org/public/images/eso9845d/,
+ * credit ESO) standing in for "our galaxy's shape" - no photograph of the
+ * Milky Way's own face-on shape exists, since we're inside it.
+ *
  * Re-runnable: existing files are skipped unless --force is passed.
  */
 import { mkdir, writeFile, access } from 'node:fs/promises';
@@ -51,6 +56,9 @@ const assets = [
     'planets/neptune_color.jpg',
     1536,
   ],
+  // The hero backdrop of a 6-minute stage, panned slowly across the whole
+  // screen, so it keeps far more resolution than any other texture here.
+  ['https://cdn.eso.org/images/large/eso9845d.jpg', 'space/galaxy.jpg', 4096, null, 90],
 ];
 
 /**

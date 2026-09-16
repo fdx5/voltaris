@@ -788,6 +788,9 @@ export class ThreeBackend implements IRenderBackend {
       this.bosses[i].root.visible = false;
       for (const pod of this.bosses[i].pods) pod.visible = active && pod.visible;
     }
+    // A stage can request its own camera span (see resize()); re-derive it
+    // now rather than waiting for the next window resize.
+    this.resize();
   }
   async init() {
     // What the deferred batches looked like before anything touched them. A
@@ -991,7 +994,14 @@ export class ThreeBackend implements IRenderBackend {
     const w = Math.max(1, this.host.clientWidth),
       h = Math.max(1, this.host.clientHeight);
     this.camera.aspect = w / h;
-    const height = Math.max(18, 32 / this.camera.aspect);
+    // 32 is a reference visible span (world units) most stages fly at; a
+    // stage can pull the camera back further by setting its own
+    // `cameraHeight` (e.g. a taller arena that needs to stay fully on
+    // screen). Read loosely rather than widening StageDef, since only a
+    // stage that opts in carries the field.
+    const span =
+      (STAGES[this.stage] as { cameraHeight?: number } | undefined)?.cameraHeight ?? 32;
+    const height = Math.max(18, span / this.camera.aspect);
     this.camera.position.set(0, 0, height / 2 / Math.tan(Math.PI / 12));
     this.camera.updateProjectionMatrix();
     const scale = this.quality === 'HIGH' ? 1 : this.quality === 'MEDIUM' ? 0.85 : 0.7;

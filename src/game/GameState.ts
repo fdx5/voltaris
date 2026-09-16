@@ -644,6 +644,17 @@ export class GameState {
     const progress = clamp(this.time / this.stage.durationSec, 0, 1);
     return this.stage.hull * (1 + tuning.combat.hullRamp * progress);
   }
+  /**
+   * Off-screen culling/engage thresholds below are tuned against the camera's
+   * default ~32-unit reference span (see ThreeBackend.resize). A stage that
+   * opts into a wider `cameraHeight` (a taller arena, zoomed further out)
+   * needs those thresholds scaled up by the same factor, or bullets/enemies
+   * will pop in and out while still visible on the now-larger screen.
+   */
+  get worldScale() {
+    const cameraHeight = (this.stage as { cameraHeight?: number }).cameraHeight;
+    return cameraHeight ? cameraHeight / 32 : 1;
+  }
   /** Height of the deck, or of the roof, at a point on the field. */
   surfaceAt(x: number, roof = false) {
     const field = roof ? this.roof : this.terrain;
@@ -719,6 +730,7 @@ export class GameState {
           // world bound and spread formations up into the vault, where the
           // player - held below it - had no way to reach them.
           this.stage.maxY - d.radius - 0.4,
+          this.worldScale,
         );
         this.spawnEnemy(wave.type, pos.x, pos.y, 3 + (ordinal % 6), 0);
         this.laneLeft[lane]--;
@@ -876,12 +888,12 @@ export class GameState {
       const ease = Math.min(1, dt * 5);
       this.enemyBank[i] += (enemyBank(e.vy[i], view) - this.enemyBank[i]) * ease;
       this.enemyPitch[i] += (enemyPitch(e.vy[i]) - this.enemyPitch[i]) * ease;
-      if (e.x[i] < -18) {
+      if (e.x[i] < -18 * this.worldScale) {
         e.release(i);
         continue;
       }
       const period = this.firePeriod(e.type[i]);
-      if (a > 0.45 && a % period >= period - dt && e.x[i] < 16.5)
+      if (a > 0.45 && a % period >= period - dt && e.x[i] < 16.5 * this.worldScale)
         this.queueSalvo(
           this.hostilePlan(
             e.type[i],
@@ -1032,7 +1044,7 @@ export class GameState {
         (r.y[i] > this.stage.maxY - inset && r.vy[i] > 0)
       )
         r.vy[i] *= -1;
-      if (r.x[i] < -18 - r.radius[i]) r.release(i);
+      if (r.x[i] < -18 * this.worldScale - r.radius[i]) r.release(i);
     }
   }
   damageRock(i: number, damage: number) {
@@ -1073,14 +1085,14 @@ export class GameState {
       this.groundFlash[i] = Math.max(0, this.groundFlash[i] - dt);
       g.x[i] -= speed * dt;
       g.y[i] = this.surfaceAt(g.x[i], g.aux[i] === 1);
-      if (g.x[i] < -18) {
+      if (g.x[i] < -18 * this.worldScale) {
         g.release(i);
         continue;
       }
       const period = d.period / (1 + this.rank * 0.006) / this.stage.pressure;
       // A roof mount's muzzle hangs below its footing, not above it.
       const muzzle = g.aux[i] === 1 ? -d.radius : d.radius;
-      if (g.age[i] > 0.6 && g.age[i] % period >= period - dt && g.x[i] < 15)
+      if (g.age[i] > 0.6 && g.age[i] % period >= period - dt && g.x[i] < 15 * this.worldScale)
         this.queueSalvo(
           groundSalvo(
             g.type[i],
@@ -1377,7 +1389,12 @@ export class GameState {
       const t = b.type[i] === 1 ? enemyDt : dt;
       b.x[i] += b.vx[i] * t;
       b.y[i] += b.vy[i] * t;
-      if (Math.abs(b.x[i]) > 23 || Math.abs(b.y[i]) > 13 || b.age[i] > 12) b.release(i);
+      if (
+        Math.abs(b.x[i]) > 23 * this.worldScale ||
+        Math.abs(b.y[i]) > 13 * this.worldScale ||
+        b.age[i] > 12
+      )
+        b.release(i);
     }
   }
   /**
@@ -1814,7 +1831,7 @@ export class GameState {
         this.pickupEvent++;
         this.pickupEventsByType[type]++;
         a.release(i);
-      } else if (a.x[i] < -18 || a.age[i] > 15) {
+      } else if (a.x[i] < -18 * this.worldScale || a.age[i] > 15) {
         this.score = Math.max(0, this.score - 500);
         a.release(i);
       }

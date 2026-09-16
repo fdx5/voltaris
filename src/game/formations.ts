@@ -7,6 +7,9 @@ export function formationPosition(
   center: number,
   minY: number,
   maxY: number,
+  // Entry edge scale for stages with a wider-than-default camera span (see
+  // GameState.worldScale) - 1 keeps every existing stage's entry point exact.
+  edgeScale = 1,
 ) {
   const rows = Math.min(count, Math.max(2, Math.floor((maxY - minY) / (radius * 2 + 0.65))));
   const row = n % rows,
@@ -38,5 +41,5 @@ export function formationPosition(
   }
   const half = middle * step;
   const anchor = Math.max(minY + half, Math.min(maxY - half, center));
-  return { x: 17.4 + radius + x, y: anchor + y };
+  return { x: 17.4 * edgeScale + radius + x, y: anchor + y };
 }
