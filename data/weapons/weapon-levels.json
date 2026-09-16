@@ -60,56 +60,56 @@
   "MISSILE": [
     {
       "rate": 8,
-      "damage": 1.5,
+      "damage": 2.25,
       "count": 1,
       "width": 0.075,
       "pierce": 1
     },
     {
       "rate": 10,
-      "damage": 1.6,
+      "damage": 2.4,
       "count": 1,
       "width": 0.075,
       "pierce": 1
     },
     {
       "rate": 10,
-      "damage": 1.7,
+      "damage": 2.55,
       "count": 2,
       "width": 0.08,
       "pierce": 1
     },
     {
       "rate": 11,
-      "damage": 1.8,
+      "damage": 2.7,
       "count": 2,
       "width": 0.085,
       "pierce": 1
     },
     {
       "rate": 12,
-      "damage": 2,
+      "damage": 3,
       "count": 3,
       "width": 0.09,
       "pierce": 1
     },
     {
       "rate": 12,
-      "damage": 2.2,
+      "damage": 3.3,
       "count": 3,
       "width": 0.095,
       "pierce": 1
     },
     {
       "rate": 13,
-      "damage": 2.5,
+      "damage": 3.75,
       "count": 4,
       "width": 0.1,
       "pierce": 1
     },
     {
       "rate": 14,
-      "damage": 3,
+      "damage": 4.5,
       "count": 4,
       "width": 0.11,
       "pierce": 1
