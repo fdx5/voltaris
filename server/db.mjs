@@ -27,15 +27,23 @@ export async function migrate(db) {
   );
   const ddl = existing.rows[0]?.sql;
   if (typeof ddl === 'string' && ddl.includes('BETWEEN 1 AND 4')) {
-    await db.batch(
-      [
-        'ALTER TABLE stages RENAME TO stages_pre_section5',
-        'CREATE TABLE stages (id INTEGER PRIMARY KEY CHECK(id >= 1), name TEXT NOT NULL, planet TEXT NOT NULL)',
-        'INSERT INTO stages SELECT * FROM stages_pre_section5',
-        'DROP TABLE stages_pre_section5',
-      ],
-      'write',
-    );
+    // `db.batch()` always opens its own transaction before running any
+    // statement, and SQLite refuses to change `foreign_keys` inside one, so
+    // the toggle has to go through `executeMultiple` (one script, one
+    // connection, no implicit transaction) instead. Renaming `stages` away
+    // makes SQLite auto-rewrite game_runs/stage_progress's FK clause to
+    // point at the new name, so the later DROP fails as a "constraint still
+    // referenced" error unless enforcement is off for the whole script.
+    await db.executeMultiple(`
+      PRAGMA foreign_keys=OFF;
+      BEGIN IMMEDIATE;
+      ALTER TABLE stages RENAME TO stages_pre_section5;
+      CREATE TABLE stages (id INTEGER PRIMARY KEY CHECK(id >= 1), name TEXT NOT NULL, planet TEXT NOT NULL);
+      INSERT INTO stages SELECT * FROM stages_pre_section5;
+      DROP TABLE stages_pre_section5;
+      COMMIT;
+      PRAGMA foreign_keys=ON;
+    `);
   }
   const sql = await readFile(new URL('./schema.sql', import.meta.url), 'utf8');
   await db.batch(
