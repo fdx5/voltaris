@@ -25,6 +25,10 @@ import { SpatialHash, segmentCircle } from './systems/SpatialHash';
 import { Key } from '../core/input/InputManager';
 export type Weapon = keyof typeof weapons;
 export type Mode = 'TRAIL' | 'FREEZE' | 'DIRECTIONAL' | 'ROTATE';
+/** Shape of a stage's `boss` (and optional `midBoss`) block. */
+type BossConfig = StageDef['boss'];
+/** When a stage with a `midBoss` block fights it - the 3:00 mark. */
+const MID_BOSS_TIME = 180;
 export type Status = 'menu' | 'playing' | 'paused' | 'continue' | 'gameover' | 'clear' | 'stress';
 /**
  * Keeps a value inside [low, high] without a hard stop: the last fifth of the
@@ -217,6 +221,9 @@ export class GameState {
   volley = 0;
   /** How many of the boss fight's every-20-seconds items have gone out already. */
   private bossItemsSent = 0;
+  /** A stage with a `midBoss` block fights it partway through, independent of the real (final) boss. */
+  midBoss = false;
+  midBossDefeated = false;
   bossDefeated = false;
   bossKillTime = 0;
   bossDying = false;
@@ -332,6 +339,8 @@ export class GameState {
     this.bossDeathTime = 0;
     this.bossPhase = 1;
     this.bossDefeated = false;
+    this.midBoss = false;
+    this.midBossDefeated = false;
     this.bossTime = this.bonus = this.bossKillTime = this.volley = 0;
     this.effects.fill(0);
     this.skills.set([0, NOVA_SKILL, -1]);
@@ -501,7 +510,7 @@ export class GameState {
     this.updateEnemies(enemyDt);
     this.updateRocks(enemyDt);
     if (this.terrain) this.updateGround(enemyDt);
-    if (this.boss) this.updateBoss(enemyDt);
+    if (this.boss || this.midBoss) this.updateBoss(enemyDt);
     this.updateNova(dt);
     if (this.bossDying) return;
     this.fireTimer -= dt;
@@ -755,7 +764,12 @@ export class GameState {
       }
       this.laneWave[lane] = -1;
     }
+    // A boss fight (mid or final) is the encounter, not a backdrop for one -
+    // reinforcements stop queuing up while either is under way, though
+    // whatever's already in flight keeps flying.
     while (
+      !this.boss &&
+      !this.midBoss &&
       this.spawnIndex < this.stage.spawns.length &&
       this.time >= this.stage.spawns[this.spawnIndex].time
     ) {
@@ -829,7 +843,17 @@ export class GameState {
       const item = this.stage.items[this.itemIndex++];
       this.items.acquire(12, item.y, -4, 0, item.type, 12, 0.5);
     }
-    if (this.time >= this.stage.durationSec && !this.boss && !this.bossDefeated) this.spawnBoss();
+    const midBossDef = (this.stage as { midBoss?: BossConfig }).midBoss;
+    if (
+      midBossDef &&
+      !this.midBoss &&
+      !this.midBossDefeated &&
+      !this.boss &&
+      this.time >= MID_BOSS_TIME
+    )
+      this.spawnBoss('mid');
+    if (this.time >= this.stage.durationSec && !this.boss && !this.midBoss && !this.bossDefeated)
+      this.spawnBoss('final');
   }
   /**
    * The first formation launches three ships, the next four, and so on: a
@@ -1241,15 +1265,25 @@ export class GameState {
       this.enemies.age[i] > 0.45 && this.enemies.age[i] % period > period - tuning.combat.telegraph
     );
   }
+  /**
+   * Whichever boss is currently active - the stage's `midBoss` mid-fight, its
+   * `boss` (the real, final one) otherwise. `this.boss` and `this.midBoss`
+   * are never both true at once.
+   */
+  get bossDef() {
+    return this.midBoss ? (this.stage as { midBoss?: BossConfig }).midBoss! : this.stage.boss;
+  }
   /** Pods mounted on the current boss. */
   get bossParts() {
-    return this.stage.boss.parts;
+    return this.bossDef.parts;
   }
-  spawnBoss() {
+  spawnBoss(kind: 'mid' | 'final' = 'final') {
     this.bossDying = false;
     this.bossDeathTime = 0;
-    this.boss = true;
-    this.bossHp = this.stage.boss.hp;
+    this.midBoss = kind === 'mid';
+    this.boss = kind === 'final';
+    const def = this.bossDef;
+    this.bossHp = def.hp;
     this.bossX = 20;
     this.bossY = 0;
     this.bossTime = 0;
@@ -1260,8 +1294,8 @@ export class GameState {
     this.volley = 0;
     this.bossItemsSent = 0;
     this.partHp.fill(0);
-    this.partHp.fill(this.stage.boss.partHp, 0, this.bossParts);
-    this.announce('WARNING / ' + this.stage.boss.id + ' 接近', 4);
+    this.partHp.fill(def.partHp, 0, def.parts);
+    this.announce('WARNING / ' + def.id + ' 接近', 4);
     this.warningEvent++;
   }
   private updateBoss(dt: number) {
@@ -1282,13 +1316,13 @@ export class GameState {
     this.bossY = Math.sin(this.bossTime * 0.45) * 1.6;
     this.bossAngle += dt * (0.22 + this.bossPhase * 0.08);
     const parts = this.bossParts,
-      ring = this.stage.boss.ringRadius;
+      ring = this.bossDef.ringRadius;
     for (let p = 0; p < parts; p++) {
       const a = this.bossAngle + (p / parts) * Math.PI * 2;
       this.partX[p] = this.bossX + Math.cos(a) * ring;
       this.partY[p] = this.bossY + Math.sin(a) * ring;
     }
-    const full = this.stage.boss.hp;
+    const full = this.bossDef.hp;
     const phase = this.bossHp > full * 0.6 ? 1 : this.bossHp > full * 0.25 ? 2 : 3;
     if (phase !== this.bossPhase) {
       this.bossPhase = phase;
@@ -1574,7 +1608,7 @@ export class GameState {
           }
         }
       }
-      if (!b.active[i] || !this.boss || this.bossTransition > 0) continue;
+      if (!b.active[i] || (!this.boss && !this.midBoss) || this.bossTransition > 0) continue;
       for (let p = 0; p < this.bossParts; p++) {
         if (this.partHp[p] <= 0 || !b.active[i]) continue;
         if (
@@ -1607,12 +1641,12 @@ export class GameState {
           b.y[i],
           this.bossX,
           this.bossY,
-          this.stage.boss.coreRadius + b.radius[i],
+          this.bossDef.coreRadius + b.radius[i],
         )
       ) {
         this.bossHp -= b.hp[i];
         this.bossFlash = 0.08;
-        this.impact(this.bossX, this.bossY, this.stage.boss.coreRadius, b.px[i], b.py[i], true);
+        this.impact(this.bossX, this.bossY, this.bossDef.coreRadius, b.px[i], b.py[i], true);
         b.release(i);
         if (this.bossHp <= 0) {
           this.finish(true);
@@ -1680,10 +1714,13 @@ export class GameState {
         break;
       }
     }
-    const hull = this.stage.boss.coreRadius + 0.25;
-    if (this.boss && (this.x - this.bossX) ** 2 + (this.y - this.bossY) ** 2 < hull ** 2)
+    const hull = this.bossDef.coreRadius + 0.25;
+    if (
+      (this.boss || this.midBoss) &&
+      (this.x - this.bossX) ** 2 + (this.y - this.bossY) ** 2 < hull ** 2
+    )
       this.hit();
-    if (this.boss)
+    if (this.boss || this.midBoss)
       for (let p = 0; p < this.bossParts; p++) {
         if (
           this.partHp[p] > 0 &&
@@ -1930,6 +1967,18 @@ export class GameState {
       this.rocks.clear();
       this.noticeTime = 0;
       this.shake = 0.5;
+      return;
+    }
+    if (this.midBoss) {
+      // The mid-boss going down ends only its own fight - the stage (and the
+      // run) keeps going, unlike the real boss's finish below.
+      this.midBoss = false;
+      this.midBossDefeated = defeated;
+      this.bossHp = 0;
+      this.bossDying = false;
+      this.bullets.clear();
+      this.pendingSalvos.length = 0;
+      if (defeated) this.announce('MID-BOSS DOWN / 전투 속개', 3);
       return;
     }
     this.bossDefeated = defeated;

@@ -272,6 +272,8 @@ export class ThreeBackend implements IRenderBackend {
   /** Backdrops are created on first entry so startup only loads one sector. */
   private readonly skies: (ReturnType<typeof buildBackdrop> | undefined)[] = [];
   private readonly bosses: BossModel[] = [];
+  /** Sparse, indexed by stage - only a stage with a `midBoss` block has one. */
+  private readonly midBosses: (BossModel | undefined)[] = [];
   private stage = 0;
   private readonly shieldMesh: T.Mesh;
   private readonly hitDot: T.Mesh;
@@ -458,6 +460,13 @@ export class ThreeBackend implements IRenderBackend {
       this.scene.add(model.root, ...model.pods);
       this.deferred.push(model.root, ...model.pods);
       this.bosses.push(model);
+      const midBoss = (stage as { midBoss?: { design: string } }).midBoss;
+      if (midBoss) {
+        const midModel = makeBoss(midBoss.design as BossDesign);
+        this.scene.add(midModel.root, ...midModel.pods);
+        this.deferred.push(midModel.root, ...midModel.pods);
+        this.midBosses[this.bosses.length - 1] = midModel;
+      }
     }
     this.showStage(0);
     this.ship.add(...Object.values(this.playerCraft));
@@ -790,6 +799,11 @@ export class ThreeBackend implements IRenderBackend {
       const active = i === this.stage;
       this.bosses[i].root.visible = false;
       for (const pod of this.bosses[i].pods) pod.visible = active && pod.visible;
+      const midBoss = this.midBosses[i];
+      if (midBoss) {
+        midBoss.root.visible = false;
+        for (const pod of midBoss.pods) pod.visible = active && pod.visible;
+      }
     }
     // A stage can request its own camera span (see resize()); re-derive it
     // now rather than waiting for the next window resize.
@@ -959,6 +973,7 @@ export class ThreeBackend implements IRenderBackend {
     // NOVA BOMB) go first, so they are ready long before they are needed.
     const first = [
       ...this.bosses.flatMap((boss) => [boss.root, ...boss.pods]),
+      ...this.midBosses.flatMap((boss) => (boss ? [boss.root, ...boss.pods] : [])),
       ...this.hiddenUntilUsed,
     ];
     const rest = this.scene.children.filter((object) => !first.includes(object));
@@ -1525,19 +1540,25 @@ export class ThreeBackend implements IRenderBackend {
         this.optionCores[i].rotation.set(t, t * 1.2, t * 0.7);
       }
     }
-    const boss = this.bosses[this.stage];
-    boss.root.visible = g.boss && (!g.bossDying || g.bossDeathTime < 6.65);
-    boss.root.position.set(g.bossX, g.bossY, 0);
-    boss.root.rotation.z = g.bossDying
+    // Whichever boss is actually fighting - the mid-boss model while g.midBoss
+    // is up, the real (final) one otherwise. The other stays forced hidden so
+    // a stale visible flag from its own last active frame can't linger.
+    const model = (g.midBoss ? this.midBosses[this.stage] : undefined) ?? this.bosses[this.stage];
+    const inactiveBoss = g.midBoss ? this.bosses[this.stage] : this.midBosses[this.stage];
+    if (inactiveBoss) inactiveBoss.root.visible = false;
+    const active = g.boss || g.midBoss;
+    model.root.visible = active && (!g.bossDying || g.bossDeathTime < 6.65);
+    model.root.position.set(g.bossX, g.bossY, 0);
+    model.root.rotation.z = g.bossDying
       ? Math.sin(t * 27) * 0.012 * g.bossDeathTime
       : Math.sin(t * 0.48) * 0.009;
-    boss.ring.rotation.z = g.bossAngle;
-    boss.core.rotation.set(0, 0, t * 0.3);
-    boss.core.scale.setScalar(g.bossShot < 0.4 ? 1.1 + Math.sin(t * 35) * 0.08 : 1);
-    for (let i = 0; i < boss.pods.length; i++) {
-      const pod = boss.pods[i];
+    model.ring.rotation.z = g.bossAngle;
+    model.core.rotation.set(0, 0, t * 0.3);
+    model.core.scale.setScalar(g.bossShot < 0.4 ? 1.1 + Math.sin(t * 35) * 0.08 : 1);
+    for (let i = 0; i < model.pods.length; i++) {
+      const pod = model.pods[i];
       pod.visible =
-        g.boss &&
+        active &&
         i < g.bossParts &&
         g.partHp[i] > 0 &&
         (!g.bossDying || g.bossDeathTime < 2.4 + i * 0.35);
@@ -1551,7 +1572,7 @@ export class ThreeBackend implements IRenderBackend {
     // flushes red on a pulse; the pulse quickens at 70% and again at 90%, where
     // the hull also simmers red between beats and secondary blasts break out,
     // so the fight runs straight on into the destruction sequence.
-    const wear = g.boss ? T.MathUtils.clamp(1 - Math.max(0, g.bossHp) / g.stage.boss.hp, 0, 1) : 0;
+    const wear = active ? T.MathUtils.clamp(1 - Math.max(0, g.bossHp) / g.bossDef.hp, 0, 1) : 0;
     const beat = wear >= 0.9 ? 3.4 : wear >= 0.7 ? 1.7 : wear >= 0.5 ? 0.8 : 0;
     this.bossPulse += dt * beat;
     let glow = 0;
@@ -1562,21 +1583,21 @@ export class ThreeBackend implements IRenderBackend {
     }
     glow = Math.max(glow, (g.bossFlash / 0.08) * 0.55);
     if (g.bossDying) glow = (1.3 + Math.min(death, 6) * 0.2) * (0.7 + 0.3 * Math.sin(t * 31));
-    if (boss.damage) boss.damage.value = this.reducedMotion ? Math.min(glow, 0.8) : glow;
-    if (wear >= 0.9 && !g.bossDying) boss.core.scale.setScalar(1.15 + Math.sin(t * 21) * 0.18);
+    if (model.damage) model.damage.value = this.reducedMotion ? Math.min(glow, 0.8) : glow;
+    if (wear >= 0.9 && !g.bossDying) model.core.scale.setScalar(1.15 + Math.sin(t * 21) * 0.18);
     const scorchRate =
       g.bossDying || g.status !== 'playing' ? 0 : wear >= 0.9 ? 6 : wear >= 0.7 ? 2.4 : 0;
     const sc = this.scorch;
     if (scorchRate > 0 && (sc.due -= dt) <= 0) {
       const k = sc.head++ % sc.born.length;
       const a = sc.head * 2.399963 + Math.random() * 0.6,
-        r = g.stage.boss.ringRadius * (0.25 + Math.random() * 0.6);
+        r = g.bossDef.ringRadius * (0.25 + Math.random() * 0.6);
       sc.x[k] = Math.cos(a) * r;
       sc.y[k] = Math.sin(a) * r * 0.72;
       sc.born[k] = t;
       sc.due = (0.6 + Math.random() * 0.8) / scorchRate;
     }
-    if (g.boss && !g.bossDying)
+    if (active && !g.bossDying)
       for (let k = 0; k < sc.born.length; k++) {
         const age = t - sc.born[k];
         if (age < 0 || age > 1.4) continue;

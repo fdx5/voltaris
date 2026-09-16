@@ -10,6 +10,19 @@ import type { Quality } from './renderer/IRenderBackend';
 import { useUI } from '../ui/store/useUI';
 import { STAGES } from '../game/stages';
 import { packReplay } from './replayCodec';
+/**
+ * A stage's music, in the order a run actually hears it. Every stage has at
+ * least 'intro'/'final'; 'mid'/'second' only exist for a stage with a
+ * midBoss (falls back to the surrounding track when its own is missing, so
+ * a plain two-track stage behaves exactly as before).
+ */
+type TrackPhase = 'intro' | 'mid' | 'second' | 'final';
+function trackPhaseOf(g: GameState): TrackPhase {
+  if (g.boss) return 'final';
+  if (g.midBoss) return 'mid';
+  if (g.midBossDefeated) return 'second';
+  return 'intro';
+}
 /** Weapons that fire a recorded sample instead of the synth blip. */
 const FIRE_SAMPLES: Record<Weapon, string> = {
   LASER: asset('/audio/laser.mp3'),
@@ -82,7 +95,8 @@ export class Runtime {
   private armourSoundAt = -1;
   private pickupSounds = new Uint32Array(4);
   private lastStatus = 'menu';
-  private bossTrack = false;
+  /** Which of a stage's (up to 4) music tracks is currently playing. */
+  private trackPhase: TrackPhase = 'intro';
   private portrait = false;
   private resizeObserver: ResizeObserver;
   constructor(host: HTMLElement) {
@@ -210,7 +224,7 @@ export class Runtime {
       this.runId = run.id;
       this.runEvents = [];
       this.pendingResult = null;
-      this.bossTrack = false;
+      this.trackPhase = 'intro';
       this.playStageTrack();
       this.recorded = false;
       this.qualityTime = 0;
@@ -287,15 +301,35 @@ export class Runtime {
       });
     return this.savePromise;
   }
-  /** Stage theme, or the boss theme once the boss is on the field. */
+  /** Whichever of the stage's (up to 4) tracks matches where the run is now. */
   private playStageTrack() {
-    const stage = this.game.stage;
-    const boss = this.game.boss && stage.bossMusic ? stage.bossMusic : null;
-    const track = boss ?? stage.music;
+    const stage = this.game.stage as {
+      music?: string;
+      midBossMusic?: string;
+      music2?: string;
+      bossMusic?: string;
+    };
+    const phase = trackPhaseOf(this.game);
+    const track =
+      phase === 'final'
+        ? stage.bossMusic
+        : phase === 'mid'
+          ? (stage.midBossMusic ?? stage.bossMusic)
+          : phase === 'second'
+            ? (stage.music2 ?? stage.music)
+            : stage.music;
     if (track) this.audio.playTrack(asset(track));
-    // Fetch the boss theme while the stage plays, so it cuts in without a gap.
-    if (!boss && stage.bossMusic) this.audio.preloadTrack(asset(stage.bossMusic));
-    this.bossTrack = boss !== null;
+    // Fetch whatever comes next while this phase plays, so its cut-in has no gap.
+    const next =
+      phase === 'intro'
+        ? (stage.midBossMusic ?? stage.bossMusic)
+        : phase === 'mid'
+          ? (stage.music2 ?? stage.music)
+          : phase === 'second'
+            ? stage.bossMusic
+            : undefined;
+    if (next && next !== track) this.audio.preloadTrack(asset(next));
+    this.trackPhase = phase;
   }
   menu() {
     void this.finishRun().catch(() => {});
@@ -345,7 +379,7 @@ export class Runtime {
     const g = this.game;
     const sample = FIRE_SAMPLES[g.weapon];
     if (useUI.getState().bossHp !== g.bossHp)
-      useUI.setState({ bossHp: Math.max(0, g.bossHp), bossHpFull: g.stage.boss.hp });
+      useUI.setState({ bossHp: Math.max(0, g.bossHp), bossHpFull: g.bossDef.hp });
     if (g.bossDeathEvent !== this.sounds[6]) {
       this.sounds[6] = g.bossDeathEvent;
       this.audio.stopTrack();
@@ -405,8 +439,13 @@ export class Runtime {
       if (!destroyed) this.audio.explosion();
       this.sounds[4] = g.hitEvent;
     }
-    // A boss arriving cuts the stage theme over to its own.
-    if (g.boss !== this.bossTrack && g.stage.bossMusic && g.status === 'playing' && !g.bossDying)
+    // A mid-boss, the second half, or the real boss arriving each cut the
+    // theme over to their own track.
+    if (
+      trackPhaseOf(g) !== this.trackPhase &&
+      g.status === 'playing' &&
+      !g.bossDying
+    )
       this.playStageTrack();
     if (this.lastStatus !== g.status) {
       if (g.status === 'playing') this.audio.resume();
@@ -417,7 +456,7 @@ export class Runtime {
       if (g.status === 'clear') void this.audio.jingle(STAGE_CLEAR);
       this.lastStatus = g.status;
     }
-    this.audio.tick(g.status === 'playing' && !g.bossDying, g.boss);
+    this.audio.tick(g.status === 'playing' && !g.bossDying, g.boss || g.midBoss);
     this.hudTime += dt;
     this.qualityTime += dt;
     if (this.hudTime >= 0.1) {
@@ -459,7 +498,7 @@ export class Runtime {
       status: g.status,
       stageIndex: g.stageIndex,
       stageName: g.stage.name,
-      bossName: g.stage.boss.id,
+      bossName: g.bossDef.id,
       score: g.score,
       level: g.level,
       lives: g.lives,
@@ -472,10 +511,10 @@ export class Runtime {
       graze: g.graze,
       time: g.time,
       kills: g.kills,
-      boss: g.boss,
+      boss: g.boss || g.midBoss,
       bossHp: g.bossHp,
       bossDying: g.bossDying,
-      bossHpFull: g.stage.boss.hp,
+      bossHpFull: g.bossDef.hp,
       bossPhase: g.bossPhase,
       bossTime: g.bossTime,
       notice: g.notice,
