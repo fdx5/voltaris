@@ -45,6 +45,73 @@ export async function migrate(db) {
       PRAGMA foreign_keys=ON;
     `);
   }
+  // The rename above (`stages` -> `stages_pre_section5`) also silently
+  // rewrote every OTHER table's FK clause that pointed at `stages` - SQLite
+  // auto-updates a referencing table's foreign-key text to follow a renamed
+  // target. game_runs.stage_id and stage_progress.stage_id ended up
+  // permanently pointing at the since-dropped `stages_pre_section5`, so
+  // every new game_runs insert failed with "no such table:
+  // main.stages_pre_section5" - this is what actually broke launching a
+  // game in production. `PRAGMA foreign_keys=OFF` only suppresses live
+  // constraint *enforcement*; it does nothing to stop this auto-rewrite, so
+  // the only fix is to recreate both tables with the FK clause corrected,
+  // in dependency order (stage_progress.first_run_id references
+  // game_runs(id), so game_runs must be rebuilt and back under its real
+  // name before stage_progress's rename can safely follow it there).
+  const [gameRunsDdl, stageProgressDdl] = await Promise.all(
+    ['game_runs', 'stage_progress'].map(async (name) => {
+      const row = await db.execute({
+        sql: "SELECT sql FROM sqlite_master WHERE type='table' AND name=?",
+        args: [name],
+      });
+      return row.rows[0]?.sql;
+    }),
+  );
+  if (
+    (typeof gameRunsDdl === 'string' && gameRunsDdl.includes('stages_pre_section5')) ||
+    (typeof stageProgressDdl === 'string' && stageProgressDdl.includes('stages_pre_section5'))
+  ) {
+    await db.executeMultiple(`
+      PRAGMA foreign_keys=OFF;
+      BEGIN IMMEDIATE;
+      CREATE TABLE game_runs_fixed (
+        id TEXT PRIMARY KEY,
+        user_id TEXT NOT NULL REFERENCES users(id),
+        stage_id INTEGER NOT NULL REFERENCES stages(id),
+        practice INTEGER NOT NULL DEFAULT 0 CHECK(practice IN (0,1)),
+        weapon TEXT NOT NULL CHECK(weapon IN ('LASER','MISSILE','SPREAD')),
+        credits INTEGER NOT NULL CHECK(credits BETWEEN 1 AND 9),
+        config_json TEXT NOT NULL,
+        game_version TEXT NOT NULL,
+        status TEXT NOT NULL DEFAULT 'started' CHECK(status IN ('started','clear','gameover','abandoned')),
+        score INTEGER NOT NULL DEFAULT 0,
+        kills INTEGER NOT NULL DEFAULT 0,
+        seconds REAL NOT NULL DEFAULT 0,
+        level INTEGER NOT NULL DEFAULT 1,
+        credits_used INTEGER NOT NULL DEFAULT 1,
+        loadout_json TEXT,
+        started_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        finished_at TEXT
+      );
+      INSERT INTO game_runs_fixed SELECT * FROM game_runs;
+      CREATE TABLE stage_progress_fixed (
+        user_id TEXT NOT NULL REFERENCES users(id),
+        stage_id INTEGER NOT NULL REFERENCES stages(id),
+        first_run_id TEXT NOT NULL REFERENCES game_runs_fixed(id),
+        cleared_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        PRIMARY KEY(user_id,stage_id)
+      );
+      INSERT INTO stage_progress_fixed SELECT * FROM stage_progress;
+      DROP TABLE stage_progress;
+      DROP TABLE game_runs;
+      ALTER TABLE game_runs_fixed RENAME TO game_runs;
+      ALTER TABLE stage_progress_fixed RENAME TO stage_progress;
+      CREATE INDEX IF NOT EXISTS runs_recent ON game_runs(started_at DESC, id DESC);
+      CREATE INDEX IF NOT EXISTS runs_user_recent ON game_runs(user_id, started_at DESC);
+      COMMIT;
+      PRAGMA foreign_keys=ON;
+    `);
+  }
   const sql = await readFile(new URL('./schema.sql', import.meta.url), 'utf8');
   await db.batch(
     sql
