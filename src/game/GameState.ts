@@ -9,7 +9,6 @@ import {
   heavySalvo,
   type SalvoShot,
 } from './HostilePatterns';
-import fleetDesigns from '../../data/enemies/fleet-designs.json';
 import fleetHardpoints from '../../data/enemies/fleet-hardpoints.json';
 import groundHardpoints from '../../data/enemies/ground-hardpoints.json';
 import tuning from '../../data/tuning.json';
@@ -36,6 +35,19 @@ const MEDIUM_TYPES = fleetHardpoints.reduce<number[]>((acc, f, i) => {
   if (f.size === 'medium') acc.push(i);
   return acc;
 }, []);
+// Hostile fire used to be tinted with each ship's own hull palette[1], a
+// muted design colour meant for shading a 3D model, not for reading as a
+// threat against a dark starfield - most of the 44 hues cluster in similar
+// soft mid-tones, so every enemy's shots looked nearly the same colour and
+// none of them popped the way the player's own cyan/lavender fire does.
+// This is a dedicated high-saturation "warning" set instead: spread across
+// the full hue wheel, kept out of the player's own cyan/teal/lavender range
+// so friend and foe fire never get confused, cycled by enemy type id for
+// real per-ship variety on top of the shot kind's own shape and glow.
+const HOSTILE_TINTS = [
+  0xff2d55, 0xff6a00, 0xffd400, 0xff3df0, 0x7a2dff, 0xff0044, 0xffa300, 0xd4ff2d, 0xff5ecb,
+  0xb300ff, 0xff8800, 0xfff200, 0xff2d7a, 0x9d00ff, 0xff6b6b, 0xc2ff2d,
+];
 export type Status = 'menu' | 'playing' | 'paused' | 'continue' | 'gameover' | 'clear' | 'stress';
 /**
  * Keeps a value inside [low, high] without a hard stop: the last fifth of the
@@ -974,7 +986,7 @@ export class GameState {
           'enemy',
           i,
           tuning.combat.enemyBulletSpeed * d.fire.speed * (1 + this.rank * 0.0035),
-          parseInt(fleetDesigns[e.type[i]].palette[1].slice(1), 16),
+          HOSTILE_TINTS[e.type[i] % HOSTILE_TINTS.length],
         );
     }
   }

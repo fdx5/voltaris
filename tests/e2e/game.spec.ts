@@ -25,11 +25,11 @@ test('title menu supports keyboard selection, records and flight manual', async 
   await expect(launch).toBeEnabled({ timeout: 45000 });
   await launch.focus();
   await page.keyboard.press('ArrowDown');
-  await expect(menu.getByRole('button', { name: '비행 기록' })).toBeFocused();
+  await expect(menu.getByRole('button', { name: '파일럿 랭킹' })).toBeFocused();
   await page.keyboard.press('Enter');
   await expect(page.getByRole('dialog', { name: 'FLIGHT RECORDS' })).toBeVisible();
   await page.keyboard.press('Escape');
-  await expect(menu.getByRole('button', { name: '비행 기록' })).toBeFocused();
+  await expect(menu.getByRole('button', { name: '파일럿 랭킹' })).toBeFocused();
   await page.keyboard.press('ArrowDown');
   await page.keyboard.press('Enter');
   await expect(page.getByRole('dialog', { name: 'FLIGHT MANUAL' })).toBeVisible();

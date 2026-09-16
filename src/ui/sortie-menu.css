@@ -177,6 +177,58 @@
   outline: 1px solid #e4ded760;
   outline-offset: 3px;
 }
+/* Ranking entry point: stays lit even at rest, to nudge the player toward
+   checking (and chasing) their standing instead of only surfacing it on
+   hover like every other menu row. */
+.app.sortie-menu .rank-choice {
+  color: #ffe3a6;
+}
+.app.sortie-menu .rank-choice > span:not(.choice-index) {
+  background: linear-gradient(90deg, #ffe9b8, #ffb84d 55%, #ffe9b8);
+  background-size: 220% 100%;
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  animation: rank-choice-shimmer 5s ease-in-out infinite;
+}
+.app.sortie-menu .rank-choice::before {
+  background: #ffbf4d;
+}
+.app.sortie-menu .rank-choice-icon {
+  color: #ffc861;
+  filter: drop-shadow(0 0 6px #ffb84d80);
+  animation: rank-choice-glow 1.8s ease-in-out infinite;
+}
+.app.sortie-menu .rank-choice:hover:not(:disabled) > span:not(.choice-index),
+.app.sortie-menu .rank-choice:focus-visible > span:not(.choice-index) {
+  animation-duration: 1.6s;
+}
+@keyframes rank-choice-shimmer {
+  0%,
+  100% {
+    background-position: 0% 0;
+  }
+  50% {
+    background-position: 100% 0;
+  }
+}
+@keyframes rank-choice-glow {
+  0%,
+  100% {
+    filter: drop-shadow(0 0 4px #ffb84d70);
+    transform: scale(1);
+  }
+  50% {
+    filter: drop-shadow(0 0 10px #ffcf7ad0);
+    transform: scale(1.12);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .app.sortie-menu .rank-choice > span:not(.choice-index),
+  .app.sortie-menu .rank-choice-icon {
+    animation: none;
+  }
+}
 .menu-hint {
   margin: 27px 0 0 36px;
   font-size: 9px;

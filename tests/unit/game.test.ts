@@ -6,6 +6,7 @@ import { GameState } from '../../src/game/GameState';
 import { STAGES } from '../../src/game/stages';
 import defs from '../../data/enemies/enemy-defs.json';
 import fleetHardpoints from '../../data/enemies/fleet-hardpoints.json';
+import fleetDesigns from '../../data/enemies/fleet-designs.json';
 import { Key } from '../../src/core/input/InputManager';
 const dt = 1 / 60;
 const mediumTypes = fleetHardpoints.reduce<number[]>((acc, f, i) => {
@@ -240,6 +241,22 @@ describe('arcade rules', () => {
     expect(g.bossDefeated).toBe(false);
     expect(g.bossHp).toBeGreaterThan(0);
     expect(g.bossDying).toBe(false);
+  });
+  it('tints hostile fire from a vivid warning palette, not each ship\'s muted hull colour', () => {
+    const g = new GameState();
+    g.start('LASER', 9, false, false, 0);
+    g.invincible = 99;
+    const seen = new Set<number>();
+    for (let n = 0; n < 40 * 60 && seen.size < 2; n++) {
+      g.tick(dt);
+      for (let i = 0; i < g.bullets.limit; i++) {
+        if (g.bullets.active[i] && g.bullets.type[i] === 1 && g.bullets.tint[i])
+          seen.add(g.bullets.tint[i]);
+      }
+    }
+    expect(seen.size).toBeGreaterThanOrEqual(2);
+    const hullTones = new Set(fleetDesigns.map((f) => parseInt(f.palette[1].slice(1), 16)));
+    for (const tint of seen) expect(hullTones.has(tint)).toBe(false);
   });
   it('keeps escort squads of small and medium hulls arriving during a Section 5 boss fight', () => {
     const g = new GameState();

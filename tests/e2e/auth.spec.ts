@@ -38,7 +38,7 @@ test('real signup, mandatory login, stage lock, saved history, session restore a
         r.username === username && r.status === 'abandoned' && r.seconds > 0,
     ),
   ).toBe(true);
-  await page.getByRole('button', { name: /기록/ }).first().click();
+  await page.getByRole('button', { name: /랭킹/ }).first().click();
   await expect(page.locator('.online-history')).toContainText(username);
   await page.screenshot({ path: 'test-results/auth-history.png' });
   await page.reload();

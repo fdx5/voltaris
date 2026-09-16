@@ -24,6 +24,7 @@ import {
   Orbit,
   Magnet,
   Activity,
+  Trophy,
   RotateCcw,
   Lock,
   Check,
@@ -90,7 +91,7 @@ function GameApp() {
   const ui = useUI();
   const [panel, setPanel] = useState<Panel>(null),
     [weapon, setWeapon] = useState<Weapon>('LASER'),
-    [credits, setCredits] = useState(3),
+    [credits, setCredits] = useState(10),
     [muted, setMuted] = useState(false),
     [volume, setVolume] = useState(0.5),
     [musicVolume, setMusicVolume] = useState(0.5),
@@ -304,13 +305,13 @@ function GameApp() {
                   <ChevronRight size={16} aria-hidden="true" />
                 </span>
               </button>
-              <button className="flight-choice" onClick={() => open('records')}>
+              <button className="flight-choice rank-choice" onClick={() => open('records')}>
                 <span className="choice-index" aria-hidden="true">
                   02
                 </span>
                 <span className="menu-button">
-                  <Activity size={18} aria-hidden="true" />
-                  비행 기록
+                  <Trophy size={18} aria-hidden="true" className="rank-choice-icon" />
+                  파일럿 랭킹
                   <ChevronRight size={16} aria-hidden="true" />
                 </span>
               </button>

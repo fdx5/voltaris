@@ -79,16 +79,17 @@ export function makePlayerCraft(weapon: Weapon): T.Group {
 }
 
 /** Bake each downloaded projectile into one coloured primitive for instancing. */
-export function makeOrdnance(kind: Ordnance) {
+export function makeOrdnance(kind: Ordnance, accentOverride?: string) {
   const source = models.get(kind);
   if (!source) throw new Error(`Ordnance not loaded: ${kind}`);
   const accent = new T.Color(
-    {
-      'missile-main': '#f5a34e',
-      'missile-option': '#6ee9d2',
-      'spread-main': '#b595ff',
-      'spread-option': '#f680af',
-    }[kind],
+    accentOverride ??
+      {
+        'missile-main': '#f5a34e',
+        'missile-option': '#6ee9d2',
+        'spread-main': '#b595ff',
+        'spread-option': '#f680af',
+      }[kind],
   );
   const parts: T.BufferGeometry[] = [];
   source.updateMatrixWorld(true);

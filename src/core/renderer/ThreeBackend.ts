@@ -29,6 +29,7 @@ import { makePlayerCraft, makeOrdnance } from '../../visual/PlayerLoadout';
 import { ObjectPool } from '../pool/ObjectPool';
 import { itemMaterial } from '../../visual/ItemDesign';
 import { enemyRotation } from '../../game/HostilePatterns';
+import { Shot } from '../../game/entities/BulletPool';
 import tuning from '../../../data/tuning.json';
 
 /*
@@ -226,6 +227,9 @@ export class ThreeBackend implements IRenderBackend {
   private readonly shotHalo: T.InstancedMesh;
   private readonly missiles: T.InstancedMesh;
   private readonly missileExhaust: T.InstancedMesh;
+  /** Hostile homing shots: the same downloaded missile model, recoloured. */
+  private readonly hostileMissiles: T.InstancedMesh;
+  private readonly hostileMissileExhaust: T.InstancedMesh;
   private readonly scatter: T.InstancedMesh;
   /** Option drone rounds: emerald pulses, magenta micro-missiles, amber pellets. */
   private readonly optionCore: T.InstancedMesh;
@@ -539,8 +543,12 @@ export class ThreeBackend implements IRenderBackend {
       19,
     );
     this.shotCore = batch(bolt, lit('#e8f8ff', 2.6), 1024);
-    const ordnance = (kind: Parameters<typeof makeOrdnance>[0], capacity: number) => {
-      const { geometry, material } = makeOrdnance(kind);
+    const ordnance = (
+      kind: Parameters<typeof makeOrdnance>[0],
+      capacity: number,
+      accentOverride?: string,
+    ) => {
+      const { geometry, material } = makeOrdnance(kind, accentOverride);
       return batch(geometry, material, capacity);
     };
     this.missiles = ordnance('missile-main', 512);
@@ -553,6 +561,23 @@ export class ThreeBackend implements IRenderBackend {
         depthWrite: false,
       }),
       1536,
+      18,
+    );
+    // The same downloaded missile airframe as the player's own KESTREL
+    // ordnance, recoloured crimson: a real 3D missile silhouette for hostile
+    // homing shots instead of the abstract spinning torus every other
+    // hostile shot kind uses, and unmistakably not the player's own orange
+    // rounds at a glance.
+    this.hostileMissiles = ordnance('missile-main', 384, '#ff2d3f');
+    this.hostileMissileExhaust = batch(
+      new T.CapsuleGeometry(1, 3, 2, 5).rotateZ(Math.PI / 2),
+      Object.assign(lit('#ff5a4d', 1.1), {
+        transparent: true,
+        opacity: 0.26,
+        blending: T.AdditiveBlending,
+        depthWrite: false,
+      }),
+      1152,
       18,
     );
     this.scatter = ordnance('spread-main', 1024);
@@ -1174,8 +1199,30 @@ export class ThreeBackend implements IRenderBackend {
         aim = Math.atan2(p.vy[i], p.vx[i]);
       switch (p.type[i]) {
         case 1: {
-          const k = p.kind[i],
-            s = this.shotStyle[k],
+          const k = p.kind[i];
+          if (k === Shot.HOMING) {
+            // A real missile silhouette (see hostileMissiles above) instead
+            // of the abstract spinning torus every other hostile kind uses -
+            // this is the one hostile shot the player has to actively dodge
+            // rather than just weave through, so it gets to read as clearly
+            // "incoming ordnance" at a glance.
+            for (let tail = 1; tail <= 3; tail++) {
+              const distance = r * (2 + tail * 2.2);
+              this.push(
+                this.hostileMissileExhaust,
+                x - Math.cos(aim) * distance,
+                y - Math.sin(aim) * distance,
+                0.12,
+                r * 1.3,
+                r * (0.48 - tail * 0.1),
+                r * 0.3,
+                aim,
+              );
+            }
+            this.push(this.hostileMissiles, x, y, 0.15, r * 1.7, r * 1.7, r * 1.7, aim);
+            break;
+          }
+          const s = this.shotStyle[k],
             slot = this.hostileShots[k].count;
           this.push(
             this.hostileShots[k],
