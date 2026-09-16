@@ -659,6 +659,30 @@ describe('arcade rules', () => {
     }
     expect(g.rocks.count).toBe(0);
   });
+  it('drops a homing missile lock instead of tracking a different enemy that recycles the same pool slot', () => {
+    const g = new GameState();
+    g.start('MISSILE', 1);
+    g.invincible = 99;
+    // Enemy A: directly ahead, becomes the missile's initial lock.
+    const a = g.enemies.acquire(g.x + 5, g.y, 0, 0, 0, 30, 0.4, 1e6);
+    const genA = g.enemies.generation[a];
+    const slot = g.bullets.fire(g.x, g.y, 20, 0, 2, 0.15, 1, 1);
+    g.bullets.param[slot] = -1;
+    g.tick(dt);
+    expect(g.bullets.param[slot]).toBe(a);
+    expect(g.bullets.heading[slot]).toBe(genA);
+    // A dies and its pool slot is released, then immediately reused (the
+    // pool's free list is LIFO) by an unrelated enemy B placed behind the
+    // missile's nose - a spot the lock-acquisition scan would never pick.
+    g.enemies.release(a);
+    const b = g.enemies.acquire(g.x - 10, g.y + 6, 0, 0, 0, 30, 0.4, 1e6);
+    expect(b).toBe(a);
+    g.tick(dt);
+    // The stale index must not be trusted just because its slot is active
+    // again: the missile should have rescanned and refused B (behind, so
+    // disqualified), not silently kept "tracking" whatever now sits there.
+    expect(g.bullets.param[slot]).not.toBe(b);
+  });
   it('restarts without carrying over bullets, rank, or credits used', () => {
     const g = new GameState();
     g.start('MISSILE', 9, true);

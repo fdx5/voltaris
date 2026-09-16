@@ -1477,9 +1477,18 @@ export class GameState {
         // swing carried it past the enemy's x position, which kept dragging
         // it back around instead of ever letting it close in. `param` is
         // free scratch for a player shot (see BulletPool) - reused here to
-        // remember the locked target's index, -1 for none yet.
+        // remember the locked target's index, -1 for none yet. `heading` is
+        // never touched for player shots (steerShot, the only reader/writer,
+        // runs solely on type===1 hostile shots) - reused here to remember
+        // that index's pool generation, so a slot the original target died
+        // out of and a brand-new enemy then reused doesn't get mistaken for
+        // "target still alive" (active[] alone can't tell them apart).
         let target = b.param[i];
-        if (target < 0 || !this.enemies.active[target]) {
+        if (
+          target < 0 ||
+          !this.enemies.active[target] ||
+          this.enemies.generation[target] !== b.heading[i]
+        ) {
           target = -1;
           let best = 10000;
           for (let j = 0; j < this.enemies.limit; j++) {
@@ -1491,6 +1500,7 @@ export class GameState {
             }
           }
           b.param[i] = target;
+          b.heading[i] = target >= 0 ? this.enemies.generation[target] : 0;
         }
         const anyBoss = this.boss || this.midBoss;
         const tx = target >= 0 ? this.enemies.x[target] : anyBoss ? this.bossX : 25,
