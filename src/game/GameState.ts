@@ -1480,9 +1480,21 @@ export class GameState {
             ty = this.enemies.y[j];
           }
         }
-        const a = Math.atan2(ty - b.y[i], tx - b.x[i]);
-        b.vx[i] += (Math.cos(a) * 22 - b.vx[i]) * dt * 3;
-        b.vy[i] += (Math.sin(a) * 22 - b.vy[i]) * dt * 3;
+        const dx = tx - b.x[i],
+          dy = ty - b.y[i];
+        const a = Math.atan2(dy, dx);
+        // Easing velocity toward the target direction at a fixed rate is
+        // what orbits instead of hits: once close, the desired angle can
+        // swing faster per frame than the ease can follow, and the missile
+        // settles into a stable circle around the target instead of ever
+        // crossing it. Inside striking range, aim dead-on instead of easing.
+        if (dx * dx + dy * dy < 1) {
+          b.vx[i] = Math.cos(a) * 22;
+          b.vy[i] = Math.sin(a) * 22;
+        } else {
+          b.vx[i] += (Math.cos(a) * 22 - b.vx[i]) * dt * 6;
+          b.vy[i] += (Math.sin(a) * 22 - b.vy[i]) * dt * 6;
+        }
       }
       if (b.type[i] === 4 && this.terrain) {
         const deck = this.surfaceAt(b.x[i]);
