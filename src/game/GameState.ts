@@ -657,6 +657,22 @@ export class GameState {
     const cameraHeight = (this.stage as { cameraHeight?: number }).cameraHeight;
     return cameraHeight ? cameraHeight / 32 : 1;
   }
+  /**
+   * The camera never zooms out - screen scale stays identical on every
+   * stage. A stage whose `maxY - minY` doesn't fit inside the visible frame
+   * (Section 5's tripled range does not) instead has the camera pan
+   * vertically to follow the ship, clamped so it never scrolls past the
+   * stage's own top/bottom edge. `half` is a conservative estimate of the
+   * visible half-height (stage 1's own ±7.2 fits inside it with margin at
+   * every aspect ratio this game supports) - exact per-aspect precision
+   * isn't needed here, only "never shows past the level bounds."
+   */
+  get cameraFollowY() {
+    const half = 9;
+    const span = this.stage.maxY - this.stage.minY;
+    if (span <= half * 2) return 0;
+    return clamp(this.y, this.stage.minY + half, this.stage.maxY - half);
+  }
   /** Height of the deck, or of the roof, at a point on the field. */
   surfaceAt(x: number, roof = false) {
     const field = roof ? this.roof : this.terrain;
@@ -1406,7 +1422,7 @@ export class GameState {
       b.y[i] += b.vy[i] * t;
       if (
         Math.abs(b.x[i]) > 23 * this.worldScale ||
-        Math.abs(b.y[i]) > 13 * this.worldScale ||
+        Math.abs(b.y[i] - this.cameraFollowY) > 13 ||
         b.age[i] > 12
       )
         b.release(i);

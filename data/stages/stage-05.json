@@ -6,7 +6,6 @@
   "music": "/audio/level5-1_bgm.mp3",
   "bossMusic": "/audio/level5-1_boss.mp3",
   "scene": "milkyway",
-  "cameraHeight": 96,
   "pressure": 0.85,
   "hull": 0.6,
   "volley": 0.5,

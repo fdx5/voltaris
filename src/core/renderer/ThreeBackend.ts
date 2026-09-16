@@ -1680,8 +1680,12 @@ export class ThreeBackend implements IRenderBackend {
       this.explosionLight.intensity = 90 * Math.exp(-blast * 1.3);
     }
     const shake = this.reducedMotion ? 0 : g.shake;
+    // The camera itself never zooms to fit a taller stage (Section 5) - it
+    // pans vertically instead, tracking the ship 1:1 so screen scale never
+    // changes. g.cameraFollowY is 0 on every stage whose range already fits
+    // the frame, so this is a no-op there.
     this.camera.position.x = Math.sin(t * 73) * shake * 0.12;
-    this.camera.position.y = Math.cos(t * 91) * shake * 0.12;
+    this.camera.position.y = g.cameraFollowY + Math.cos(t * 91) * shake * 0.12;
     if (this.bloomNode)
       this.bloomNode.strength.value = this.bloomEnabled
         ? 0.27 + (blast >= 0 ? 0.55 * Math.exp(-blast * 1.6) : 0)
