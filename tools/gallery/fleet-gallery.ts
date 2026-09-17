@@ -51,7 +51,7 @@ if (section === 'ground')
 if (section === 'bosses') {
   const ship = makeImportedShip();
   entries.push({ object: ship, label: `<b>PLAYER</b> ${roster.player.model}`, extent: 2 });
-  for (const design of ['gatekeeper', 'ares', 'jove', 'nereid'] as const) {
+  for (const design of ['gatekeeper', 'ares', 'jove', 'nereid', 'warden', 'sovereign'] as const) {
     const boss = makeImportedBoss(design);
     entries.push({
       object: boss.root,

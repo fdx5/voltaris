@@ -1,6 +1,6 @@
 # VOLTARIS — imported spaceship assets
 
-Every enemy family (44), boss hull (4), boss escort drone (4) and the player
+Every enemy family (44), boss hull (6), boss escort drone (6) and the player
 flies a **different** downloaded spaceship; every surface emplacement (12) is a
 different downloaded turret, launcher or tank. No model is
 recoloured or reused for another roster slot. The slot-by-slot register is

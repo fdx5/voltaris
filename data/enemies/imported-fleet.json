@@ -138,6 +138,14 @@
     "nereid": {
       "hull": { "pack": "polyy2", "model": "manta_flying_wing", "detail": "full", "view": 55 },
       "pod": { "pack": "polyy2", "model": "v_tail_fighter", "view": 55 }
+    },
+    "warden": {
+      "hull": { "pack": "polyy2", "model": "trimaran_escort", "detail": "full", "view": 50 },
+      "pod": { "pack": "polyy2", "model": "twin_boom_interceptor", "view": 55 }
+    },
+    "sovereign": {
+      "hull": { "pack": "polyy2", "model": "forward_swept_skirmisher", "detail": "full", "view": 50 },
+      "pod": { "pack": "polyy2", "model": "disc_tip_racer", "view": 55 }
     }
   }
 }

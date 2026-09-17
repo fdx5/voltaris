@@ -18,7 +18,7 @@
   "ground": [],
   "midBoss": {
     "id": "TIDE WARDEN",
-    "design": "jove",
+    "design": "warden",
     "hp": 31200,
     "parts": 8,
     "partHp": 450,
@@ -27,7 +27,7 @@
   },
   "boss": {
     "id": "GALAXY SOVEREIGN",
-    "design": "nereid",
+    "design": "sovereign",
     "hp": 62400,
     "parts": 10,
     "partHp": 650,

@@ -158,7 +158,7 @@ export function makeBlenderBoss(design: BossDesign): BossModel {
     if (child instanceof T.Mesh) child.geometry.translate(-centre.x, -centre.y, -centre.z);
   }
   root.add(ring, core);
-  const count = { gatekeeper: 4, ares: 6, jove: 8, nereid: 10 }[design];
+  const count = { gatekeeper: 4, ares: 6, jove: 8, nereid: 10, warden: 8, sovereign: 10 }[design];
   const pods = Array.from({ length: count }, () => asset(`pod_${design}`));
   return { root, ring, core, pods };
 }

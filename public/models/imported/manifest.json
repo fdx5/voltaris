@@ -17,6 +17,18 @@
       "artist": "Polyy.AI",
       "license": "CC0-1.0",
       "url": "https://polyyai.itch.io/3d-spaceships-pack-2"
+    },
+    "quaternius-turrets": {
+      "title": "Turrets Pack",
+      "artist": "Quaternius",
+      "license": "CC0-1.0",
+      "url": "https://quaternius.com/packs/turrets.html"
+    },
+    "quaternius-tanks": {
+      "title": "Tanks Pack",
+      "artist": "Quaternius",
+      "license": "CC0-1.0",
+      "url": "https://quaternius.com/packs/tanks.html"
     }
   },
   "models": [
@@ -426,114 +438,6 @@
       "materials": 1
     },
     {
-      "slot": "ground_00",
-      "pack": "polyy2",
-      "model": "ramp_dropship",
-      "sourceTriangles": 15387,
-      "triangles": 15387,
-      "texture": "1024x1024",
-      "materials": 1
-    },
-    {
-      "slot": "ground_01",
-      "pack": "polyy1",
-      "model": "14",
-      "sourceTriangles": 14064,
-      "triangles": 14064,
-      "texture": "1024x1088",
-      "materials": 3
-    },
-    {
-      "slot": "ground_02",
-      "pack": "polyy1",
-      "model": "20",
-      "sourceTriangles": 9234,
-      "triangles": 9234,
-      "texture": "1024x1024",
-      "materials": 1
-    },
-    {
-      "slot": "ground_03",
-      "pack": "polyy2",
-      "model": "forward_swept_skirmisher",
-      "sourceTriangles": 13853,
-      "triangles": 13853,
-      "texture": "1024x1024",
-      "materials": 1
-    },
-    {
-      "slot": "ground_04",
-      "pack": "polyy2",
-      "model": "outrigger_pod_courier",
-      "sourceTriangles": 12835,
-      "triangles": 12835,
-      "texture": "1024x1024",
-      "materials": 1
-    },
-    {
-      "slot": "ground_05",
-      "pack": "polyy1",
-      "model": "13",
-      "sourceTriangles": 1882,
-      "triangles": 1882,
-      "texture": "1024x1024",
-      "materials": 1
-    },
-    {
-      "slot": "ground_06",
-      "pack": "polyy2",
-      "model": "twin_boom_interceptor",
-      "sourceTriangles": 9686,
-      "triangles": 9686,
-      "texture": "1024x1024",
-      "materials": 1
-    },
-    {
-      "slot": "ground_07",
-      "pack": "polyy1",
-      "model": "19",
-      "sourceTriangles": 5628,
-      "triangles": 5628,
-      "texture": "1024x1024",
-      "materials": 1
-    },
-    {
-      "slot": "ground_08",
-      "pack": "quaternius",
-      "model": "Insurgent (Red)",
-      "sourceTriangles": 8292,
-      "triangles": 8292,
-      "texture": "2048x2048",
-      "materials": 1
-    },
-    {
-      "slot": "ground_09",
-      "pack": "polyy1",
-      "model": "33",
-      "sourceTriangles": 4834,
-      "triangles": 4834,
-      "texture": "1024x1024",
-      "materials": 1
-    },
-    {
-      "slot": "ground_10",
-      "pack": "polyy2",
-      "model": "trimaran_escort",
-      "sourceTriangles": 17249,
-      "triangles": 17249,
-      "texture": "1024x1024",
-      "materials": 1
-    },
-    {
-      "slot": "ground_11",
-      "pack": "polyy1",
-      "model": "27",
-      "sourceTriangles": 11400,
-      "triangles": 11400,
-      "texture": "1024x1024",
-      "materials": 1
-    },
-    {
       "slot": "boss_gatekeeper",
       "pack": "polyy2",
       "model": "hammerhead_cruiser",
@@ -602,6 +506,42 @@
       "model": "v_tail_fighter",
       "sourceTriangles": 9388,
       "triangles": 9388,
+      "texture": "1024x1024",
+      "materials": 1
+    },
+    {
+      "slot": "boss_warden",
+      "pack": "polyy2",
+      "model": "trimaran_escort",
+      "sourceTriangles": 102764,
+      "triangles": 60000,
+      "texture": "1024x1024",
+      "materials": 1
+    },
+    {
+      "slot": "pod_warden",
+      "pack": "polyy2",
+      "model": "twin_boom_interceptor",
+      "sourceTriangles": 9686,
+      "triangles": 9686,
+      "texture": "1024x1024",
+      "materials": 1
+    },
+    {
+      "slot": "boss_sovereign",
+      "pack": "polyy2",
+      "model": "forward_swept_skirmisher",
+      "sourceTriangles": 96038,
+      "triangles": 60000,
+      "texture": "1024x1024",
+      "materials": 1
+    },
+    {
+      "slot": "pod_sovereign",
+      "pack": "polyy2",
+      "model": "disc_tip_racer",
+      "sourceTriangles": 16975,
+      "triangles": 16975,
       "texture": "1024x1024",
       "materials": 1
     }

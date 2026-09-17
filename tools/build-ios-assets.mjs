@@ -17,14 +17,28 @@ const io = new NodeIO().registerExtensions(ALL_EXTENSIONS).registerDependencies(
   'meshopt.decoder': MeshoptDecoder,
 });
 const doc = await io.readBinary(new Uint8Array(bytes));
+// Boss hulls and their pods (six pairs) carry a full 1024px texture each way
+// more of them than the roster did when the 100 MiB decoded budget below was
+// tuned, so their textures get a lower cap to make room; every other hull
+// keeps the original 512px cap.
+const bossTextures = new Set();
+for (const node of doc.getRoot().listNodes()) {
+  if (!/^(boss_|pod_)/.test(node.getName())) continue;
+  for (const prim of node.getMesh()?.listPrimitives() ?? []) {
+    const material = prim.getMaterial();
+    for (const texture of [material?.getBaseColorTexture(), material?.getMetallicRoughnessTexture()])
+      if (texture) bossTextures.add(texture);
+  }
+}
 let before = 0,
   after = 0;
 for (const texture of doc.getRoot().listTextures()) {
   const image = sharp(texture.getImage());
   const meta = await image.metadata();
   before += meta.width * meta.height * 4;
+  const cap = bossTextures.has(texture) ? 384 : 512;
   const { data, info } = await image
-    .resize({ width: 512, height: 512, fit: 'inside', withoutEnlargement: true })
+    .resize({ width: cap, height: cap, fit: 'inside', withoutEnlargement: true })
     .webp({ quality: 85 })
     .toBuffer({ resolveWithObject: true });
   after += info.width * info.height * 4;

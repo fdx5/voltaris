@@ -1904,7 +1904,7 @@ export function legacyGroundGeometry(type: number): EnemyHulls {
 /* ------------------------------------------------------------------ *
  * Bosses
  * ------------------------------------------------------------------ */
-export type BossDesign = 'gatekeeper' | 'ares' | 'jove' | 'nereid';
+export type BossDesign = 'gatekeeper' | 'ares' | 'jove' | 'nereid' | 'warden' | 'sovereign';
 export type BossModel = {
   root: T.Group;
   core: T.Mesh;

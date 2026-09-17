@@ -28,7 +28,7 @@ export const FLEET_URLS = fleetParts.parts.map((name) =>
 export const GROUND_URL = asset(
   `/models/imported/voltaris-ground-units.glb?v=${groundPack.sha256.slice(0, 12)}`,
 );
-const BOSSES = ['gatekeeper', 'ares', 'jove', 'nereid'] as const;
+const BOSSES = ['gatekeeper', 'ares', 'jove', 'nereid', 'warden', 'sovereign'] as const;
 const pad = (n: number) => String(n).padStart(2, '0');
 export const FLEET_SLOTS = [
   'player',
@@ -329,6 +329,8 @@ const BOSS_SPEC: Record<BossDesign, { reach: number; pods: number; podReach: num
   ares: { reach: 5.0, pods: 6, podReach: 0.6 },
   jove: { reach: 5.3, pods: 8, podReach: 0.58 },
   nereid: { reach: 5.6, pods: 10, podReach: 0.56 },
+  warden: { reach: 5.6, pods: 8, podReach: 0.54 },
+  sovereign: { reach: 6.2, pods: 10, podReach: 0.52 },
 };
 
 export function makeImportedBoss(design: BossDesign): BossModel {

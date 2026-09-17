@@ -178,8 +178,15 @@ describe('fleet refit', () => {
     }
   });
   it('builds the player and all destructible boss pod sets', () => {
-    const bosses = [makeBoss('gatekeeper'), makeBoss('ares'), makeBoss('jove'), makeBoss('nereid')];
-    expect(bosses.map((b) => b.pods.length)).toEqual([4, 6, 8, 10]);
+    const bosses = [
+      makeBoss('gatekeeper'),
+      makeBoss('ares'),
+      makeBoss('jove'),
+      makeBoss('nereid'),
+      makeBoss('warden'),
+      makeBoss('sovereign'),
+    ];
+    expect(bosses.map((b) => b.pods.length)).toEqual([4, 6, 8, 10, 8, 10]);
     for (const root of [makeShip(), ...bosses.flatMap((b) => [b.root, ...b.pods])]) {
       root.traverse((object) => {
         if (object instanceof Mesh) {
