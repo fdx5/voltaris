@@ -13,7 +13,9 @@ export const gameVersion = createHash('sha256')
 // experienced, so it has to fall through to the 409 "restart" response below
 // instead of being silently (and incorrectly) re-scored.
 export const canVerifyVersion = (version) => version === gameVersion;
-const unavailable = (message) => Object.assign(new Error(message), { status: 503 });
+/** `key` is a server/i18n.mjs MESSAGES key, translated where the request's
+ * locale is known (server/app.mjs's final error handler). */
+const unavailable = (key) => Object.assign(new Error(key), { status: 503, key });
 
 /** Bounded reusable workers retain compiled gameplay code between saves. */
 export class ReplayVerifier {
@@ -38,16 +40,14 @@ export class ReplayVerifier {
   }
   verify(config, events) {
     if (this.closed || this.pending >= this.maxPending)
-      return Promise.reject(
-        unavailable('검증 서버가 사용 중입니다. 잠시 후 저장을 다시 시도하세요.'),
-      );
+      return Promise.reject(unavailable('VERIFIER_BUSY'));
     this.pending++;
     return new Promise((resolve, reject) => {
       const job = { config, events, resolve, reject, slot: null, settled: false };
       job.timer = setTimeout(() => {
         if (job.slot) this.remove(job.slot);
         else this.queue = this.queue.filter((entry) => entry !== job);
-        this.finish(job, unavailable('검증 시간 초과. 다시 시도하세요.'));
+        this.finish(job, unavailable('VERIFY_TIMEOUT'));
         this.dispatch();
       }, this.timeoutMs);
       this.queue.push(job);
@@ -78,7 +78,9 @@ export class ReplayVerifier {
       worker.unref();
       this.finish(
         job,
-        message.error ? Object.assign(new Error(message.error), { status: 422 }) : null,
+        message.error
+          ? Object.assign(new Error(message.error), { status: 422, key: message.error })
+          : null,
         message.result,
       );
       this.dispatch();
@@ -86,7 +88,7 @@ export class ReplayVerifier {
     const failed = () => {
       if (!this.workers.has(slot)) return;
       this.remove(slot);
-      if (slot.job) this.finish(slot.job, unavailable('검증 실패. 다시 시도하세요.'));
+      if (slot.job) this.finish(slot.job, unavailable('VERIFY_FAILED'));
       this.dispatch();
     };
     worker.on('error', failed);
@@ -107,7 +109,7 @@ export class ReplayVerifier {
         slot.worker.postMessage({ config: job.config, events: job.events });
       } catch {
         if (slot) this.remove(slot);
-        this.finish(job, unavailable('검증 작업을 시작할 수 없습니다. 다시 시도하세요.'));
+        this.finish(job, unavailable('VERIFY_START_FAILED'));
       }
     }
   }
@@ -115,11 +117,9 @@ export class ReplayVerifier {
     this.closed = true;
     for (const slot of this.workers) {
       this.remove(slot);
-      if (slot.job)
-        this.finish(slot.job, unavailable('검증 서버가 종료되었습니다. 다시 시도하세요.'));
+      if (slot.job) this.finish(slot.job, unavailable('VERIFY_SHUTDOWN'));
     }
-    for (const job of this.queue)
-      this.finish(job, unavailable('검증 서버가 종료되었습니다. 다시 시도하세요.'));
+    for (const job of this.queue) this.finish(job, unavailable('VERIFY_SHUTDOWN'));
     this.queue = [];
   }
 }

@@ -38,6 +38,7 @@ import { itemMaterial } from '../../visual/ItemDesign';
 import { enemyRotation } from '../../game/HostilePatterns';
 import { Shot } from '../../game/entities/BulletPool';
 import tuning from '../../../data/tuning.json';
+import { t } from '../../ui/i18n';
 
 /*
  * Share shader programs between instanced batches. Below a size limit three.js
@@ -854,7 +855,7 @@ export class ThreeBackend implements IRenderBackend {
   private attach() {
     const canvas = this.renderer.domElement;
     canvas.className = 'game-canvas';
-    canvas.setAttribute('aria-label', 'VOLTARIS 3D 전투 화면');
+    canvas.setAttribute('aria-label', t('COMBAT_CANVAS_LABEL'));
     this.host.appendChild(canvas);
     return canvas;
   }
@@ -1094,8 +1095,7 @@ export class ThreeBackend implements IRenderBackend {
     // `cameraHeight` (e.g. a taller arena that needs to stay fully on
     // screen). Read loosely rather than widening StageDef, since only a
     // stage that opts in carries the field.
-    const span =
-      (STAGES[this.stage] as { cameraHeight?: number } | undefined)?.cameraHeight ?? 32;
+    const span = (STAGES[this.stage] as { cameraHeight?: number } | undefined)?.cameraHeight ?? 32;
     const height = Math.max(18, span / this.camera.aspect);
     this.camera.position.set(0, 0, height / 2 / Math.tan(Math.PI / 12));
     this.camera.updateProjectionMatrix();

@@ -10,6 +10,7 @@ import type { Quality } from './renderer/IRenderBackend';
 import { useUI } from '../ui/store/useUI';
 import { STAGES } from '../game/stages';
 import { packReplay } from './replayCodec';
+import { t } from '../ui/i18n';
 /**
  * A stage's music, in the order a run actually hears it. Every stage has at
  * least 'intro'/'final'; 'mid'/'second' only exist for a stage with a
@@ -59,8 +60,8 @@ function graphicsAdvice(e: unknown) {
     /* a browser that throws here has no WebGL 2 either */
   }
   return webgl2
-    ? `그래픽 드라이버가 3D 컨텍스트를 열지 못했습니다. 다른 탭을 닫고 새로고침해 주세요. (${detail})`
-    : `브라우저의 하드웨어 가속이 꺼져 있거나 WebGL 2를 지원하지 않습니다. 브라우저 설정에서 하드웨어 가속을 켜고 새로고침해 주세요. (${detail})`;
+    ? `${t('WEBGPU_CONTEXT_FAILED')} (${detail})`
+    : `${t('WEBGL2_UNSUPPORTED')} (${detail})`;
 }
 
 export class Runtime {
@@ -232,7 +233,7 @@ export class Runtime {
       this.publish();
     } catch (e) {
       this.audio.stopTrack();
-      useAccount.setState({ error: e instanceof Error ? e.message : '출격할 수 없습니다.' });
+      useAccount.setState({ error: e instanceof Error ? e.message : t('LAUNCH_FAILED') });
       throw e;
     } finally {
       useAccount.setState({ launching: false });
@@ -289,10 +290,10 @@ export class Runtime {
       .catch((e) => {
         useAccount.setState({
           error: controller.signal.aborted
-            ? '저장 응답이 지연되고 있습니다. 저장 다시 시도를 눌러 주세요.'
+            ? t('SAVE_DELAYED')
             : e instanceof Error
               ? e.message
-              : '기록 저장 실패',
+              : t('SAVE_FAILED'),
         });
         throw e;
       })
@@ -443,11 +444,7 @@ export class Runtime {
     }
     // A mid-boss, the second half, or the real boss arriving each cut the
     // theme over to their own track.
-    if (
-      trackPhaseOf(g) !== this.trackPhase &&
-      g.status === 'playing' &&
-      !g.bossDying
-    )
+    if (trackPhaseOf(g) !== this.trackPhase && g.status === 'playing' && !g.bossDying)
       this.playStageTrack();
     if (this.lastStatus !== g.status) {
       if (g.status === 'playing') this.audio.resume();

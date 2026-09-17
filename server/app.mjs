@@ -6,9 +6,12 @@ import { resolve } from 'node:path';
 import { digest, hashPassword, verifyPassword, sessionToken, issueSession } from './auth.mjs';
 import { userState, userStateQuery, userFromRows } from './db.mjs';
 import { verify, gameVersion, canVerifyVersion } from './verify.mjs';
+import { resolveLocale, t } from './i18n.mjs';
 
 const ASSET_CDN = 'https://cdn.jsdelivr.net';
-const fail = (status, message) => Object.assign(new Error(message), { status });
+/** `message` is a key into server/i18n.mjs's MESSAGES, not prose - the final
+ * error handler below translates it using the request's own locale. */
+const fail = (status, key) => Object.assign(new Error(key), { status, key });
 const integer = (n, min, max) => Number.isInteger(n) && n >= min && n <= max;
 export async function createApp(
   db,
@@ -47,7 +50,7 @@ export async function createApp(
       await db.execute('SELECT 1');
       res.json({ ok: true });
     } catch {
-      next(fail(503, '데이터베이스 연결 대기 중'));
+      next(fail(503, 'DB_NOT_READY'));
     }
   });
   app.use('/api', (req, res, next) => {
@@ -62,7 +65,7 @@ export async function createApp(
         (req.get('origin') && !allowed.includes(req.get('origin'))) ||
         !req.is('application/json')
       )
-        return next(fail(403, '허용되지 않은 요청입니다.'));
+        return next(fail(403, 'FORBIDDEN_REQUEST'));
     }
     next();
   });
@@ -75,7 +78,7 @@ export async function createApp(
         limit: 180,
         standardHeaders: 'draft-8',
         legacyHeaders: false,
-        message: { error: '요청이 많습니다. 잠시 후 다시 시도하세요.' },
+        message: (req) => ({ error: t(resolveLocale(req), 'RATE_LIMITED') }),
       }),
     );
   const authLimit = rateLimits
@@ -84,7 +87,7 @@ export async function createApp(
         limit: 30,
         standardHeaders: 'draft-8',
         legacyHeaders: false,
-        message: { error: '로그인 시도가 많습니다. 15분 후 다시 시도하세요.' },
+        message: (req) => ({ error: t(resolveLocale(req), 'AUTH_RATE_LIMITED') }),
       })
     : (req, res, next) => next();
   const dummyHash = await hashPassword(randomUUID());
@@ -97,7 +100,7 @@ export async function createApp(
       password.length < 4 ||
       password.length > 128
     )
-      throw fail(400, 'ID는 영문·숫자·_ 3~24자, 비밀번호는 4~128자로 입력하세요.');
+      throw fail(400, 'CREDENTIALS_FORMAT');
     return { username: username.toLowerCase(), password };
   };
   app.post('/api/auth/register', authLimit, async (req, res) => {
@@ -110,7 +113,7 @@ export async function createApp(
         args: [id, username, passwordHash],
       });
     } catch (e) {
-      if (String(e.code).includes('CONSTRAINT')) throw fail(409, '이미 사용 중인 ID입니다.');
+      if (String(e.code).includes('CONSTRAINT')) throw fail(409, 'USERNAME_TAKEN');
       throw e;
     }
     await issueSession(db, res, id, production);
@@ -125,7 +128,7 @@ export async function createApp(
       })
     ).rows[0];
     const valid = await verifyPassword(password, user?.password_hash || dummyHash);
-    if (!user || !valid) throw fail(401, 'ID 또는 비밀번호가 올바르지 않습니다.');
+    if (!user || !valid) throw fail(401, 'INVALID_CREDENTIALS');
     await issueSession(db, res, user.id, production);
     res.json({ user: await userState(db, user.id) });
   });
@@ -140,7 +143,7 @@ export async function createApp(
             args: [digest(token), Date.now()],
           })
         ).rows[0];
-      if (!session) throw fail(401, '로그인이 필요합니다.');
+      if (!session) throw fail(401, 'LOGIN_REQUIRED');
       req.userId = session.user_id;
       next();
     } catch (e) {
@@ -177,9 +180,9 @@ export async function createApp(
       typeof practice !== 'boolean' ||
       typeof autoFire !== 'boolean'
     )
-      throw fail(400, '출격 설정이 올바르지 않습니다.');
+      throw fail(400, 'INVALID_LAUNCH_CONFIG');
     const user = await userState(db, req.userId);
-    if (stage > user.unlockedStage) throw fail(403, '이전 스테이지를 먼저 클리어하세요.');
+    if (stage > user.unlockedStage) throw fail(403, 'STAGE_LOCKED');
     const config = { stage, weapon, credits, practice, autoFire };
     if (previousRunId) {
       const previous = (
@@ -188,7 +191,7 @@ export async function createApp(
           args: [String(previousRunId), req.userId, stage - 1],
         })
       ).rows[0];
-      if (!previous || practice) throw fail(400, '이어하기 기록이 올바르지 않습니다.');
+      if (!previous || practice) throw fail(400, 'INVALID_CONTINUE_RUN');
       config.loadout = JSON.parse(previous.loadout_json);
     }
     const id = randomUUID();
@@ -214,16 +217,14 @@ export async function createApp(
         args: [req.params.id, req.userId],
       })
     ).rows[0];
-    if (!run) throw fail(404, '출격 기록을 찾을 수 없습니다.');
+    if (!run) throw fail(404, 'RUN_NOT_FOUND');
     if (run.status !== 'started')
       return res.json({ user: await userState(db, req.userId), status: run.status });
-    if (!canVerifyVersion(run.game_version))
-      throw fail(409, '게임이 업데이트되었습니다. 메뉴에서 새로 출격하세요.');
+    if (!canVerifyVersion(run.game_version)) throw fail(409, 'GAME_UPDATED');
     const fingerprint = digest(JSON.stringify([req.body?.events, req.body?.outcome]));
     const existing = pendingSaves.get(run.id);
     if (existing) {
-      if (existing.fingerprint !== fingerprint)
-        throw fail(409, '이 출격 기록을 저장 중입니다. 잠시 후 다시 시도하세요.');
+      if (existing.fingerprint !== fingerprint) throw fail(409, 'SAVE_IN_PROGRESS');
       return res.json(await existing.promise);
     }
     const save = async () => {
@@ -231,7 +232,7 @@ export async function createApp(
       const result = await verifier(JSON.parse(run.config_json), req.body?.events);
       const verificationMs = performance.now() - verificationStart;
       if (req.body?.outcome === 'clear' && result.status !== 'clear')
-        throw fail(422, '클리어 검증에 실패했습니다. 다음 스테이지는 해금되지 않았습니다.');
+        throw fail(422, 'CLEAR_VERIFICATION_FAILED');
       const persistenceStart = performance.now();
       // One atomic round trip: persist, conditionally unlock, and read the committed result.
       const saved = await db.batch(
@@ -291,7 +292,7 @@ export async function createApp(
       username = String(req.query.username || '').toLowerCase(),
       sort = req.query.sort === 'score' ? 'score' : 'recent';
     if (!integer(page, 1, 100000) || !integer(stage, 0, 5) || username.length > 24)
-      throw fail(400, '검색 조건이 올바르지 않습니다.');
+      throw fail(400, 'SEARCH_INVALID');
     const args = [],
       conditions = [];
     if (stage) {
@@ -320,7 +321,9 @@ export async function createApp(
     ).rows;
     res.json({ rows, total, page, pages: Math.max(1, Math.ceil(total / 20)) });
   });
-  app.use('/api', (req, res) => res.status(404).json({ error: 'API를 찾을 수 없습니다.' }));
+  app.use('/api', (req, res) =>
+    res.status(404).json({ error: t(resolveLocale(req), 'API_NOT_FOUND'), code: 'API_NOT_FOUND' }),
+  );
   app.use(
     express.static(resolve('dist/client'), {
       index: false,
@@ -345,12 +348,9 @@ export async function createApp(
     const status = err.status || (err.type === 'entity.too.large' ? 413 : 500);
     // Never log request bodies, credentials or database connection details.
     if (status >= 500) console.error('Request failed:', req.method, req.path, status);
-    res.status(status).json({
-      error:
-        status < 500 || status === 503
-          ? err.message
-          : '서버 처리 중 오류가 발생했습니다. 잠시 후 다시 시도하세요.',
-    });
+    const locale = resolveLocale(req);
+    const key = status < 500 || status === 503 ? err.key || err.message : 'SERVER_ERROR';
+    res.status(status).json({ error: t(locale, key), code: key });
   });
   return app;
 }

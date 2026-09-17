@@ -6,13 +6,15 @@ import { installViewport } from './ui/viewport';
 import { loadImportedFleet } from './visual/ImportedFleet';
 import { loadNovaMissile } from './visual/NovaMissile';
 import { loadPlayerLoadout } from './visual/PlayerLoadout';
+import { getLocale, t } from './ui/i18n';
 installViewport();
+document.documentElement.lang = getLocale();
 const host = document.getElementById('root')!;
 const root = ReactDOM.createRoot(host);
 function start() {
   root.render(
     <div role="status" style={{ color: '#c5d8e2', padding: '12vh 8vw', fontFamily: 'sans-serif' }}>
-      VOLTARIS · 기체 격납고를 준비하고 있습니다…
+      {t('PREPARING_HANGAR')}
     </div>,
   );
   void Promise.all([loadImportedFleet(), loadNovaMissile(), loadPlayerLoadout()])
@@ -23,8 +25,8 @@ function start() {
           role="alert"
           style={{ color: '#c5d8e2', padding: '12vh 8vw', fontFamily: 'sans-serif' }}
         >
-          <p>기체 모델을 불러오지 못했습니다. 연결을 확인하고 다시 시도해 주세요.</p>
-          <button onClick={start}>다시 시도</button>
+          <p>{t('MODEL_LOAD_FAILED')}</p>
+          <button onClick={start}>{t('TRY_AGAIN')}</button>
         </div>,
       );
     });

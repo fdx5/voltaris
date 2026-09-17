@@ -5,6 +5,9 @@ export default defineConfig({
   workers: 1,
   use: {
     baseURL: 'http://127.0.0.1:4179',
+    // These specs assert on the app's Korean copy; the locale toggle (src/ui/i18n.ts)
+    // otherwise falls back to whatever the OS/CI runner's own locale happens to be.
+    locale: 'ko-KR',
     viewport: { width: 1440, height: 900 },
     channel: 'chromium',
     // Mock API routes must not be bypassed by the production service worker.

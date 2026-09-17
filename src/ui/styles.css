@@ -2494,7 +2494,7 @@ kbd {
     padding: 4px;
     font-size: 10px;
   }
-  .header-tools button[aria-label='전체화면'] {
+  .header-tools button.fullscreen-button {
     display: none;
   }
   .command .title {

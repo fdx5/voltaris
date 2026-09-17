@@ -39,6 +39,7 @@ import { MODES, type Weapon } from '../game/GameState';
 import { Key } from '../core/input/InputManager';
 import type { Quality } from '../core/renderer/IRenderBackend';
 import tuning from '../../data/tuning.json';
+import { useT, useLocaleStore, setLocale } from './i18n';
 const number = (n: number) => Math.floor(n).toLocaleString('en-US');
 const clock = (n: number) =>
   `${Math.floor(n / 60)
@@ -50,25 +51,23 @@ type Panel = 'launch' | 'settings' | 'controls' | 'records' | null;
 const weaponInfo = {
   LASER: {
     title: 'PRECISION LANCE',
-    description: '고출력 관통 레이저. 적의 코어를 정밀하게 공략합니다.',
+    descriptionKey: 'WEAPON_DESC_LASER',
     stat: 'PENETRATION',
     value: '★★★★★',
   },
   MISSILE: {
     title: 'HOMING ARRAY',
-    description:
-      'KESTREL · 자동 추적 미사일 전투기. 넓게 펼친 미사일이 목표를 추격하며, 옵션은 소형 보조 미사일을 발사합니다.',
+    descriptionKey: 'WEAPON_DESC_MISSILE',
     stat: 'TRACKING',
     value: '★★★★★',
   },
   SPREAD: {
     title: 'SCATTER CANNON',
-    description:
-      'MANTA · 확산 미사일 전투기. 좁고 넓은 탄도를 교차 발사하며, 옵션은 소형 미사일로 집중 사격합니다.',
+    descriptionKey: 'WEAPON_DESC_SPREAD',
     stat: 'COVERAGE',
     value: '★★★★★',
   },
-};
+} as const;
 /** `/audio/space-engine.mp3` -> `SPACE ENGINE`, for the settings readout. */
 const trackName = (url: string) =>
   (url.split('/').pop() ?? '')
@@ -83,8 +82,14 @@ export function App() {
   }, []);
   return account.user ? <GameApp key={account.user.id} /> : <LoginScreen />;
 }
+const ROLE_KEY = { LASER: 'ROLE_LASER', MISSILE: 'ROLE_MISSILE', SPREAD: 'ROLE_SPREAD' } as const;
 function GameApp() {
   const account = useAccount();
+  const t = useT();
+  const locale = useLocaleStore((s) => s.locale);
+  useEffect(() => {
+    document.documentElement.lang = locale;
+  }, [locale]);
 
   const host = useRef<HTMLDivElement>(null),
     runtime = useRef<Runtime | null>(null);
@@ -148,7 +153,7 @@ function GameApp() {
       if (document.fullscreenElement) await document.exitFullscreen();
       else await enterFullscreen();
     } catch {
-      setFullError('이 브라우저에서는 홈 화면에 추가하여 전체화면으로 실행하세요.');
+      setFullError(t('FULLSCREEN_UNSUPPORTED'));
       setTimeout(() => setFullError(''), 5000);
     }
   };
@@ -231,16 +236,20 @@ function GameApp() {
           </div>
           <header className="header">
             <a className="brand" href="#" onClick={(e) => e.preventDefault()}>
-              <span>
-                VOLTARIS<small>볼타리스</small>
-              </span>
+              <span>VOLTARIS{t('BRAND_SUBTITLE') && <small>{t('BRAND_SUBTITLE')}</small>}</span>
             </a>
             <div className="header-tools">
               <span className="guest">
                 PILOT <b>{account.user?.username}</b>
               </span>
               <button
-                aria-label="로그아웃"
+                className="lang-toggle"
+                onClick={() => setLocale(locale === 'ko' ? 'en' : 'ko')}
+              >
+                {locale === 'ko' ? 'EN' : 'KO'}
+              </button>
+              <button
+                aria-label={t('LOGOUT')}
                 onClick={async () => {
                   try {
                     await r()?.finishRun();
@@ -248,20 +257,24 @@ function GameApp() {
                     useAccount.setState({ user: null, error: '' });
                   } catch (e) {
                     useAccount.setState({
-                      error: e instanceof Error ? e.message : '로그아웃 실패',
+                      error: e instanceof Error ? e.message : t('LOGOUT_FAILED'),
                     });
                   }
                 }}
               >
-                로그아웃
+                {t('LOGOUT')}
               </button>
-              <button aria-label="사운드 켜기 또는 끄기" onClick={toggleSound}>
+              <button aria-label={t('SOUND_TOGGLE')} onClick={toggleSound}>
                 {muted ? <VolumeX /> : <Volume2 />}
               </button>
-              <button aria-label="전체화면" onClick={() => void fullscreen()}>
+              <button
+                className="fullscreen-button"
+                aria-label={t('FULLSCREEN')}
+                onClick={() => void fullscreen()}
+              >
                 <Maximize />
               </button>
-              <button aria-label="설정" onClick={() => open('settings')}>
+              <button aria-label={t('SETTINGS')} onClick={() => open('settings')}>
                 <Settings2 />
               </button>
             </div>
@@ -269,7 +282,7 @@ function GameApp() {
           <main className="command">
             <nav
               className="flight-menu"
-              aria-label="메인 메뉴"
+              aria-label={t('MAIN_MENU')}
               onKeyDown={(event) => {
                 if (!['ArrowDown', 'ArrowUp', 'Home', 'End'].includes(event.key)) return;
                 const buttons = Array.from(
@@ -289,7 +302,7 @@ function GameApp() {
             >
               <button
                 className="flight-choice launch"
-                aria-label={ui.ready ? 'BEGIN SORTIE 출격 준비' : '기체 초기화 중'}
+                aria-label={ui.ready ? t('LAUNCH_READY_LABEL') : t('LAUNCH_INIT_LABEL')}
                 disabled={!ui.ready || account.launching || account.saving}
                 onClick={() => {
                   setPractice(false);
@@ -301,7 +314,7 @@ function GameApp() {
                 </span>
                 <span className="menu-button">
                   <Play size={18} aria-hidden="true" />
-                  {ui.ready ? '출격' : '기체 준비 중'}
+                  {ui.ready ? t('LAUNCH') : t('PREPARING')}
                   <ChevronRight size={16} aria-hidden="true" />
                 </span>
               </button>
@@ -311,7 +324,7 @@ function GameApp() {
                 </span>
                 <span className="menu-button">
                   <Trophy size={18} aria-hidden="true" className="rank-choice-icon" />
-                  파일럿 랭킹
+                  {t('PILOT_RANKING')}
                   <ChevronRight size={16} aria-hidden="true" />
                 </span>
               </button>
@@ -321,13 +334,13 @@ function GameApp() {
                 </span>
                 <span className="menu-button">
                   <Keyboard size={18} aria-hidden="true" />
-                  조작 가이드
+                  {t('CONTROLS_GUIDE')}
                   <ChevronRight size={16} aria-hidden="true" />
                 </span>
               </button>
               <button
                 className="flight-choice training-choice"
-                aria-label="SIMULATION 보스 훈련"
+                aria-label={t('BOSS_TRAINING_LABEL')}
                 disabled={!ui.ready || account.launching || account.saving}
                 onClick={() => {
                   setPractice(true);
@@ -339,23 +352,24 @@ function GameApp() {
                 </span>
                 <span className="menu-button">
                   <Target size={18} aria-hidden="true" />
-                  보스 훈련
+                  {t('BOSS_TRAINING')}
                   <ChevronRight size={16} aria-hidden="true" />
                 </span>
               </button>
             </nav>
             <p className="menu-hint">
-              <span>↑ ↓</span> 선택 <span>ENTER</span> 결정
+              <span>↑ ↓</span> {t('SELECT')} <span>ENTER</span> {t('CONFIRM')}
             </p>
           </main>
           <div className="ship-label">
             <small>VL–01</small>
             <strong>PEREGRINE</strong>
           </div>
-          <section className="mission-strip" aria-label="작전 항로">
+          <section className="mission-strip" aria-label={t('MISSION_STRIP')}>
             <div className="mission-heading">
               <span>
-                작전 선택 <em>SELECT SECTOR</em>
+                {t('SECTOR_SELECT_PREFIX')}
+                <em>SELECT SECTOR</em>
               </span>
               <small>
                 {String(account.user?.clearedStages.length ?? 0).padStart(2, '0')} /{' '}
@@ -374,7 +388,7 @@ function GameApp() {
                     }
                     disabled={!ui.ready || locked || account.launching || account.saving}
                     aria-current={stage === index ? 'step' : undefined}
-                    title={locked ? `STAGE ${index} 클리어 후 입장할 수 있습니다.` : mission.name}
+                    title={locked ? `STAGE ${index} ${t('LOCKED_STAGE_HINT')}` : mission.name}
                     onClick={() => {
                       setStage(index);
                       setPractice(false);
@@ -384,7 +398,17 @@ function GameApp() {
                     <img
                       className="mission-visual"
                       src={`/images/missions/${['earth', 'mars', 'jupiter', 'neptune', 'milkyway'][index]}.webp`}
-                      alt={['지구', '화성', '목성', '해왕성', '은하'][index]}
+                      alt={t(
+                        (
+                          [
+                            'PLANET_EARTH',
+                            'PLANET_MARS',
+                            'PLANET_JUPITER',
+                            'PLANET_NEPTUNE',
+                            'PLANET_GALAXY',
+                          ] as const
+                        )[index],
+                      )}
                       width="65"
                       height="63"
                       decoding="async"
@@ -395,7 +419,11 @@ function GameApp() {
                         <span>{locked ? 'LOCKED' : cleared ? 'CLEARED' : 'AVAILABLE'}</span>
                       </small>
                       <strong>{mission.name}</strong>
-                      <p>{locked ? `STAGE ${index} 클리어 필요` : mission.subtitle}</p>
+                      <p>
+                        {locked
+                          ? `STAGE ${index} ${t('STAGE_CLEAR_REQUIRED_SUFFIX')}`
+                          : mission.subtitle}
+                      </p>
                     </div>
                     {locked ? (
                       <Lock size={20} />
@@ -411,14 +439,14 @@ function GameApp() {
           </section>
           <footer className="footer">
             <span>
-              {ui.ready ? '출격 대기' : '기체 준비 중'} <i>/</i> {ui.backend}
+              {ui.ready ? t('STANDBY') : t('PREPARING')} <i>/</i> {ui.backend}
             </span>
             <span>
               {String(account.user?.clearedStages.length ?? 0).padStart(2, '0')} /{' '}
               {String(STAGES.length).padStart(2, '0')} SECTORS CLEARED
             </span>
             <button onClick={stress} disabled={!ui.ready || account.launching || account.saving}>
-              테스트 랩 <Activity size={12} />
+              {t('TEST_LAB')} <Activity size={12} />
             </button>
           </footer>
         </>
@@ -429,7 +457,7 @@ function GameApp() {
             <small>
               SCORE <span>×{ui.graze.toFixed(2)}</span>
             </small>
-            <strong aria-label={`점수 ${Math.floor(ui.score).toLocaleString('en-US')}`}>
+            <strong aria-label={`SCORE ${Math.floor(ui.score).toLocaleString('en-US')}`}>
               {Math.floor(ui.score).toLocaleString('en-US')}
             </strong>
             <p>
@@ -444,8 +472,8 @@ function GameApp() {
                   r()?.publish();
                 }}
                 className="mode-button"
-                aria-label={`옵션 모드 ${MODES[ui.mode]} · 눌러서 전환`}
-                title="옵션 제어 모드 전환 (Q)"
+                aria-label={`${t('OPTION_MODE_PREFIX')} ${MODES[ui.mode]} · ${t('OPTION_MODE_SUFFIX')}`}
+                title={t('OPTION_MODE_TITLE')}
               >
                 <Orbit size={15} />
                 <span>{MODES[ui.mode]}</span>
@@ -458,8 +486,8 @@ function GameApp() {
               <button
                 className={'hold-button' + (ui.optionHold ? ' on' : '')}
                 aria-pressed={ui.optionHold}
-                aria-label="옵션 홀드"
-                title="옵션 홀드 고정 / 해제 (Shift)"
+                aria-label={t('OPTION_HOLD')}
+                title={t('OPTION_HOLD_TITLE')}
                 onClick={() => {
                   const input = r()?.input;
                   if (input) input.set(Key.Hold, !input.latched(Key.Hold));
@@ -474,14 +502,14 @@ function GameApp() {
                   wants the browser chrome again. */}
               <button
                 className="frame-button"
-                aria-label={full ? '창 모드' : '전체화면'}
+                aria-label={full ? t('WINDOWED') : t('FULLSCREEN')}
                 onClick={() => void fullscreen()}
               >
                 {full ? <Minimize size={16} /> : <Maximize size={16} />}
               </button>
               <button
                 className="frame-button"
-                aria-label="일시정지"
+                aria-label={t('PAUSE')}
                 onClick={() => {
                   r()?.game.pause();
                   r()?.publish();
@@ -526,7 +554,7 @@ function GameApp() {
                   }}
                 />
               </div>
-              <p>포탑을 파괴하면 해당 포탑의 공격이 사라집니다</p>
+              <p>{t('TURRET_HINT')}</p>
             </div>
           )}
           {ui.noticeTime > 0 && ui.status === 'playing' && (
@@ -570,7 +598,7 @@ function GameApp() {
             {[0, 1, 2].map((i) => (
               <button
                 key={i}
-                aria-label={`특수기술 ${i + 1}`}
+                aria-label={`${t('SKILL_SLOT_PREFIX')} ${i + 1}`}
                 disabled={
                   ui.skills[i] < 0 || ui.charge[i] < 0.999 || (i === 0 && !ui.skillUnlocked)
                 }
@@ -588,7 +616,7 @@ function GameApp() {
                   {ui.skills[i] >= 0 && ui.effects[ui.skills[i]] > 0
                     ? `${ui.skills[i] === 0 ? 'INVINCIBLE' : 'ACTIVE'} ${ui.effects[ui.skills[i]].toFixed(1)}s`
                     : ui.skills[i] < 0
-                      ? '미장착'
+                      ? t('UNEQUIPPED')
                       : !ui.skillUnlocked
                         ? 'STAGE REWARD'
                         : ui.charge[i] >= 0.999
@@ -602,8 +630,8 @@ function GameApp() {
           </div>
           <div className="touch-controls">
             <span>
-              화면을 드래그하여 이동 · {autoFire ? '자동 발사' : '자동 발사 꺼짐'} · 우측 상단{' '}
-              <b>OPTION</b> / <b>HOLD</b> 로 옵션 제어
+              {t('TOUCH_HINT_MOVE')} · {autoFire ? t('AUTO_FIRE_ON') : t('AUTO_FIRE_OFF')} ·{' '}
+              {t('TOUCH_HINT_OPTION')} <b>OPTION</b> / <b>HOLD</b> {t('TOUCH_HINT_OPTION_SUFFIX')}
             </span>
           </div>
         </div>
@@ -613,17 +641,17 @@ function GameApp() {
           <div className="lab-head">
             <div>
               <small>ENGINE VALIDATION / M0</small>
-              <h2>탄막 테스트 랩</h2>
+              <h2>{t('BULLET_TEST_LAB')}</h2>
             </div>
-            <button aria-label="메뉴로 돌아가기" onClick={() => r()?.menu()}>
+            <button aria-label={t('BACK_TO_MENU')} onClick={() => r()?.menu()}>
               <X />
             </button>
           </div>
-          <p>같은 3D 렌더러와 탄환 풀을 사용하는 성능 측정 환경입니다.</p>
+          <p>{t('LAB_DESCRIPTION')}</p>
           <label>
             ACTIVE BULLETS <b>{stressCount}</b>
             <input
-              aria-label="탄환 수"
+              aria-label={t('BULLET_COUNT')}
               type="range"
               min="500"
               max="4000"
@@ -639,7 +667,7 @@ function GameApp() {
           <label>
             3D ENEMIES <b>{stressShips}</b>
             <input
-              aria-label="기체 수"
+              aria-label={t('SHIP_COUNT')}
               type="range"
               min="0"
               max="100"
@@ -681,7 +709,7 @@ function GameApp() {
             />
           </label>
           <select
-            aria-label="테스트 화질"
+            aria-label={t('TEST_QUALITY')}
             value={ui.quality}
             onChange={(e) => r()?.setQuality(e.target.value as Quality)}
           >
@@ -692,34 +720,34 @@ function GameApp() {
           <p className="fine">
             {ui.backend} · {number(ui.triangles)} triangles
             <br />
-            GPU 메모리와 GC 할당량은 별도 프로파일러 측정이 필요합니다.
+            {t('GPU_MEMORY_NOTE')}
           </p>
           <button className="primary" onClick={download}>
-            <Download size={16} /> 현재 측정값 저장
+            <Download size={16} /> {t('SAVE_METRICS')}
           </button>
         </div>
       )}
       {ui.status === 'paused' && !panel && (
-        <Modal title="FLIGHT PAUSED" eyebrow="전투 일시정지" onClose={() => r()?.resume()}>
-          <p>호흡을 고르고, 다음 궤도를 준비하세요.</p>
+        <Modal title="FLIGHT PAUSED" eyebrow={t('COMBAT_PAUSED')} onClose={() => r()?.resume()}>
+          <p>{t('PAUSE_FLAVOR')}</p>
           <button className="primary wide" onClick={() => r()?.resume()}>
-            <Play size={17} /> 전투 재개
+            <Play size={17} /> {t('RESUME_COMBAT')}
           </button>
           <button className="secondary-button wide" onClick={() => open('settings')}>
-            설정
+            {t('SETTINGS')}
           </button>
           <button className="secondary-button wide" onClick={() => r()?.menu()}>
-            출격 포기 · 격납고로
+            {t('ABANDON_TO_HANGAR')}
           </button>
         </Modal>
       )}
       {ui.status === 'continue' && (
-        <Modal title="CONTINUE?" eyebrow="SIGNAL LOST / 기체 전멸">
+        <Modal title="CONTINUE?" eyebrow={t('SIGNAL_LOST_DESTROYED')}>
           <div className="countdown">{Math.ceil(ui.continueTime)}</div>
           <p>
-            남은 크레딧 {ui.credits - ui.creditsUsed} · 점수는 유지됩니다.
+            {t('REMAINING_CREDITS_PREFIX')} {ui.credits - ui.creditsUsed} · {t('SCORE_KEPT_SUFFIX')}
             <br />
-            무기 Lv.1, 기체 3대, 특수기술 충전량 0으로 재출격합니다.
+            {t('RELAUNCH_RESET')}
           </p>
           <button
             className="primary wide"
@@ -729,7 +757,7 @@ function GameApp() {
               r()?.publish();
             }}
           >
-            다시 출격 <ArrowRight size={17} />
+            {t('RELAUNCH')} <ArrowRight size={17} />
           </button>
           <button
             className="secondary-button wide"
@@ -737,7 +765,7 @@ function GameApp() {
               if (r()) r()!.game.status = 'gameover';
             }}
           >
-            비행 종료
+            {t('END_FLIGHT')}
           </button>
         </Modal>
       )}
@@ -747,7 +775,7 @@ function GameApp() {
           eyebrow={
             ui.status === 'clear'
               ? `STAGE ${String(ui.stageIndex + 1).padStart(2, '0')} CLEAR / ${ui.stageName}`
-              : 'GAME OVER / 비행 종료'
+              : t('GAMEOVER_EYEBROW')
           }
         >
           <div className="result-score">
@@ -756,30 +784,36 @@ function GameApp() {
           </div>
           <div className="result-grid">
             <span>
-              격추 수<b>{ui.kills}</b>
+              {t('KILLS')}
+              <b>{ui.kills}</b>
             </span>
             <span>
-              최대 그레이즈<b>×{ui.maxGraze.toFixed(2)}</b>
+              {t('MAX_GRAZE')}
+              <b>×{ui.maxGraze.toFixed(2)}</b>
             </span>
             <span>
-              최종 무기 레벨<b>Lv.{ui.level}</b>
+              {t('FINAL_WEAPON_LEVEL')}
+              <b>Lv.{ui.level}</b>
             </span>
             <span>
-              사용 크레딧<b>{ui.creditsUsed}</b>
+              {t('CREDITS_USED')}
+              <b>{ui.creditsUsed}</b>
             </span>
             <span>
-              클리어 보너스<b>{number(ui.bonus)}</b>
+              {t('CLEAR_BONUS')}
+              <b>{number(ui.bonus)}</b>
             </span>
             <span>
-              비행 시간<b>{clock(ui.time)}</b>
+              {t('FLIGHT_TIME')}
+              <b>{clock(ui.time)}</b>
             </span>
           </div>
           <p className="fine">
             {practice
-              ? '보스 훈련 기록입니다.'
-              : `현재 빌드에는 ${STAGES.length}스테이지가 포함되어 있습니다.`}
+              ? t('BOSS_TRAINING_RECORD')
+              : `${t('BUILD_STAGE_COUNT_PREFIX')} ${STAGES.length} ${t('BUILD_STAGE_COUNT_SUFFIX')}`}
             <br />
-            출격 기록은 계정에 저장되며 전체 파일럿 이력에서 조회할 수 있습니다.
+            {t('RUN_SAVED_NOTE')}
           </p>
           {ui.status === 'clear' && !practice && ui.stageIndex < STAGES.length - 1 && (
             <button
@@ -791,7 +825,7 @@ function GameApp() {
               }
               onClick={advance}
             >
-              <ArrowUpRight size={16} /> 다음 스테이지 · 강화 상태 유지
+              <ArrowUpRight size={16} /> {t('NEXT_STAGE_KEEP_LOADOUT')}
             </button>
           )}
           <button
@@ -802,10 +836,10 @@ function GameApp() {
             }
             onClick={start}
           >
-            <RotateCcw size={16} /> 다시 도전
+            <RotateCcw size={16} /> {t('RETRY')}
           </button>
           <button className="secondary-button wide" onClick={() => r()?.menu()}>
-            격납고로 돌아가기
+            {t('RETURN_TO_HANGAR')}
           </button>
         </Modal>
       )}
@@ -814,7 +848,7 @@ function GameApp() {
           title={practice ? 'BOSS SIMULATION' : 'PREPARE FOR LAUNCH'}
           eyebrow={
             practice
-              ? `${STAGES[stage].boss.id} / Lv.6 · 옵션 4기 · 훈련`
+              ? `${STAGES[stage].boss.id} / Lv.6 · ${t('BOSS_TRAINING_EYEBROW_SUFFIX')}`
               : `MISSION ${String(stage + 1).padStart(2, '0')} / ${STAGES[stage].name}`
           }
           onClose={() => setPanel(null)}
@@ -824,7 +858,7 @@ function GameApp() {
             <span>
               01 <b>SELECT ARMAMENT</b>
             </span>
-            <small>기체 · 무기 선택</small>
+            <small>{t('CRAFT_WEAPON_SELECT')}</small>
           </div>
           <div className="weapon-select">
             {(['LASER', 'MISSILE', 'SPREAD'] as Weapon[]).map((w) => (
@@ -839,7 +873,7 @@ function GameApp() {
                 <span className="craft-preview">
                   <img
                     src={asset(`/images/ships/${w.toLowerCase()}.png`)}
-                    alt={`${PLAYER_CRAFT[w].name} ${PLAYER_CRAFT[w].role}`}
+                    alt={`${PLAYER_CRAFT[w].name} ${t(ROLE_KEY[w])}`}
                   />
                 </span>
                 <span className="craft-name">{PLAYER_CRAFT[w].name}</span>
@@ -850,7 +884,7 @@ function GameApp() {
             ))}
           </div>
           <p className="weapon-description">
-            {weaponInfo[weapon].description}
+            {t(weaponInfo[weapon].descriptionKey)}
             <span>
               {weaponInfo[weapon].stat} <b>{weaponInfo[weapon].value}</b>
             </span>
@@ -858,12 +892,12 @@ function GameApp() {
           <div className="credit-select">
             <div>
               <small>02 / FLIGHT RESERVE</small>
-              <strong>크레딧 선택</strong>
-              <p>1 크레딧 = 기체 3대 · 무료 플레이</p>
+              <strong>{t('CREDIT_SELECT')}</strong>
+              <p>{t('CREDIT_EXPLAIN')}</p>
             </div>
             <div>
               <button
-                aria-label="크레딧 감소"
+                aria-label={t('CREDIT_DECREASE')}
                 disabled={credits === 1}
                 onClick={() => setCredits((n) => Math.max(1, n - 1))}
               >
@@ -871,7 +905,7 @@ function GameApp() {
               </button>
               <b>{credits.toString().padStart(2, '0')}</b>
               <button
-                aria-label="크레딧 증가"
+                aria-label={t('CREDIT_INCREASE')}
                 disabled={credits === 15}
                 onClick={() => setCredits((n) => Math.min(15, n + 1))}
               >
@@ -881,20 +915,16 @@ function GameApp() {
           </div>
           <div className="briefing">
             <Shield size={17} />
-            <p>
-              {practice
-                ? '세 가지 보스 패턴과 파괴 가능한 포탑을 연습합니다.'
-                : '방향키 / WASD로 이동 · 자동 사격 · [Q] 옵션 모드 · [Shift] 제어 · [1] 오버드라이브'}
-            </p>
+            <p>{practice ? t('TRAINING_BRIEFING') : t('MISSION_BRIEFING')}</p>
           </div>
           <button
             className="primary wide"
             disabled={!ui.ready || account.launching || account.saving}
             onClick={start}
           >
-            출격 · LAUNCH MISSION <ArrowUpRight size={20} />
+            {t('LAUNCH_MISSION_LABEL')} <ArrowUpRight size={20} />
           </button>
-          <p className="fine center">PILOT FLIGHT · 일반 모드 클리어 시 다음 스테이지 해금</p>
+          <p className="fine center">{t('PILOT_FLIGHT_NOTE')}</p>
         </Modal>
       )}
       {panel === 'settings' && (
@@ -904,10 +934,8 @@ function GameApp() {
           onClose={() => setPanel(null)}
         >
           <Setting
-            label="그래픽 품질"
-            description={
-              ui.autoQuality ? '3초 평균이 45 FPS 미만이면 자동으로 낮아집니다.' : '수동 화질 설정'
-            }
+            label={t('GRAPHICS_QUALITY')}
+            description={ui.autoQuality ? t('AUTO_QUALITY_DESC') : t('MANUAL_QUALITY_DESC')}
           >
             <select value={ui.quality} onChange={(e) => r()?.setQuality(e.target.value as Quality)}>
               {['HIGH', 'MEDIUM', 'LOW'].map((q) => (
@@ -915,16 +943,19 @@ function GameApp() {
               ))}
             </select>
           </Setting>
-          <Setting label="자동 화질 조정">
+          <Setting label={t('AUTO_QUALITY_ADJUST')}>
             <input
               type="checkbox"
               checked={ui.autoQuality}
               onChange={(e) => useUI.setState({ autoQuality: e.target.checked })}
             />
           </Setting>
-          <Setting label="터치 감도" description={`${sensitivity.toFixed(1)}× · 상대 드래그`}>
+          <Setting
+            label={t('TOUCH_SENSITIVITY')}
+            description={`${sensitivity.toFixed(1)}× · ${t('RELATIVE_DRAG_SUFFIX')}`}
+          >
             <input
-              aria-label="터치 감도"
+              aria-label={t('TOUCH_SENSITIVITY')}
               type="range"
               min=".5"
               max="2"
@@ -937,11 +968,11 @@ function GameApp() {
             />
           </Setting>
           <Setting
-            label="효과음 볼륨"
-            description={`${Math.round(volume * 100)}% · 사격 · 폭발 · 경보`}
+            label={t('SFX_VOLUME')}
+            description={`${Math.round(volume * 100)}% · ${t('FIRE_EXPLOSION_ALERT_SUFFIX')}`}
           >
             <input
-              aria-label="효과음 볼륨"
+              aria-label={t('SFX_VOLUME')}
               type="range"
               min="0"
               max="1"
@@ -955,13 +986,13 @@ function GameApp() {
             />
           </Setting>
           <Setting
-            label="음악 볼륨"
+            label={t('MUSIC_VOLUME')}
             description={`${Math.round(musicVolume * 100)}% · STAGE ${String(
               ui.stageIndex + 1,
             ).padStart(2, '0')} ${trackName(STAGES[ui.stageIndex].music)}`}
           >
             <input
-              aria-label="음악 볼륨"
+              aria-label={t('MUSIC_VOLUME')}
               type="range"
               min="0"
               max="1"
@@ -974,7 +1005,7 @@ function GameApp() {
               }}
             />
           </Setting>
-          <Setting label="자동 사격" description="끄면 Z / Space / 게임패드 A로 사격">
+          <Setting label={t('AUTO_FIRE')} description={t('AUTO_FIRE_DESC')}>
             <input
               type="checkbox"
               checked={autoFire}
@@ -984,7 +1015,7 @@ function GameApp() {
               }}
             />
           </Setting>
-          <Setting label="피격 판정 점 표시">
+          <Setting label={t('SHOW_HITBOX')}>
             <input
               type="checkbox"
               checked={hitbox}
@@ -994,7 +1025,7 @@ function GameApp() {
               }}
             />
           </Setting>
-          <Setting label="화면 흔들림 줄이기">
+          <Setting label={t('REDUCE_SHAKE')}>
             <input
               type="checkbox"
               checked={motion}
@@ -1004,7 +1035,7 @@ function GameApp() {
               }}
             />
           </Setting>
-          <Setting label="블룸 발광 효과">
+          <Setting label={t('BLOOM_EFFECT')}>
             <input
               type="checkbox"
               checked={bloom}
@@ -1028,64 +1059,65 @@ function GameApp() {
               <Move />
               <h3>MOVE & EVADE</h3>
               <p>
-                <kbd>W A S D</kbd> / 방향키로 이동.
+                <kbd>W A S D</kbd> {t('MOVE_LINE1')}
                 <br />
-                터치는 버튼을 제외한 화면 전체에서 상대 드래그.
+                {t('MOVE_LINE2')}
                 <br />
-                기체 중앙의 작은 점이 피격 판정입니다.
+                {t('MOVE_LINE3')}
               </p>
             </div>
             <div>
               <Zap />
               <h3>WEAPONS ONLINE</h3>
               <p>
-                사격은 기본 자동입니다.
+                {t('WEAPONS_LINE1')}
                 <br />
-                금색 캡슐로 무기를 강화하고
+                {t('WEAPONS_LINE2')}
                 <br />
-                청색 링을 모아 옵션 기체를 추가하세요.
+                {t('WEAPONS_LINE3')}
               </p>
             </div>
             <div>
               <Layers />
               <h3>OPTION CONTROL</h3>
               <p>
-                <kbd>Q</kbd> 모드 전환 · <kbd>Shift</kbd> 또는 화면 우측 상단 <b>HOLD</b> 제어
+                <kbd>Q</kbd> {t('OPTION_LINE1A')} · <kbd>Shift</kbd> {t('OPTION_LINE1B')}{' '}
+                <b>HOLD</b> {t('OPTION_LINE1C')}
                 <br />
-                옵션은 1기로 시작하고 청색 링으로 4기까지 늘어납니다.
+                {t('OPTION_LINE2')}
                 <br />
-                누르는 동안 — TRAIL 밀착 대형 / FREEZE 위치 고정
+                {t('OPTION_LINE3_PREFIX')} TRAIL {t('TRAIL_LABEL')} / FREEZE {t('FREEZE_LABEL')}
                 <br />
-                DIRECTIONAL 진행 방향 조준 / ROTATE 기체 공전
+                DIRECTIONAL {t('DIRECTIONAL_LABEL')} / ROTATE {t('ROTATE_LABEL')}
               </p>
             </div>
             <div>
               <Shield />
               <h3>TURN THE TIDE</h3>
               <p>
-                <kbd>1</kbd> 획득한 오버드라이브 발동.
+                <kbd>1</kbd> {t('TIDE_LINE1')}
                 <br />
-                적을 격파하면 기술이 충전됩니다.
+                {t('TIDE_LINE2')}
                 <br />
-                적탄 가까이 스치면 점수 배율 상승.
+                {t('TIDE_LINE3')}
               </p>
             </div>
           </div>
           <div className="briefing">
             <Gamepad2 size={21} />
-            <p>게임패드: 스틱 이동 · A 사격 · X/Y/B 기술 · RB 옵션 제어 · Start 일시정지</p>
+            <p>{t('GAMEPAD_HELP')}</p>
           </div>
           <p className="fine">
-            LASER Lv.5 이상: Z / Space를 2초 홀드하면 차지샷을 발사합니다.
+            {t('LASER_CHARGE_HELP')}
             <br />
-            적의 발광 점멸은 발사 예고입니다. 보스 포탑을 먼저 부숴 탄막을 줄여보세요.
+            {t('ENEMY_TELEGRAPH_HELP')}
           </p>
         </Modal>
       )}
       {panel === 'records' && (
         <Modal
           title="FLIGHT RECORDS"
-          eyebrow="ALL PILOTS / 전체 게임 이력"
+          eyebrow={t('ALL_PILOTS_EYEBROW')}
           onClose={() => setPanel(null)}
           wide
         >
@@ -1094,7 +1126,7 @@ function GameApp() {
       )}
       {(account.error || account.saving || account.launching) && (
         <div className="account-banner" role="status">
-          {account.error || (account.saving ? '플레이 검증 및 기록 저장 중…' : '출격 승인 중…')}
+          {account.error || (account.saving ? t('SAVING_STATUS') : t('LAUNCHING_STATUS'))}
           {account.error && (
             <button
               onClick={() =>
@@ -1103,25 +1135,25 @@ function GameApp() {
                   .catch(() => {})
               }
             >
-              저장 다시 시도
+              {t('RETRY_SAVE')}
             </button>
           )}
         </div>
       )}
       {ui.error && (
         <div className="fatal">
-          <h2>그래픽 초기화에 실패했습니다</h2>
+          <h2>{t('GRAPHICS_INIT_FAILED')}</h2>
           <p>{ui.error}</p>
           {/* WebGL 2 is retried automatically now, so the link only helps a
               browser whose WebGPU path hangs rather than throws. */}
-          <a href="?webgl=1">WebGL 2 호환 모드로 다시 실행</a>
+          <a href="?webgl=1">{t('WEBGL_FALLBACK')}</a>
         </div>
       )}
       {fullError && <div className="toast">{fullError}</div>}
       <div className="rotate-overlay">
         <div>↻</div>
-        <h2>가로로 돌려주세요</h2>
-        <p>최적의 비행을 위해 기기를 가로 방향으로 회전하세요.</p>
+        <h2>{t('ROTATE_DEVICE')}</h2>
+        <p>{t('ROTATE_HINT')}</p>
         <span>LANDSCAPE FLIGHT ONLY</span>
       </div>
     </div>
@@ -1140,6 +1172,7 @@ function Modal({
   onClose?: () => void;
   wide?: boolean;
 }) {
+  const t = useT();
   const ref = useRef<HTMLDivElement>(null);
   useEffect(() => {
     const previous = document.activeElement as HTMLElement | null;
@@ -1183,7 +1216,7 @@ function Modal({
         <div className="modal-heading">
           <small>{eyebrow}</small>
           {onClose && (
-            <button aria-label="닫기" onClick={onClose}>
+            <button aria-label={t('CLOSE')} onClick={onClose}>
               <X size={20} />
             </button>
           )}

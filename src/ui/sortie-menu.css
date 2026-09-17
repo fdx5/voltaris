@@ -581,7 +581,7 @@
     min-width: 32px;
     font-size: 9px;
   }
-  .app.sortie-menu .header-tools button[aria-label='전체화면'] {
+  .app.sortie-menu .header-tools button.fullscreen-button {
     display: block;
   }
   .app.sortie-menu .command {

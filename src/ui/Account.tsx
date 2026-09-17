@@ -2,9 +2,11 @@ import { useState, useEffect, type FormEvent } from 'react';
 import { Medal } from 'lucide-react';
 import { api, useAccount, type Pilot } from './store/useAccount';
 import { STAGES } from '../game/stages';
+import { useT, useLocaleStore } from './i18n';
 
 export function LoginScreen() {
   const account = useAccount();
+  const t = useT();
   const [register, setRegister] = useState(false),
     [username, setUsername] = useState(''),
     [password, setPassword] = useState(''),
@@ -22,7 +24,7 @@ export function LoginScreen() {
       setPassword('');
       useAccount.setState({ user });
     } catch (e) {
-      useAccount.setState({ error: e instanceof Error ? e.message : '로그인 실패' });
+      useAccount.setState({ error: e instanceof Error ? e.message : t('LOGIN_FAILED') });
     } finally {
       setBusy(false);
     }
@@ -33,16 +35,13 @@ export function LoginScreen() {
         <div className="login-intro">
           <small>ORBITAL COMMAND / PILOT ACCESS</small>
           <h1>VOLTARIS</h1>
-          <h2>{register ? '파일럿 계정 만들기' : '파일럿 로그인'}</h2>
-          <p>클리어 기록을 이어가고 모든 파일럿의 비행 이력을 확인하세요.</p>
-          <p className="fine">
-            첫 출격은 STAGE 01부터 시작합니다. 일반 모드 클리어 시 다음 스테이지가 열립니다. ID와
-            게임 이력은 로그인한 모든 사용자에게 공개됩니다.
-          </p>
+          <h2>{register ? t('CREATE_PILOT_ACCOUNT') : t('PILOT_LOGIN')}</h2>
+          <p>{t('LOGIN_INTRO')}</p>
+          <p className="fine">{t('LOGIN_FINE_PRINT')}</p>
         </div>
         <div className="login-fields">
           <label>
-            아이디
+            {t('USERNAME_LABEL')}
             <input
               name="username"
               autoComplete="username"
@@ -53,11 +52,11 @@ export function LoginScreen() {
               minLength={3}
               maxLength={24}
               required
-              placeholder="영문·숫자·_ 3~24자"
+              placeholder={t('USERNAME_PLACEHOLDER')}
             />
           </label>
           <label>
-            비밀번호
+            {t('PASSWORD_LABEL')}
             <input
               name="password"
               type="password"
@@ -67,7 +66,7 @@ export function LoginScreen() {
               minLength={4}
               maxLength={128}
               required
-              placeholder="4자 이상"
+              placeholder={t('PASSWORD_PLACEHOLDER')}
             />
           </label>
           {account.error && (
@@ -77,12 +76,12 @@ export function LoginScreen() {
           )}
           <button className="primary wide" disabled={busy || account.loading}>
             {busy
-              ? '연결 중…'
+              ? t('CONNECTING')
               : account.loading
-                ? '세션 확인 중…'
+                ? t('CHECKING_SESSION')
                 : register
-                  ? '가입하고 시작'
-                  : '로그인'}
+                  ? t('SIGN_UP_START')
+                  : t('LOGIN')}
           </button>
           <button
             className="secondary-button wide"
@@ -93,7 +92,7 @@ export function LoginScreen() {
               useAccount.setState({ error: '' });
             }}
           >
-            {register ? '기존 계정으로 로그인' : '처음 오셨나요? 회원가입'}
+            {register ? t('LOGIN_EXISTING') : t('NEW_HERE_REGISTER')}
           </button>
         </div>
       </form>
@@ -115,9 +114,15 @@ interface HistoryRow {
   startedAt: string;
 }
 /** Gold, silver, bronze - the only ranks the leaderboard decorates. */
-const MEDAL_TIER: Record<number, 'gold' | 'silver' | 'bronze'> = { 1: 'gold', 2: 'silver', 3: 'bronze' };
+const MEDAL_TIER: Record<number, 'gold' | 'silver' | 'bronze'> = {
+  1: 'gold',
+  2: 'silver',
+  3: 'bronze',
+};
 export function OnlineHistory() {
   const user = useAccount((s) => s.user);
+  const t = useT();
+  const locale = useLocaleStore((s) => s.locale);
   const [page, setPage] = useState(1),
     [stage, setStage] = useState(1),
     [username, setUsername] = useState(''),
@@ -149,17 +154,15 @@ export function OnlineHistory() {
     return () => controller.abort();
   }, [page, stage, filter, refresh]);
   const labels: Record<string, string> = {
-    started: '진행 / 미완료',
-    clear: '클리어',
-    gameover: '게임오버',
-    abandoned: '중도 종료',
+    started: t('STATUS_STARTED'),
+    clear: t('STATUS_CLEAR'),
+    gameover: t('STATUS_GAMEOVER'),
+    abandoned: t('STATUS_ABANDONED'),
   };
   return (
     <div className="online-history">
-      <p className="fine">
-        스테이지별 최고 점수 순위 · 일반 모드 클리어만 다음 스테이지를 해금합니다.
-      </p>
-      <div className="history-tabs" role="tablist" aria-label="스테이지 선택">
+      <p className="fine">{t('HISTORY_FINE_PRINT')}</p>
+      <div className="history-tabs" role="tablist" aria-label={t('STAGE_SELECT_LABEL')}>
         {STAGES.map((s, i) => (
           <button
             key={s.id}
@@ -186,14 +189,14 @@ export function OnlineHistory() {
         }}
       >
         <input
-          aria-label="파일럿 ID 검색"
+          aria-label={t('PILOT_ID_SEARCH')}
           value={username}
           onChange={(e) => setUsername(e.target.value)}
-          placeholder="파일럿 ID (전체 보기: 빈칸)"
+          placeholder={t('PILOT_ID_PLACEHOLDER')}
           maxLength={24}
         />
         <button className="secondary-button" type="submit">
-          조회
+          {t('SEARCH')}
         </button>
         <button
           className="secondary-button"
@@ -204,32 +207,32 @@ export function OnlineHistory() {
             setPage(1);
           }}
         >
-          내 기록
+          {t('MY_RECORDS')}
         </button>
       </form>
       {error && (
         <p role="alert" className="account-error">
-          {error} <button onClick={() => setRefresh((n) => n + 1)}>다시 시도</button>
+          {error} <button onClick={() => setRefresh((n) => n + 1)}>{t('RETRY')}</button>
         </p>
       )}
       {loading ? (
-        <p role="status">이력을 불러오는 중…</p>
+        <p role="status">{t('LOADING_HISTORY')}</p>
       ) : !data.rows.length ? (
-        <p className="empty">조건에 맞는 비행 기록이 없습니다.</p>
+        <p className="empty">{t('NO_RECORDS')}</p>
       ) : (
         <div className="history-scroll">
           <table>
             <thead>
               <tr>
-                <th>순위</th>
-                <th>파일럿</th>
-                <th>스테이지</th>
-                <th>결과</th>
-                <th>점수</th>
-                <th>무기</th>
-                <th>격추</th>
-                <th>시간</th>
-                <th>출격 일시</th>
+                <th>{t('RANK')}</th>
+                <th>{t('PILOT')}</th>
+                <th>{t('STAGE')}</th>
+                <th>{t('RESULT')}</th>
+                <th>{t('SCORE')}</th>
+                <th>{t('WEAPON')}</th>
+                <th>{t('TABLE_KILLS')}</th>
+                <th>{t('TIME')}</th>
+                <th>{t('LAUNCHED_AT')}</th>
               </tr>
             </thead>
             <tbody>
@@ -240,7 +243,10 @@ export function OnlineHistory() {
                   <tr key={row.id} className={tier ? `rank-${tier}` : undefined}>
                     <td className="rank-cell">
                       {tier ? (
-                        <span className="rank-medal" title={`${rank}위`}>
+                        <span
+                          className="rank-medal"
+                          title={locale === 'ko' ? `${rank}위` : `Rank #${rank}`}
+                        >
                           <Medal size={16} strokeWidth={2.4} />
                         </span>
                       ) : (
@@ -252,10 +258,10 @@ export function OnlineHistory() {
                       {row.stage} · {row.stageName}
                     </td>
                     <td>
-                      {row.practice ? '훈련 · ' : ''}
+                      {row.practice ? t('TRAINING_PREFIX') : ''}
                       {labels[row.status]}
                     </td>
-                    <td>{row.score.toLocaleString()}</td>
+                    <td>{row.score.toLocaleString(locale === 'ko' ? 'ko-KR' : 'en-US')}</td>
                     <td>
                       {row.weapon} Lv.{row.level}
                     </td>
@@ -264,7 +270,11 @@ export function OnlineHistory() {
                       {Math.floor(row.seconds / 60)}:
                       {String(Math.floor(row.seconds % 60)).padStart(2, '0')}
                     </td>
-                    <td>{new Date(row.startedAt.replace(' ', 'T') + 'Z').toLocaleString()}</td>
+                    <td>
+                      {new Date(row.startedAt.replace(' ', 'T') + 'Z').toLocaleString(
+                        locale === 'ko' ? 'ko-KR' : 'en-US',
+                      )}
+                    </td>
                   </tr>
                 );
               })}
@@ -278,17 +288,18 @@ export function OnlineHistory() {
           disabled={page <= 1 || loading}
           onClick={() => setPage((n) => n - 1)}
         >
-          이전
+          {t('PREV')}
         </button>
         <span>
-          {page} / {data.pages} · 총 {data.total}회
+          {page} / {data.pages} ·{' '}
+          {locale === 'ko' ? `총 ${data.total}회` : `${data.total} runs total`}
         </span>
         <button
           className="secondary-button"
           disabled={page >= data.pages || loading}
           onClick={() => setPage((n) => n + 1)}
         >
-          다음
+          {t('NEXT')}
         </button>
       </div>
     </div>

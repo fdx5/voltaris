@@ -4,6 +4,6 @@ parentPort.on('message', ({ config, events }) => {
   try {
     parentPort.postMessage({ result: verifyReplay(config, events) });
   } catch {
-    parentPort.postMessage({ error: '플레이 기록을 검증할 수 없습니다.' });
+    parentPort.postMessage({ error: 'REPLAY_UNVERIFIABLE' });
   }
 });
