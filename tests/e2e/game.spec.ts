@@ -148,7 +148,7 @@ test('stage four flies an ice cave with a roof and a deck', async ({ page }) => 
   await expect(page.getByText('STAGE 04 SKY HIGH')).toBeVisible();
   expect(errors).toEqual([]);
 });
-test('stage five flies a wide galaxy rim sector with a tripled vertical range', async ({
+test('stage five flies a wide galaxy rim sector with an expanded vertical range', async ({
   page,
 }) => {
   const errors: string[] = [];

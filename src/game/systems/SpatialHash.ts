@@ -1,6 +1,8 @@
-// Cell size 2, offset 24: covers x/y in [-24, 24). Section 5's tripled
-// vertical range reaches y = ±21.6 (stage-05.json minY/maxY) - anything
-// entering/leaving a cell outside these bounds used to be silently
+// Cell size 2, offset 24: covers x/y in [-24, 24), well past the tallest
+// vertical range any stage has authored (stage-05.json minY/maxY has moved
+// more than once - keep this margin generous rather than tracking the
+// current number). Anything entering/leaving a cell outside these bounds
+// used to be silently
 // dropped by insert() (rows only went up to y = ±14), so bullets could
 // never find enemies up there at all: not a steering bug, a broad-phase
 // coverage bug, worst at the vertical extremes and invisible on every
