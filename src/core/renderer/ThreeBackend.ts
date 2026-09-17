@@ -3,7 +3,14 @@ import { float, normalView, pass, positionGeometry, positionViewDirection } from
 import { bloom } from 'three/addons/tsl/display/BloomNode.js';
 import type { IRenderBackend, Quality } from './IRenderBackend';
 import { isIOSDevice } from '../device';
-import { IMPACTS, IMPACT_LIFE, type GameState } from '../../game/GameState';
+import {
+  IMPACTS,
+  IMPACT_LIFE,
+  MAX_LASER_TINT,
+  MAX_MISSILE_TINT,
+  MAX_SPREAD_TINT,
+  type GameState,
+} from '../../game/GameState';
 
 import {
   animateShip,
@@ -230,6 +237,12 @@ export class ThreeBackend implements IRenderBackend {
   /** Hostile homing shots: the same downloaded missile model, recoloured. */
   private readonly hostileMissiles: T.InstancedMesh;
   private readonly hostileMissileExhaust: T.InstancedMesh;
+  /** A maxed-out weapon's own shots (see MAX_*_TINT in GameState). */
+  private readonly maxLaserCore: T.InstancedMesh;
+  private readonly maxLaserHalo: T.InstancedMesh;
+  private readonly maxMissiles: T.InstancedMesh;
+  private readonly maxMissileExhaust: T.InstancedMesh;
+  private readonly maxScatter: T.InstancedMesh;
   private readonly scatter: T.InstancedMesh;
   /** Option drone rounds: emerald pulses, magenta micro-missiles, amber pellets. */
   private readonly optionCore: T.InstancedMesh;
@@ -543,6 +556,23 @@ export class ThreeBackend implements IRenderBackend {
       19,
     );
     this.shotCore = batch(bolt, lit('#e8f8ff', 2.6), 1024);
+    // A maxed-out LASER fires a thick violet beam instead of the usual
+    // hairline tracer - reusing the same bolt geometry at a bigger scale
+    // (see the MAX_LASER_TINT push below) so the payoff for reaching the
+    // weapon's last level is unmistakable at a glance.
+    const maxBolt = new T.CapsuleGeometry(1, 4, 3, 6).rotateZ(Math.PI / 2);
+    this.maxLaserHalo = batch(
+      maxBolt.clone(),
+      Object.assign(lit('#9b3fff', 1.3), {
+        transparent: true,
+        opacity: 0.36,
+        blending: T.AdditiveBlending,
+        depthWrite: false,
+      }),
+      256,
+      19,
+    );
+    this.maxLaserCore = batch(maxBolt, lit('#e6cbff', 2.8), 256);
     const ordnance = (
       kind: Parameters<typeof makeOrdnance>[0],
       capacity: number,
@@ -580,7 +610,24 @@ export class ThreeBackend implements IRenderBackend {
       1152,
       18,
     );
+    // A maxed-out MISSILE fires a much bigger, magenta-hot round; a maxed-out
+    // SPREAD's own shots (not the drones') double in size and turn amber -
+    // both reuse the same downloaded models/geometry as their normal fire,
+    // just bigger and recoloured (see MAX_MISSILE_TINT/MAX_SPREAD_TINT).
+    this.maxMissiles = ordnance('missile-main', 256, '#ff2ec4');
+    this.maxMissileExhaust = batch(
+      new T.CapsuleGeometry(1, 3, 2, 5).rotateZ(Math.PI / 2),
+      Object.assign(lit('#ff6be0', 1.2), {
+        transparent: true,
+        opacity: 0.28,
+        blending: T.AdditiveBlending,
+        depthWrite: false,
+      }),
+      768,
+      18,
+    );
     this.scatter = ordnance('spread-main', 1024);
+    this.maxScatter = ordnance('spread-main', 384, '#ffcf3d');
     const pulse = new T.SphereGeometry(1, 10, 8);
     this.optionHalo = batch(
       pulse.clone(),
@@ -1246,22 +1293,39 @@ export class ThreeBackend implements IRenderBackend {
         }
         case 2: {
           const drone = p.option[i] === 1;
+          // A maxed-out MISSILE's own shots (never a drone's) fly 3x the
+          // usual size in hot magenta instead of the ship's usual orange.
+          const maxed = p.tint[i] === MAX_MISSILE_TINT;
+          const exhaust = drone
+            ? this.optionExhaust
+            : maxed
+              ? this.maxMissileExhaust
+              : this.missileExhaust;
+          const bodyScale = drone ? 1.1 : maxed ? 4.65 : 1.55;
           for (let tail = 1; tail <= 3; tail++) {
-            const distance = r * (2 + tail * 2.2);
+            const distance = r * (2 + tail * 2.2) * (maxed ? 1.6 : 1);
             this.push(
-              drone ? this.optionExhaust : this.missileExhaust,
+              exhaust,
               x - Math.cos(aim) * distance,
               y - Math.sin(aim) * distance,
               0.12,
-              r * 1.3,
-              r * (0.48 - tail * 0.1),
-              r * 0.3,
+              r * 1.3 * (maxed ? 1.8 : 1),
+              r * (0.48 - tail * 0.1) * (maxed ? 1.8 : 1),
+              r * 0.3 * (maxed ? 1.8 : 1),
               aim,
             );
           }
           // A drone's micro-missile is slimmer than the ship's own.
-          if (drone) this.push(this.optionMissiles, x, y, 0.15, r * 1.1, r * 1.1, r * 1.1, aim);
-          else this.push(this.missiles, x, y, 0.15, r * 1.55, r * 1.55, r * 1.55, aim);
+          this.push(
+            drone ? this.optionMissiles : maxed ? this.maxMissiles : this.missiles,
+            x,
+            y,
+            0.15,
+            r * bodyScale,
+            r * bodyScale,
+            r * bodyScale,
+            aim,
+          );
           break;
         }
         case 4:
@@ -1276,10 +1340,24 @@ export class ThreeBackend implements IRenderBackend {
           this.push(this.lance, x, y, 0.15, r * 2.4, r * 0.85, r * 0.85, aim);
           break;
         default:
-          if (p.tint[i] === 0xbca8ff) {
+          if (p.tint[i] === 0xbca8ff || p.tint[i] === MAX_SPREAD_TINT) {
+            // A maxed-out SPREAD's own shots (never a drone's, so this only
+            // ever applies when option is 0) double in size and turn amber.
+            const maxed = p.tint[i] === MAX_SPREAD_TINT;
+            const bodyScale = p.option[i] === 1 ? 1 : maxed ? 2 : 1;
             if (p.option[i] === 1)
               this.push(this.optionScatter, x, y, 0.15, r * 1.3, r * 0.9, r * 0.9, aim);
-            else this.push(this.scatter, x, y, 0.15, r * 1.85, r * 1.3, r * 1.3, aim);
+            else
+              this.push(
+                maxed ? this.maxScatter : this.scatter,
+                x,
+                y,
+                0.15,
+                r * 1.85 * bodyScale,
+                r * 1.3 * bodyScale,
+                r * 1.3 * bodyScale,
+                aim,
+              );
             this.push(
               p.option[i] === 1 ? this.optionExhaust : this.missileExhaust,
               x - Math.cos(aim) * r * 4,
@@ -1297,6 +1375,13 @@ export class ThreeBackend implements IRenderBackend {
             const throb = 1 + Math.sin(t * 30 + i) * 0.15;
             this.push(this.optionCore, x, y, 0.15, r * 1.25, r * 0.7, r * 0.7, aim);
             this.push(this.optionHalo, x, y, 0.14, r * 2.3 * throb, r * 1.45 * throb, r * 1.2, aim);
+            break;
+          }
+          if (p.tint[i] === MAX_LASER_TINT) {
+            // A maxed-out LASER's own shot: a thick violet beam instead of
+            // the usual hairline tracer.
+            this.push(this.maxLaserCore, x, y, 0.15, r * 2.6, r * 0.95, r * 0.95, aim);
+            this.push(this.maxLaserHalo, x, y, 0.14, r * 3.6, r * 2, r * 2, aim);
             break;
           }
           // A hairline core inside a soft additive sheath reads as a tracer

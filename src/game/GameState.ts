@@ -48,6 +48,16 @@ const HOSTILE_TINTS = [
   0xff2d55, 0xff6a00, 0xffd400, 0xff3df0, 0x7a2dff, 0xff0044, 0xffa300, 0xd4ff2d, 0xff5ecb,
   0xb300ff, 0xff8800, 0xfff200, 0xff2d7a, 0x9d00ff, 0xff6b6b, 0xc2ff2d,
 ];
+// A ship's own shot (never an option drone's) at the weapon's last level gets
+// its own "maxed out" presentation - the renderer keys off these exact tint
+// values to swap in a bigger, differently coloured batch for that one bullet,
+// so the payoff for reaching the top of a weapon is visible, not just felt
+// in the damage numbers. Bullets never carry any other meaning in `tint`
+// besides SPREAD's existing 0xbca8ff marker, so these are free to reuse as
+// both "which special batch" flags and the actual colours drawn with.
+export const MAX_LASER_TINT = 0x9b3fff;
+export const MAX_MISSILE_TINT = 0xff2ec4;
+export const MAX_SPREAD_TINT = 0xffcf3d;
 export type Status = 'menu' | 'playing' | 'paused' | 'continue' | 'gameover' | 'clear' | 'stress';
 /**
  * Keeps a value inside [low, high] without a hard stop: the last fifth of the
@@ -642,6 +652,10 @@ export class GameState {
     // type, so the main gun stays the headline weapon even as more options
     // come online.
     const damage = w.damage * (this.effects[0] > 0 ? 2 : 1) * (option ? 1 : 2);
+    // A maxed-out weapon gets its own presentation on the ship's own shots
+    // only - an option drone stays the smaller escort round it's always
+    // been, so the upgrade reads as the hull itself coming into its own.
+    const maxed = !option && this.level === weapons[this.weapon].length;
     const beat = this.shotEvent % 2 ? 1 : -1;
     for (let j = 0; j < w.count; j++) {
       const mid = j - (w.count - 1) / 2;
@@ -672,8 +686,12 @@ export class GameState {
         w.pierce,
       );
       if (slot < 0) continue;
-      if (this.weapon === 'SPREAD') this.bullets.tint[slot] = 0xbca8ff;
-      if (this.weapon === 'MISSILE') this.bullets.param[slot] = -1; // no target locked yet
+      if (this.weapon === 'SPREAD') this.bullets.tint[slot] = maxed ? MAX_SPREAD_TINT : 0xbca8ff;
+      if (this.weapon === 'LASER' && maxed) this.bullets.tint[slot] = MAX_LASER_TINT;
+      if (this.weapon === 'MISSILE') {
+        this.bullets.param[slot] = -1; // no target locked yet
+        if (maxed) this.bullets.tint[slot] = MAX_MISSILE_TINT;
+      }
       if (option) this.bullets.option[slot] = 1;
     }
   }

@@ -2,7 +2,13 @@ import { describe, it, expect } from 'vitest';
 import { ObjectPool } from '../../src/core/pool/ObjectPool';
 import { BulletPool } from '../../src/game/entities/BulletPool';
 import { SpatialHash, segmentCircle } from '../../src/game/systems/SpatialHash';
-import { GameState } from '../../src/game/GameState';
+import {
+  GameState,
+  MAX_LASER_TINT,
+  MAX_MISSILE_TINT,
+  MAX_SPREAD_TINT,
+  type Weapon,
+} from '../../src/game/GameState';
 import { STAGES } from '../../src/game/stages';
 import defs from '../../data/enemies/enemy-defs.json';
 import fleetHardpoints from '../../data/enemies/fleet-hardpoints.json';
@@ -699,6 +705,41 @@ describe('arcade rules', () => {
       g.tick(dt);
     }
     expect(g.rocks.count).toBe(0);
+  });
+  it('gives a maxed-out weapon its own shot colour, only on the ship\'s own fire, only at the last level', () => {
+    const cases: [Weapon, number][] = [
+      ['LASER', MAX_LASER_TINT],
+      ['MISSILE', MAX_MISSILE_TINT],
+      ['SPREAD', MAX_SPREAD_TINT],
+    ];
+    for (const [weapon, maxTint] of cases) {
+      const notMaxed = new GameState();
+      notMaxed.start(weapon, 3);
+      notMaxed.invincible = 99;
+      notMaxed.level = 1;
+      notMaxed.optionCount = 1;
+      notMaxed.tick(dt);
+      let sawMaxTint = false;
+      for (let i = 0; i < notMaxed.bullets.limit; i++)
+        if (notMaxed.bullets.active[i] && notMaxed.bullets.tint[i] === maxTint) sawMaxTint = true;
+      expect(sawMaxTint).toBe(false);
+
+      const maxed = new GameState();
+      maxed.start(weapon, 3);
+      maxed.invincible = 99;
+      maxed.level = 8;
+      maxed.optionCount = 1;
+      maxed.tick(dt);
+      let sawOwnMaxTint = false,
+        sawOptionMaxTint = false;
+      for (let i = 0; i < maxed.bullets.limit; i++) {
+        if (!maxed.bullets.active[i] || maxed.bullets.tint[i] !== maxTint) continue;
+        if (maxed.bullets.option[i]) sawOptionMaxTint = true;
+        else sawOwnMaxTint = true;
+      }
+      expect(sawOwnMaxTint).toBe(true);
+      expect(sawOptionMaxTint).toBe(false);
+    }
   });
   it('drops a homing missile lock instead of tracking a different enemy that recycles the same pool slot', () => {
     const g = new GameState();
