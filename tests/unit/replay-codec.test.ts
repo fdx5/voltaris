@@ -1,5 +1,5 @@
 import { expect, it } from 'vitest';
-import { packReplay, unpackReplay } from '../../src/core/replayCodec';
+import { MAX_REPLAY_FRAMES, packReplay, unpackReplay } from '../../src/core/replayCodec';
 import { verifyReplay } from '../../server/replay';
 
 const config = { weapon: 'LASER' as const, credits: 3, stage: 1, practice: false, autoFire: true };
@@ -25,12 +25,30 @@ it('rejects malformed and oversized expanded replays before allocating excessive
     [[5, 2.5, 0, 0, 0, 0]],
     [[5, 1e9, 0, 0, 0, 0]],
     [
-      [5, 36000, 0, 0, 0, 0],
-      [5, 36000, 0, 0, 0, 0],
+      [5, MAX_REPLAY_FRAMES, 0, 0, 0, 0],
+      [5, MAX_REPLAY_FRAMES, 0, 0, 0, 0],
     ],
     [[5, 2, 0, 0, 0]],
   ])
     expect(() => unpackReplay(events)).toThrow();
   expect(() => verifyReplay(config, [[5, 2, 1024, 0, 0, 0]])).toThrow();
   expect(() => verifyReplay(config, [[5, 2, 0, 0, NaN, 0]])).toThrow();
+});
+
+it('verifies a long, mostly-incompressible run past the old 36000-frame cap', () => {
+  // Continuous analog movement rarely repeats frame-to-frame, so a genuinely
+  // long Section 5 clear barely compresses - regression test for the replay
+  // budget once being tuned for a much shorter maximum session.
+  const events = Array.from({ length: 50000 }, (_, i) => [
+    0,
+    0,
+    0,
+    Math.sin(i / 37) * 1.5,
+    Math.cos(i / 53) * 1.2,
+  ]);
+  const packed = packReplay(events);
+  expect(packed.length).toBeGreaterThan(36000);
+  expect(() =>
+    verifyReplay({ weapon: 'SPREAD', credits: 15, practice: false, stage: 5, autoFire: true }, packed),
+  ).not.toThrow();
 });

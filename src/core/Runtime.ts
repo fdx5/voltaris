@@ -269,7 +269,9 @@ export class Runtime {
     const pending = this.pendingResult;
     useAccount.setState({ saving: true, error: '' });
     const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 35000);
+    // A few seconds above ReplayVerifier's own timeoutMs (server/verify.mjs),
+    // which itself budgets for verifying a MAX_REPLAY_FRAMES-length replay.
+    const timeout = setTimeout(() => controller.abort(), 55000);
     this.savePromise = api<{ user: Pilot; status: string }>(
       `/runs/${pending.id}/finish`,
       {

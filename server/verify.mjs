@@ -20,7 +20,10 @@ export class ReplayVerifier {
   constructor({
     size = 2,
     maxPending = 10,
-    timeoutMs = 30000,
+    // Long enough to verify a MAX_REPLAY_FRAMES-length Section 5 clear (worst
+    // observed case ~165k frames took ~16-20s single-threaded); Runtime.ts's
+    // client-side save abort is set a few seconds above this.
+    timeoutMs = 50000,
     workerUrl = new URL('./replay-worker.mjs', import.meta.url),
   } = {}) {
     this.size = size;

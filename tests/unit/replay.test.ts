@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { GameState } from '../../src/game/GameState';
 import { verifyReplay } from '../../server/replay';
+import { MAX_PACKED_LENGTH } from '../../src/core/replayCodec';
 describe('server gameplay replay', () => {
   it('reproduces score, kills and elapsed time from gameplay including skills and autofire changes', () => {
     const g = new GameState();
@@ -50,7 +51,7 @@ describe('server gameplay replay', () => {
     expect(() =>
       verifyReplay(
         config,
-        Array.from({ length: 45001 }, () => [2]),
+        Array.from({ length: MAX_PACKED_LENGTH + 1 }, () => [2]),
       ),
     ).toThrow();
   });

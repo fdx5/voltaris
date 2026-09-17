@@ -1,6 +1,6 @@
 import { GameState } from '../src/game/GameState';
 import type { Weapon } from '../src/game/GameState';
-import { unpackReplay } from '../src/core/replayCodec';
+import { MAX_REPLAY_FRAMES, unpackReplay } from '../src/core/replayCodec';
 
 export function verifyReplay(
   config: {
@@ -35,7 +35,7 @@ export function verifyReplay(
         b > 1023 ||
         Math.abs(x) > 32 ||
         Math.abs(y) > 18 ||
-        ++frames > 36000
+        ++frames > MAX_REPLAY_FRAMES
       )
         throw new Error('Invalid replay input');
       g.tick(1 / 60, a, b, x, y);
