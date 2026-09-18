@@ -231,8 +231,33 @@ export async function createApp(
       const verificationStart = performance.now();
       const result = await verifier(JSON.parse(run.config_json), req.body?.events);
       const verificationMs = performance.now() - verificationStart;
-      if (req.body?.outcome === 'clear' && result.status !== 'clear')
+      if (req.body?.outcome === 'clear' && result.status !== 'clear') {
+        // A 422 here previously left no trace anywhere - the only way to
+        // diagnose a genuine client/server replay divergence (as opposed to
+        // this being the expected rejection of a tampered or truncated
+        // replay) was to reproduce it blind. Logging the mismatch is cheap
+        // and gives the next occurrence an actual paper trail.
+        console.error(
+          'CLEAR_VERIFICATION_FAILED',
+          JSON.stringify({
+            runId: run.id,
+            userId: req.userId,
+            stage: run.stage_id,
+            config: run.config_json,
+            eventCount: Array.isArray(req.body?.events) ? req.body.events.length : null,
+            claimed: { outcome: req.body?.outcome },
+            verified: {
+              status: result.status,
+              score: result.score,
+              kills: result.kills,
+              level: result.level,
+              frames: result.frames,
+            },
+            verificationMs,
+          }),
+        );
         throw fail(422, 'CLEAR_VERIFICATION_FAILED');
+      }
       const persistenceStart = performance.now();
       // One atomic round trip: persist, conditionally unlock, and read the committed result.
       const saved = await db.batch(

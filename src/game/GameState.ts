@@ -22,6 +22,7 @@ import { BulletPool, Shot } from './entities/BulletPool';
 import { STAGES, type StageDef } from './stages';
 import { SpatialHash, segmentCircle } from './systems/SpatialHash';
 import { Key } from '../core/input/InputManager';
+import { MAX_REPLAY_FRAMES } from '../core/replayCodec';
 export type Weapon = keyof typeof weapons;
 export type Mode = 'TRAIL' | 'FREEZE' | 'DIRECTIONAL' | 'ROTATE';
 /** Shape of a stage's `boss` (and optional `midBoss`) block. */
@@ -202,8 +203,14 @@ export class GameState {
   readonly partHp = new Float32Array(10);
   readonly partX = new Float32Array(10);
   readonly partY = new Float32Array(10);
-  readonly replay = new Float32Array(60 * 600 * 3);
-  readonly replayPressed = new Uint16Array(60 * 600);
+  // NOTE: this internal recording is not what actually gets saved - the real
+  // save path (Runtime.finishRun) builds its own event log independently and
+  // has no length cap. Sized to MAX_REPLAY_FRAMES anyway so this buffer's own
+  // 10-minute (old 60*600 frame) cap can't silently diverge from the budget
+  // the rest of the replay pipeline (server/replay.ts, the packed codec) is
+  // actually built for, now or if something comes to depend on this later.
+  readonly replay = new Float32Array(MAX_REPLAY_FRAMES * 3);
+  readonly replayPressed = new Uint16Array(MAX_REPLAY_FRAMES);
   replayFrames = 0;
   replayOverflow = false;
   /** Which stage of the run is loaded; drives spawns, boss and backdrop. */

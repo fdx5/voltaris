@@ -35,10 +35,10 @@ async function fixture(t, verifier = verify) {
 }
 const config = { stage: 1, weapon: 'LASER', credits: 3, practice: false, autoFire: true };
 
-test('migration seeds four stages idempotently and does not create fake players', async (t) => {
+test('migration seeds five stages idempotently and does not create fake players', async (t) => {
   const { db } = await fixture(t);
   await migrate(db);
-  assert.equal((await db.execute('SELECT * FROM stages')).rows.length, 4);
+  assert.equal((await db.execute('SELECT * FROM stages')).rows.length, 5);
   assert.equal((await db.execute('SELECT * FROM users')).rows.length, 0);
 });
 test('registration, password hashing, duplicate ID, session restore and logout', async (t) => {
