@@ -38,7 +38,7 @@
     },
     {
       "time": 6,
-      "type": 0,
+      "type": 4,
       "y": -3,
       "count": 17,
       "pattern": 1
@@ -52,7 +52,7 @@
     },
     {
       "time": 13,
-      "type": 0,
+      "type": 4,
       "y": -4,
       "count": 17,
       "pattern": 0

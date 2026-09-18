@@ -188,6 +188,10 @@ export function finishHull(
   surface: Part['surface'],
   /** 0..~2: how hot a red damage glow burns over the whole hull (bosses only). */
   damage?: DamageGlow,
+  /** Fresnel rim tint - every hull shares the same cool blue except a boss,
+   *  which takes its own accent so the six designs read apart at a glance
+   *  even in silhouette. */
+  rimColor = '#9fc6ff',
 ) {
   // Only bosses (and their pods) pass a damage uniform. They're built from
   // the same source textures as every small hull but stretched over a hull
@@ -213,7 +217,7 @@ export function finishHull(
   // every silhouette, and a little of the paint glows so its colours survive
   // on the unlit side.
   const facing = normalView.dot(positionViewDirection).clamp(0, 1);
-  const rim = color('#9fc6ff').mul(float(1).sub(facing).pow(2.6)).mul(0.55);
+  const rim = color(rimColor).mul(float(1).sub(facing).pow(2.6)).mul(0.55);
   // A boss's own texture detail (panel lines, decals) all but vanishes under
   // a 14%-strength paint pass at that scale, so it runs over twice as hot;
   // a soft core shadow - the fresnel falloff turned inward instead of out -
@@ -281,9 +285,16 @@ export const importedGroundGeometry = (type: number) =>
     0.06,
   );
 
-function mesh(slot: string, reach: number, facing: 1 | -1, view: number, damage?: DamageGlow) {
+function mesh(
+  slot: string,
+  reach: number,
+  facing: 1 | -1,
+  view: number,
+  damage?: DamageGlow,
+  rimColor?: string,
+) {
   const { geometry, map, surface } = part(slot, reach, facing, view);
-  const material = finishHull(new T.MeshStandardNodeMaterial({ map }), surface, damage);
+  const material = finishHull(new T.MeshStandardNodeMaterial({ map }), surface, damage, rimColor);
   const object = new T.Mesh(geometry, material);
   object.name = slot;
   return object;
@@ -332,14 +343,29 @@ const BOSS_SPEC: Record<BossDesign, { reach: number; pods: number; podReach: num
   warden: { reach: 5.6, pods: 8, podReach: 0.54 },
   sovereign: { reach: 6.2, pods: 10, podReach: 0.52 },
 };
+/**
+ * Every boss's own fresnel rim tint - lifted from `bossSalvo`'s per-stage
+ * bullet colours (see HostilePatterns.ts) so a boss's hull and its own fire
+ * read as one identity, with Section 5's two bosses (`warden`/`sovereign`)
+ * split into their own pair instead of sharing one colour.
+ */
+const BOSS_ACCENT: Record<BossDesign, string> = {
+  gatekeeper: '#ff9a70',
+  ares: '#ffd377',
+  jove: '#d1b2ff',
+  nereid: '#80efe4',
+  warden: '#b0a8ff',
+  sovereign: '#ffb347',
+};
 
 export function makeImportedBoss(design: BossDesign): BossModel {
   const spec = BOSS_SPEC[design];
   const entry = roster.bosses[design];
+  const accent = BOSS_ACCENT[design];
   const root = new T.Group();
   root.name = `boss_${design}`;
   const damage = uniform(0);
-  const hull = mesh(`boss_${design}`, spec.reach, -1, entry.hull.view, damage);
+  const hull = mesh(`boss_${design}`, spec.reach, -1, entry.hull.view, damage, accent);
   root.add(hull);
   const core = new T.Mesh(
     new T.SphereGeometry(0.16, 20, 12),
@@ -349,11 +375,26 @@ export function makeImportedBoss(design: BossDesign): BossModel {
   core.position.z = hull.geometry.boundingBox!.max.z + 0.02;
   const ring = new T.Group();
   root.add(core, ring);
-  const drone = mesh(`pod_${design}`, spec.podReach, -1, entry.pod.view, damage);
-  const pods = Array.from({ length: spec.pods }, (_, i) => {
+  // Every pod gets its own material (sharing one built geometry, so this
+  // costs a handful of small material objects, not N geometry rebuilds) and
+  // its own damage uniform, so a pod burning red from its own wounds doesn't
+  // force the whole ring to flush together with it.
+  const podPart = part(`pod_${design}`, spec.podReach, -1, entry.pod.view);
+  const podDamage: DamageGlow[] = [];
+  const pods = Array.from({ length: spec.pods }, () => {
+    const podGlow = uniform(0);
+    podDamage.push(podGlow);
+    const material = finishHull(
+      new T.MeshStandardNodeMaterial({ map: podPart.map }),
+      podPart.surface,
+      podGlow,
+      accent,
+    );
+    const droneMesh = new T.Mesh(podPart.geometry, material);
+    droneMesh.name = `pod_${design}`;
     const pod = new T.Group();
-    pod.add(i ? drone.clone() : drone);
+    pod.add(droneMesh);
     return pod;
   });
-  return { root, ring, core, pods, damage };
+  return { root, ring, core, pods, damage, podDamage };
 }

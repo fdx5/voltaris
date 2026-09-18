@@ -35,6 +35,21 @@ const MEDIUM_TYPES = fleetHardpoints.reduce<number[]>((acc, f, i) => {
   if (f.size === 'medium') acc.push(i);
   return acc;
 }, []);
+/** The other medium hull a squad mixes in alongside a given medium type,
+ *  so a medium-tier wave never reads as a single repeated gunship. */
+function pairedMediumType(type: number) {
+  const idx = MEDIUM_TYPES.indexOf(type);
+  return MEDIUM_TYPES[(idx + 1) % MEDIUM_TYPES.length];
+}
+/** Concurrent squad slots a stage's spawner can juggle at once - see `spawn()`. */
+const LANE_COUNT = 6;
+/** How many consecutive authored waves are pulled into one simultaneous
+ *  "beat" so their types are guaranteed to share the screen instead of only
+ *  ever arriving one type at a time - 2 elsewhere, 3 on Section 5 (stage
+ *  index 4), which is authored for a busier screen. See `effectiveSpawnTime`. */
+function beatSize(stageIndex: number) {
+  return stageIndex === 4 ? 3 : 2;
+}
 // Hostile fire used to be tinted with each ship's own hull palette[1], a
 // muted design colour meant for shading a 3D model, not for reading as a
 // threat against a dark starfield - most of the 44 hues cluster in similar
@@ -134,6 +149,8 @@ export class GameState {
   armourHitEvent = 0;
   /** Seconds of hit flash left on the boss hull. */
   bossFlash = 0;
+  /** Seconds of hit flash left on each boss pod, indexed like `partHp`. */
+  readonly partFlash = new Float32Array(10);
   /**
    * The NOVA BOMB. Launched straight ahead from the ship's nose, it builds
    * speed and detonates on reaching `tuning.nova.detonateX` - about 200 px in
@@ -295,13 +312,13 @@ export class GameState {
   private groundIndex = 0;
   private groundTimer = 0;
   /**
-   * Four pending squad slots preserve authored wave timing even when multiple
+   * Pending squad slots preserve authored wave timing even when multiple
    * waves start on the same frame. Each squad is emitted as a complete layout.
    */
-  private readonly laneWave = new Int32Array(4).fill(-1);
-  private readonly laneLeft = new Int32Array(4);
-  private readonly laneSpawned = new Int32Array(4);
-  private readonly laneTimer = new Float32Array(4);
+  private readonly laneWave = new Int32Array(LANE_COUNT).fill(-1);
+  private readonly laneLeft = new Int32Array(LANE_COUNT);
+  private readonly laneSpawned = new Int32Array(LANE_COUNT);
+  private readonly laneTimer = new Float32Array(LANE_COUNT);
   start(weapon: Weapon, credits: number, practice = false, carry = false, stageIndex = 0) {
     this.stageIndex = clamp(stageIndex, 0, STAGES.length - 1);
     this.stage = STAGES[this.stageIndex];
@@ -404,6 +421,7 @@ export class GameState {
     this.enemyFlash.fill(0);
     this.impactAge.fill(IMPACT_LIFE);
     this.bossFlash = 0;
+    this.partFlash.fill(0);
     this.announce(
       practice
         ? this.stage.boss.id + ' / 보스 훈련'
@@ -504,6 +522,8 @@ export class GameState {
     this.shake = Math.max(0, this.shake - dt * 2);
     this.flash = Math.max(0, this.flash - dt * 2);
     this.bossFlash = Math.max(0, this.bossFlash - dt);
+    for (let p = 0; p < this.partFlash.length; p++)
+      this.partFlash[p] = Math.max(0, this.partFlash[p] - dt);
     // The blast keeps burning through a boss's death sequence, which it may have started.
     if (this.novaBlast >= 0 && (this.novaBlast += dt) >= tuning.nova.blast) this.novaBlast = -1;
     for (let k = 0; k < IMPACTS; k++)
@@ -716,6 +736,18 @@ export class GameState {
     return cameraHeight ? cameraHeight / 32 : 1;
   }
   /**
+   * The right-edge x beyond which a hostile is still off-screen - the same
+   * threshold `updateEnemies` already uses to decide a hull is close enough
+   * to start firing. `collisions()` uses it the other way round: a target
+   * spawns a couple of units past this line (see `formationPosition`'s
+   * `17.4 * edgeScale` entry point) so player fire travelling at 30 units/s
+   * would otherwise land kills on hulls the player has never actually seen
+   * arrive, before they cross into view.
+   */
+  get engageX() {
+    return 16.5 * this.worldScale;
+  }
+  /**
    * The camera never zooms out - screen scale stays identical on every
    * stage. A stage whose `maxY - minY` doesn't fit inside the visible frame
    * (Section 5's tripled range does not) instead has the camera pan
@@ -782,15 +814,32 @@ export class GameState {
         this.charge[s] = Math.min(1, this.charge[s] + 1 / tuning.skills[this.skills[s]].kills);
     g.release(i);
   }
+  /**
+   * A wave's own authored `time`, except for the 2nd/3rd member of its beat
+   * group (see `beatSize`), which fire a fraction of a second after the
+   * group's first member regardless of how much later they were authored -
+   * squads that used to arrive one type at a time now land as one mixed
+   * simultaneous encounter instead, with no change to the stage JSON.
+   */
+  private effectiveSpawnTime(ordinal: number) {
+    const size = beatSize(this.stageIndex);
+    const groupStart = Math.floor(ordinal / size) * size;
+    const anchor = this.stage.spawns[groupStart].time;
+    const offset = ordinal - groupStart;
+    return offset === 0 ? anchor : anchor + offset * 0.55;
+  }
   private spawn(dt: number) {
     if (this.practice) return;
-    for (let lane = 0; lane < 4; lane++) {
+    for (let lane = 0; lane < LANE_COUNT; lane++) {
       if (this.laneWave[lane] < 0) continue;
       this.laneTimer[lane] -= dt;
       if (this.laneTimer[lane] > 0) continue;
       const wave = this.stage.spawns[this.laneWave[lane]];
       const ordinal = this.laneWave[lane];
       const count = this.waveSize(wave.count, ordinal, wave.type);
+      // A wave of medium gunships on Section 5 mixes in a second medium hull
+      // every other slot, so a "medium wave" never reads as one repeated ship.
+      const mixMedium = this.stageIndex === 4 && fleetHardpoints[wave.type].size === 'medium';
       // A squad enters together, with real lateral and depth separation.
       while (this.laneLeft[lane] > 0) {
         const n = this.laneSpawned[lane]++;
@@ -808,7 +857,8 @@ export class GameState {
           this.stage.maxY - d.radius - 0.4,
           this.worldScale,
         );
-        this.spawnEnemy(wave.type, pos.x, pos.y, 3 + (ordinal % 6), 0);
+        const type = mixMedium && n % 2 === 1 ? pairedMediumType(wave.type) : wave.type;
+        this.spawnEnemy(type, pos.x, pos.y, 3 + (ordinal % 6), 0);
         this.laneLeft[lane]--;
       }
       this.laneWave[lane] = -1;
@@ -820,7 +870,7 @@ export class GameState {
       !this.boss &&
       !this.midBoss &&
       this.spawnIndex < this.stage.spawns.length &&
-      this.time >= this.stage.spawns[this.spawnIndex].time
+      this.time >= this.effectiveSpawnTime(this.spawnIndex)
     ) {
       const lane = this.laneWave.indexOf(-1);
       if (lane < 0) break;
@@ -1355,6 +1405,7 @@ export class GameState {
     this.bossEscortSent = 0;
     this.partHp.fill(0);
     this.partHp.fill(def.partHp, 0, def.parts);
+    this.partFlash.fill(0);
     this.announce('WARNING / ' + def.id + ' 接近', 4);
     this.warningEvent++;
   }
@@ -1374,19 +1425,23 @@ export class GameState {
     }
     // Section 5 keeps ordinary and medium pressure coming through both of
     // its boss fights instead of the boss being a quiet one-on-one: a fresh
-    // escort squad arrives every 4.5s of boss time, a medium gunship in
-    // every third squad, small hulls otherwise cycling through the roster.
+    // escort squad arrives every 4.5s of boss time, a pair of medium gunships
+    // (two different hulls, never the same type twice) in every third squad,
+    // two different small hulls otherwise - so even mid-fight the screen
+    // never settles into a single repeated escort type.
     if (this.stageIndex === 4) {
       const escortDue = Math.floor(this.bossTime / 4.5);
       if (escortDue > this.bossEscortSent) {
         this.bossEscortSent = escortDue;
         const medium = escortDue % 3 === 2;
-        const count = medium ? 1 : 2;
-        const type = medium
+        const count = 2;
+        const baseType = medium
           ? MEDIUM_TYPES[escortDue % MEDIUM_TYPES.length]
           : escortDue % defs.length;
         const center = (this.rng.next() - 0.5) * (this.stage.maxY - this.stage.minY) * 0.7;
         for (let n = 0; n < count; n++) {
+          const type =
+            n === 0 ? baseType : medium ? pairedMediumType(baseType) : (escortDue + 5) % defs.length;
           const pos = formationPosition(
             escortDue,
             n,
@@ -1701,12 +1756,18 @@ export class GameState {
       e = this.enemies;
     this.grid.clear();
     this.bulletGrid.clear();
-    for (let i = 0; i < e.limit; i++) if (e.active[i]) this.grid.insert(i, e.x[i], e.y[i]);
+    // A hull still short of `engageX` hasn't scrolled into view yet (it
+    // spawns a couple of units further out still, see `formationPosition`) -
+    // leaving it out of the grid means player fire simply passes through
+    // rather than killing something the player never saw arrive.
+    for (let i = 0; i < e.limit; i++)
+      if (e.active[i] && e.x[i] <= this.engageX) this.grid.insert(i, e.x[i], e.y[i]);
     for (let i = 0; i < b.limit; i++)
       if (b.active[i] && b.type[i] === 1) this.bulletGrid.insert(i, b.x[i], b.y[i]);
     this.groundGrid.clear();
     for (let i = 0; i < this.ground.limit; i++)
-      if (this.ground.active[i]) this.groundGrid.insert(i, this.ground.x[i], this.ground.y[i]);
+      if (this.ground.active[i] && this.ground.x[i] <= this.engageX)
+        this.groundGrid.insert(i, this.ground.x[i], this.ground.y[i]);
     const r = this.rocks;
     for (let i = 0; i < b.limit; i++) {
       if (!b.active[i] || b.type[i] === 1) continue;
@@ -1777,6 +1838,7 @@ export class GameState {
           )
         ) {
           this.partHp[p] -= b.hp[i];
+          this.partFlash[p] = 0.08;
           if (this.partHp[p] > 0)
             this.impact(this.partX[p], this.partY[p], 0.55, b.px[i], b.py[i], false);
           b.release(i);

@@ -382,7 +382,10 @@ describe('arcade rules', () => {
     fly(5);
     const opening = g.enemies.count;
     expect(opening).toBeGreaterThan(0);
-    expect(opening).toBeLessThanOrEqual(3);
+    // The opening wave's beat partner (see GameState.effectiveSpawnTime) now
+    // lands well inside this window too, so the very first encounter is
+    // already a mixed pair of waves rather than one lone formation.
+    expect(opening).toBeLessThanOrEqual(10);
     fly(15);
     expect(g.enemies.count).toBeGreaterThan(opening);
     // Overlapping emitter lanes are what let the later waves stack up at all.
@@ -764,6 +767,33 @@ describe('arcade rules', () => {
     // again: the missile should have rescanned and refused B (behind, so
     // disqualified), not silently kept "tracking" whatever now sits there.
     expect(g.bullets.param[slot]).not.toBe(b);
+  });
+  it('only lets player fire damage a hostile once it has actually scrolled into view', () => {
+    const g = new GameState();
+    g.start('LASER', 1);
+    g.invincible = 99;
+    // Spawns arrive just past the visible right edge (see formationPosition's
+    // 17.4 entry point), well beyond `engageX` and directly in the bullet's
+    // path. Position is re-pinned every frame so the hull's own cruise/weave
+    // motion can't be what keeps it out of range - only the engage gate can.
+    const farX = g.engageX + 3;
+    const offscreen = g.enemies.acquire(farX, g.y, 0, 0, 0, 1e9, 0.5, 50);
+    g.enemies.life[offscreen] = g.y;
+    const slot = g.bullets.fire(g.x, g.y, 30, 0, 0, 0.5, 500, 1);
+    for (let i = 0; i < 90 && g.bullets.active[slot]; i++) {
+      g.enemies.x[offscreen] = farX;
+      g.enemies.y[offscreen] = g.y;
+      g.tick(dt);
+    }
+    // Never engaged: the bullet should have sailed past rather than killing
+    // something the player never saw arrive.
+    expect(g.enemies.hp[offscreen]).toBe(50);
+    // The same hull, now inside the engage line, takes the hit normally.
+    g.enemies.x[offscreen] = g.engageX - 1;
+    g.enemies.y[offscreen] = g.y;
+    g.bullets.fire(g.x, g.y, 30, 0, 0, 0.5, 500, 1);
+    for (let i = 0; i < 60 && g.enemies.active[offscreen]; i++) g.tick(dt);
+    expect(g.enemies.active[offscreen]).toBe(0);
   });
   it('restarts without carrying over bullets, rank, or credits used', () => {
     const g = new GameState();

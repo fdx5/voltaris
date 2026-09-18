@@ -1701,6 +1701,18 @@ export class ThreeBackend implements IRenderBackend {
         (!g.bossDying || g.bossDeathTime < 2.4 + i * 0.35);
       pod.position.set(g.partX[i], g.partY[i], 0.4);
       pod.rotation.z = Math.sin(t * 1.4 + i) * 0.08;
+      // Each pod burns its own red glow from its own remaining armour, plus a
+      // quick flash on a fresh hit - a pod near death reads as such on its
+      // own instead of only the shared hull-wide pulse saying so.
+      const podDamage = model.podDamage?.[i];
+      if (podDamage) {
+        const podWear =
+          active && g.partHp[i] > 0
+            ? T.MathUtils.clamp(1 - g.partHp[i] / g.bossDef.partHp, 0, 1)
+            : 0;
+        const podGlow = Math.max(podWear ** 2 * 1.3, (g.partFlash[i] / 0.08) * 0.6);
+        podDamage.value = this.reducedMotion ? Math.min(podGlow, 0.8) : podGlow;
+      }
     }
     this.particles.count = 0;
     this.bossFire.count = this.bossSmoke.count = 0;
@@ -1719,6 +1731,10 @@ export class ThreeBackend implements IRenderBackend {
       if (wear >= 0.9) glow += 0.32 + Math.sin(t * 23) * 0.08;
     }
     glow = Math.max(glow, (g.bossFlash / 0.08) * 0.55);
+    // A phase break rocks the whole hull with a bright flash that eases out
+    // across the transition window (GameState.bossTransition, 2s), so a
+    // pattern change reads as a real impact rather than just a pause in fire.
+    if (g.bossTransition > 0) glow = Math.max(glow, (g.bossTransition / 2) * 2.4);
     if (g.bossDying) glow = (1.3 + Math.min(death, 6) * 0.2) * (0.7 + 0.3 * Math.sin(t * 31));
     if (model.damage) model.damage.value = this.reducedMotion ? Math.min(glow, 0.8) : glow;
     if (wear >= 0.9 && !g.bossDying) model.core.scale.setScalar(1.15 + Math.sin(t * 21) * 0.18);

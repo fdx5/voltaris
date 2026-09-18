@@ -1910,8 +1910,11 @@ export type BossModel = {
   core: T.Mesh;
   ring: T.Group;
   pods: T.Group[];
-  /** Strength of the red damage glow across hull and pods, when the model has one. */
+  /** Strength of the red damage glow across the hull, when the model has one. */
   damage?: { value: number };
+  /** One damage-glow uniform per entry in `pods`, so a nearly-dead pod burns
+   *  red on its own instead of the whole ring flushing together. */
+  podDamage?: { value: number }[];
 };
 
 function attachKit(target: T.Group, kit: Kit, metalness = 0.55, roughness = 0.38) {

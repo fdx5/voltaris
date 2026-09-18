@@ -413,6 +413,67 @@ export function bossSalvo(
   const add = (x: number, y: number, a: number, kind: number, delay = 0, speed = 1) =>
     out.push({ mount: 0, dx: x, dy: y, angle: a, kind, delay, speed });
   const sign = cycle % 2 ? 1 : -1;
+  // Once every seven volleys each boss throws one signature move - a
+  // screen-filling break from its own regular phrasing (checked ahead of
+  // the every-third alternate below, so it can pre-empt that too) - rather
+  // than only ever cycling between the same two phrases forever.
+  if (cycle % 7 === 6) {
+    if (stage === 0) {
+      // Iris Slam: every bar but one rotating safe row snaps shut in quick
+      // passes, and a ring seals the outer edge so drifting past the wall
+      // instead of through the gap isn't free either.
+      const safeRow = cycle % 6;
+      for (let pass = 0; pass < 2 + phase; pass++)
+        for (let row = 0; row < 6; row++) {
+          if (row === safeRow) continue;
+          for (const side of [-1, 1])
+            add(
+              -1.2,
+              side * (1.0 + row * 0.32),
+              PI,
+              S.NEEDLE,
+              pass * 0.16,
+              0.95 + pass * 0.08,
+            );
+        }
+      for (const a of ring(aim, 10, 50)) add(0, 0, a, S.ORB, 0.5, 0.65);
+    } else if (stage === 1) {
+      // Broadside: the rail fires with all four barrels at once instead of
+      // its usual paired stream, with a small homing volley punched through
+      // the middle of it.
+      for (let j = 0; j < 12; j++)
+        for (const y of [-1.2, -0.6, 0.6, 1.2]) add(-3.7, y, aim, S.NEEDLE, j * 0.045, 1.1 + j * 0.02);
+      for (let j = 0; j < 5; j++) add(0.6, 0, aim + (j - 2) * 0.15, S.HOMING, 0.9 + j * 0.1, 0.6);
+    } else if (stage === 2) {
+      // Trinity Burst: all three arm stations bloom a ring together instead
+      // of taking turns.
+      for (let arm = 0; arm < 3; arm++) {
+        const a = (arm * TAU) / 3,
+          x = Math.cos(a) * 2.6,
+          y = Math.sin(a) * 2.6;
+        for (const outward of ring(a + PI, 9, 30))
+          add(x, y, outward, phase === 3 ? S.PLASMA : S.WAVE, arm * 0.05, 0.8 + phase * 0.05);
+      }
+    } else if (stage === 3) {
+      // Spine Cascade: a ripple runs the full length of the leviathan's
+      // flanks and straight back again, instead of one pass in one direction.
+      for (let m = 0; m < 8; m++)
+        for (const side of [-1, 1]) {
+          const x = -2 + m * 0.63,
+            y = side * 0.7;
+          add(x, y, PI + side * 0.2, S.SHARD, m * 0.06, 0.95);
+          add(x, y, PI + side * 0.2, S.SHARD, 1.16 - m * 0.06, 0.95);
+        }
+    } else {
+      // Eclipse: Section 5's usual ring keeps a blind wedge open behind the
+      // boss - this one doesn't, a brief full-circle volley with no safe
+      // side at all, telegraphed by its own rarity.
+      const count = (final ? 22 : 16) + phase * 2;
+      for (const a of ring(aim, count, 0))
+        add(0, 0, a, phase === 3 ? S.PLASMA : S.SHARD, 0, (final ? 0.9 : 0.75) + phase * 0.05);
+    }
+    return out;
+  }
   // Every third salvo is a contrasting phrase, with a deliberate open lane.
   // Alternates replace a salvo instead of layering more density on top.
   if (cycle % 3 === 2) {
