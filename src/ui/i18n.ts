@@ -334,6 +334,10 @@ const STRINGS = {
     en: "Couldn't read the server response.",
   },
   REQUEST_FAILED: { ko: '요청 실패', en: 'Request failed' },
+  SERVER_UNRESPONSIVE: {
+    ko: '서버가 응답하지 않습니다. 잠시 후 다시 시도해주세요.',
+    en: 'The server is not responding. Please try again shortly.',
+  },
 
   // Account.tsx - login/register
   CREATE_PILOT_ACCOUNT: { ko: '파일럿 계정 만들기', en: 'Create a pilot account' },
