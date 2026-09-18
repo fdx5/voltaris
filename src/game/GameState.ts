@@ -98,17 +98,75 @@ export const MODES: Mode[] = ['TRAIL', 'FREEZE', 'DIRECTIONAL', 'ROTATE'];
 export const MODE_NOTE = ['밀착 대형', '위치 고정', '진행 방향 조준', '기체 공전'];
 /** Frames an option lags behind the ship's path, per option, while trailing. */
 const TRAIL_LAG = 22;
-type PendingSalvo = {
-  shot: SalvoShot;
-  source: 'enemy' | 'ground' | 'boss';
-  index: number;
-  generation: number;
-  remaining: number;
-  speed: number;
-  tint: number;
-};
+type SalvoSource = 'enemy' | 'ground' | 'boss';
+/**
+ * Fixed-capacity SoA queue for salvo shots with a positive delay - the boss
+ * "signature" moves can queue dozens of shots at once, several hostiles deep,
+ * and beat-grouped waves (see `effectiveSpawnTime`) keep more of them firing
+ * concurrently than any stage before Section 5 did. This used to be a plain
+ * array of `{shot, source, index, ...}` object literals, one heap allocation
+ * per queued shot - avoidable GC pressure, since every field here is a small
+ * fixed-width number (or one of three interned strings).
+ */
+const MAX_PENDING_SALVOS = 2048;
+class PendingSalvoQueue {
+  count = 0;
+  readonly source: SalvoSource[] = new Array(MAX_PENDING_SALVOS);
+  readonly index = new Int32Array(MAX_PENDING_SALVOS);
+  readonly generation = new Uint32Array(MAX_PENDING_SALVOS);
+  readonly remaining = new Float32Array(MAX_PENDING_SALVOS);
+  readonly baseSpeed = new Float32Array(MAX_PENDING_SALVOS);
+  readonly tint = new Int32Array(MAX_PENDING_SALVOS);
+  readonly mount = new Uint8Array(MAX_PENDING_SALVOS);
+  readonly angle = new Float32Array(MAX_PENDING_SALVOS);
+  readonly shotSpeed = new Float32Array(MAX_PENDING_SALVOS);
+  readonly kind = new Uint8Array(MAX_PENDING_SALVOS);
+  readonly dx = new Float32Array(MAX_PENDING_SALVOS);
+  readonly dy = new Float32Array(MAX_PENDING_SALVOS);
+  clear() {
+    this.count = 0;
+  }
+  push(
+    shot: SalvoShot,
+    source: SalvoSource,
+    index: number,
+    generation: number,
+    baseSpeed: number,
+    tint: number,
+  ) {
+    if (this.count >= MAX_PENDING_SALVOS) return;
+    const i = this.count++;
+    this.source[i] = source;
+    this.index[i] = index;
+    this.generation[i] = generation;
+    this.remaining[i] = shot.delay;
+    this.baseSpeed[i] = baseSpeed;
+    this.tint[i] = tint;
+    this.mount[i] = shot.mount;
+    this.angle[i] = shot.angle;
+    this.shotSpeed[i] = shot.speed;
+    this.kind[i] = shot.kind;
+    this.dx[i] = shot.dx;
+    this.dy[i] = shot.dy;
+  }
+  /** Carries a live entry down to a lower slot while compacting in place. */
+  copy(dst: number, src: number) {
+    this.source[dst] = this.source[src];
+    this.index[dst] = this.index[src];
+    this.generation[dst] = this.generation[src];
+    this.remaining[dst] = this.remaining[src];
+    this.baseSpeed[dst] = this.baseSpeed[src];
+    this.tint[dst] = this.tint[src];
+    this.mount[dst] = this.mount[src];
+    this.angle[dst] = this.angle[src];
+    this.shotSpeed[dst] = this.shotSpeed[src];
+    this.kind[dst] = this.kind[src];
+    this.dx[dst] = this.dx[src];
+    this.dy[dst] = this.dy[src];
+  }
+}
 export class GameState {
-  private pendingSalvos: PendingSalvo[] = [];
+  private readonly pendingSalvos = new PendingSalvoQueue();
   readonly bullets = new BulletPool(tuning.pools.bullets);
   readonly enemies = new ObjectPool(tuning.pools.enemies);
   readonly particles = new ObjectPool(tuning.pools.particles);
@@ -330,7 +388,7 @@ export class GameState {
     this.stageIndex = clamp(stageIndex, 0, STAGES.length - 1);
     this.stage = STAGES[this.stageIndex];
     this.bullets.clear();
-    this.pendingSalvos.length = 0;
+    this.pendingSalvos.clear();
     this.enemies.clear();
     this.particles.clear();
     this.items.clear();
@@ -463,7 +521,7 @@ export class GameState {
     this.invincible = 2;
     this.respawn = 0;
     this.bullets.clear();
-    this.pendingSalvos.length = 0;
+    this.pendingSalvos.clear();
     this.status = 'playing';
     this.announce('RE-ENTRY / 전투 재개');
   }
@@ -1102,7 +1160,7 @@ export class GameState {
     this.novaEvent++;
     const b = this.bullets;
     for (let i = 0; i < b.limit; i++) if (b.active[i] && b.type[i] === 1) b.release(i);
-    this.pendingSalvos.length = 0;
+    this.pendingSalvos.clear();
     const [x, y, damage] = [this.novaBlastX, this.novaBlastY, nova.damage];
     for (let i = 0; i < this.enemies.limit; i++)
       if (this.enemies.active[i]) this.damageEnemy(i, damage, x, y);
@@ -1295,7 +1353,7 @@ export class GameState {
   }
   private queueSalvo(
     plan: SalvoShot[],
-    source: PendingSalvo['source'],
+    source: SalvoSource,
     index: number,
     speed: number,
     tint: number,
@@ -1303,14 +1361,36 @@ export class GameState {
     const pool = source === 'ground' ? this.ground : this.enemies;
     const generation = source === 'boss' ? this.bossPhase : pool.generation[index];
     for (const shot of plan) {
-      if (this.pendingSalvos.length >= 2048) break;
-      const entry = { shot, source, index, generation, remaining: shot.delay, speed, tint };
-      if (shot.delay <= 0) this.launchSalvoShot(entry);
-      else this.pendingSalvos.push(entry);
+      if (shot.delay <= 0)
+        this.launchSalvoShot(
+          shot.mount,
+          shot.dx,
+          shot.dy,
+          shot.angle,
+          shot.speed,
+          shot.kind,
+          source,
+          index,
+          generation,
+          speed,
+          tint,
+        );
+      else this.pendingSalvos.push(shot, source, index, generation, speed, tint);
     }
   }
-  private launchSalvoShot(entry: PendingSalvo) {
-    const { shot, source, index, generation } = entry;
+  private launchSalvoShot(
+    mount: number,
+    dx: number,
+    dy: number,
+    angle: number,
+    shotSpeed: number,
+    kind: number,
+    source: SalvoSource,
+    index: number,
+    generation: number,
+    baseSpeed: number,
+    tint: number,
+  ) {
     let x: number, y: number;
     if (source === 'boss') {
       if (
@@ -1322,40 +1402,57 @@ export class GameState {
         return;
       x = index < 0 ? this.bossX : this.partX[index];
       y = index < 0 ? this.bossY : this.partY[index];
-      x += shot.dx;
-      y += shot.dy;
+      x += dx;
+      y += dy;
     } else {
       const pool = source === 'ground' ? this.ground : this.enemies;
       if (!pool.active[index] || pool.generation[index] !== generation) return;
       const type = pool.type[index];
       if (source === 'enemy') {
         const mounts = fleetHardpoints[type].muzzles;
-        const mount = mounts[shot.mount % mounts.length];
-        const angle = enemyRotation(type, pool.age[index], this.time) + this.enemyPitch[index];
+        const m = mounts[mount % mounts.length];
+        const a = enemyRotation(type, pool.age[index], this.time) + this.enemyPitch[index];
         const bank = this.enemyBank[index];
         // Roll about the nose first, then the in-plane turn, as the renderer does.
-        const my = mount[1] * Math.cos(bank) - mount[2] * Math.sin(bank);
-        x = pool.x[index] + mount[0] * Math.cos(angle) - my * Math.sin(angle) + shot.dx;
-        y = pool.y[index] + mount[0] * Math.sin(angle) + my * Math.cos(angle) + shot.dy;
+        const my = m[1] * Math.cos(bank) - m[2] * Math.sin(bank);
+        x = pool.x[index] + m[0] * Math.cos(a) - my * Math.sin(a) + dx;
+        y = pool.y[index] + m[0] * Math.sin(a) + my * Math.cos(a) + dy;
       } else {
         // Roof craft are the floor model turned over about X: only height flips.
         const sign = pool.aux[index] === 1 ? -1 : 1;
         const mounts = groundHardpoints[type].muzzles;
-        const mount = mounts[shot.mount % mounts.length];
-        x = pool.x[index] + mount[0] + shot.dx;
-        y = pool.y[index] + (mount[1] + shot.dy) * sign;
+        const m = mounts[mount % mounts.length];
+        x = pool.x[index] + m[0] + dx;
+        y = pool.y[index] + (m[1] + dy) * sign;
       }
     }
-    this.hostileShot(x, y, shot.angle, entry.speed * shot.speed, shot.kind, entry.tint);
+    this.hostileShot(x, y, angle, baseSpeed * shotSpeed, kind, tint);
   }
   private advanceSalvos(dt: number) {
+    const q = this.pendingSalvos;
     let write = 0;
-    for (const entry of this.pendingSalvos) {
-      entry.remaining -= dt;
-      if (entry.remaining <= 0) this.launchSalvoShot(entry);
-      else this.pendingSalvos[write++] = entry;
+    for (let i = 0; i < q.count; i++) {
+      q.remaining[i] -= dt;
+      if (q.remaining[i] <= 0)
+        this.launchSalvoShot(
+          q.mount[i],
+          q.dx[i],
+          q.dy[i],
+          q.angle[i],
+          q.shotSpeed[i],
+          q.kind[i],
+          q.source[i],
+          q.index[i],
+          q.generation[i],
+          q.baseSpeed[i],
+          q.tint[i],
+        );
+      else {
+        if (write !== i) q.copy(write, i);
+        write++;
+      }
     }
-    this.pendingSalvos.length = write;
+    q.count = write;
   }
   /**
    * Seconds between one hull's volleys. Rank tightens it; a low-powered ship
@@ -1479,7 +1576,7 @@ export class GameState {
       this.bossPhase = phase;
       this.bossTransition = 2;
       this.bullets.clear();
-      this.pendingSalvos.length = 0;
+      this.pendingSalvos.clear();
       this.shake = 0.4;
       this.announce('PHASE 0' + phase + ' / 패턴 변경', 2);
       this.warningEvent++;
@@ -2184,7 +2281,7 @@ export class GameState {
       this.bossDeathEvent++;
       this.novaActive = false;
       this.bullets.clear();
-      this.pendingSalvos.length = 0;
+      this.pendingSalvos.clear();
       this.enemies.clear();
       this.ground.clear();
       this.rocks.clear();
@@ -2201,7 +2298,7 @@ export class GameState {
       this.bossHp = 0;
       this.bossDying = false;
       this.bullets.clear();
-      this.pendingSalvos.length = 0;
+      this.pendingSalvos.clear();
       if (defeated) this.announce('MID-BOSS DOWN / 전투 속개', 3);
       return;
     }
@@ -2220,7 +2317,7 @@ export class GameState {
       (defeated ? Math.floor(Math.max(0, 1 - this.bossTime / 180) * 100000) : 0);
     this.score += this.bonus + (defeated ? tuning.score.boss : 0);
     this.bullets.clear();
-    this.pendingSalvos.length = 0;
+    this.pendingSalvos.clear();
     this.bossDying = false;
     this.status = 'clear';
   }
@@ -2256,7 +2353,7 @@ export class GameState {
   startStress() {
     this.status = 'stress';
     this.bullets.clear();
-    this.pendingSalvos.length = 0;
+    this.pendingSalvos.clear();
     this.enemies.clear();
     this.items.clear();
     this.particles.clear();
@@ -2267,7 +2364,7 @@ export class GameState {
   setStressCount(count: number) {
     this.stressCount = count;
     this.bullets.clear();
-    this.pendingSalvos.length = 0;
+    this.pendingSalvos.clear();
     for (let i = 0; i < count; i++) {
       const a = this.rng.next() * Math.PI * 2;
       this.bullets.fire(
