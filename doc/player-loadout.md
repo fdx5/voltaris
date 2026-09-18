@@ -1,7 +1,7 @@
 # Selectable player fleet
 
 The sortie armament selects the craft: LASER → existing blue STRIKER,
-MISSILE → orange KESTREL (Insurgent), SPREAD → violet MANTA (Spitfire).
+MISSILE → dark-red/black KESTREL (Executioner), SPREAD → violet MANTA (Spitfire).
 All three are prepared before the app starts; failed downloads use the existing
 retry screen. Models and menu renders are local, deployable assets. Source and
 license details: `public/ASSET-CREDITS.md`.

@@ -77,13 +77,14 @@ twinkling star field) are the game's own procedural artwork.
 
 ## Selectable player fleet and standard ordnance (September 2026)
 
-- KESTREL / MISSILE: **Insurgent**, Quaternius, Ultimate Spaceships Pack,
+- KESTREL / MISSILE: **Executioner**, Quaternius, Ultimate Spaceships Pack,
   https://quaternius.com/packs/ultimatespaceships.html — CC0-1.0.
 - MANTA / SPREAD: **Spitfire**, Quaternius, same pack and license.
   The artist's original glTFs were downloaded from their public Drive folder;
   textures from the CC0 port at
   https://github.com/Malcolmnixon/Quaternius-Ultimate-Spaceships-Pack.
-  Modified: orange/violet texture paint, orientation, scale and PBR finish.
+  Modified: dark red/black (KESTREL) and violet (MANTA) texture paint,
+  orientation, scale and PBR finish.
 - MISSILE main: **Missile**, Jarlan Perez,
   https://poly.pizza/m/1Xid2Qhqn2s — CC BY 3.0
   (https://creativecommons.org/licenses/by/3.0/).

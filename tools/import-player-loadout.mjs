@@ -34,9 +34,9 @@ function orient(doc, axis, length) {
   pivot.setScale([scale, scale, scale]);
   pivot.setTranslation(min.map((v, i) => -(v + max[i]) * 0.5 * scale));
 }
-for (const [name, model, id, hue] of [
-  ['missile-ship', 'Insurgent', '1p_-EZ9OzTMEIOOcW3O2NDAi2pB4nRPP2', 35],
-  ['spread-ship', 'Spitfire', '190E7T13jvAH8rVzD3dd484gPfN5fV8X3', 275],
+for (const [name, model, id, paintMod] of [
+  ['missile-ship', 'Executioner', '1DaCoRPG1Q54SFBOPMrhTOZNaNETsuRB1', { hue: 0, saturation: 1.15, brightness: 0.9 }],
+  ['spread-ship', 'Spitfire', '190E7T13jvAH8rVzD3dd484gPfN5fV8X3', { hue: 275 }],
 ]) {
   await download(
     `https://drive.usercontent.google.com/download?id=${id}&export=download&confirm=t`,
@@ -50,7 +50,7 @@ for (const [name, model, id, hue] of [
   const paint = doc
     .createTexture(`${name}-paint`)
     .setMimeType('image/png')
-    .setImage(await sharp(texture).modulate({ hue }).png().toBuffer());
+    .setImage(await sharp(texture).modulate(paintMod).png().toBuffer());
   for (const m of doc.getRoot().listMaterials())
     m.setBaseColorTexture(paint)
       .setBaseColorFactor([1, 1, 1, 1])

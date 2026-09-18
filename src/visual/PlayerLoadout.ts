@@ -7,7 +7,7 @@ import type { Weapon } from '../game/GameState';
 
 export const PLAYER_CRAFT = {
   LASER: { name: 'STRIKER', role: '정밀 요격기', color: '#81cfff' },
-  MISSILE: { name: 'KESTREL', role: '유도 미사일 전투기', color: '#ffba68' },
+  MISSILE: { name: 'KESTREL', role: '유도 미사일 전투기', color: '#ff6b6b' },
   SPREAD: { name: 'MANTA', role: '광역 제압 전투기', color: '#c6a0ff' },
 } as const;
 export const ORDNANCE = ['missile-main', 'missile-option', 'spread-main', 'spread-option'] as const;
