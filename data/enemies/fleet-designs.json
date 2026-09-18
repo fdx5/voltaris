@@ -570,5 +570,135 @@
       "#edf0ca"
     ],
     "pattern": "glacier-rampart"
+  },
+  {
+    "id": 44,
+    "name": "DREADWING",
+    "design": "DREADWING HEAVY CRUISER",
+    "size": "large",
+    "palette": [
+      "#ff3b3b",
+      "#ff3b3b",
+      "#e2ded2",
+      "#ff3b3b"
+    ],
+    "pattern": "dread-fan"
+  },
+  {
+    "id": 45,
+    "name": "INFERNO",
+    "design": "INFERNO HEAVY CRUISER",
+    "size": "large",
+    "palette": [
+      "#ff9a3c",
+      "#ff9a3c",
+      "#e2ded2",
+      "#ff9a3c"
+    ],
+    "pattern": "inferno-lob"
+  },
+  {
+    "id": 46,
+    "name": "VANGUARD",
+    "design": "VANGUARD HEAVY CRUISER",
+    "size": "large",
+    "palette": [
+      "#ffe14d",
+      "#ffe14d",
+      "#e2ded2",
+      "#ffe14d"
+    ],
+    "pattern": "vanguard-needle"
+  },
+  {
+    "id": 47,
+    "name": "ECLIPSE",
+    "design": "ECLIPSE HEAVY CRUISER",
+    "size": "large",
+    "palette": [
+      "#7cff4d",
+      "#7cff4d",
+      "#e2ded2",
+      "#7cff4d"
+    ],
+    "pattern": "eclipse-bounce"
+  },
+  {
+    "id": 48,
+    "name": "WRAITH",
+    "design": "WRAITH HEAVY CRUISER",
+    "size": "large",
+    "palette": [
+      "#00e6c3",
+      "#00e6c3",
+      "#e2ded2",
+      "#00e6c3"
+    ],
+    "pattern": "wraith-seeker"
+  },
+  {
+    "id": 49,
+    "name": "JUGGERNAUT",
+    "design": "JUGGERNAUT HEAVY CRUISER",
+    "size": "large",
+    "palette": [
+      "#3ba7ff",
+      "#3ba7ff",
+      "#e2ded2",
+      "#3ba7ff"
+    ],
+    "pattern": "juggernaut-wave"
+  },
+  {
+    "id": 50,
+    "name": "BASTION",
+    "design": "BASTION HEAVY CRUISER",
+    "size": "large",
+    "palette": [
+      "#a06bff",
+      "#a06bff",
+      "#e2ded2",
+      "#a06bff"
+    ],
+    "pattern": "bastion-split"
+  },
+  {
+    "id": 51,
+    "name": "COLOSSUS",
+    "design": "COLOSSUS HEAVY CRUISER",
+    "size": "large",
+    "palette": [
+      "#ff5bd6",
+      "#ff5bd6",
+      "#e2ded2",
+      "#ff5bd6"
+    ],
+    "pattern": "colossus-shell"
+  },
+  {
+    "id": 52,
+    "name": "MARAUDER",
+    "design": "MARAUDER HEAVY CRUISER",
+    "size": "large",
+    "palette": [
+      "#ff7b3b",
+      "#ff7b3b",
+      "#e2ded2",
+      "#ff7b3b"
+    ],
+    "pattern": "marauder-pulse"
+  },
+  {
+    "id": 53,
+    "name": "HARBINGER",
+    "design": "HARBINGER HEAVY CRUISER",
+    "size": "large",
+    "palette": [
+      "#4dffb8",
+      "#4dffb8",
+      "#e2ded2",
+      "#4dffb8"
+    ],
+    "pattern": "harbinger-shard"
   }
 ]

@@ -135,6 +135,13 @@
       "pattern": 0
     },
     {
+      "time": 46,
+      "type": 45,
+      "y": -2,
+      "count": 1,
+      "pattern": 0
+    },
+    {
       "time": 48,
       "type": 4,
       "y": 4,
@@ -261,6 +268,13 @@
       "pattern": 0
     },
     {
+      "time": 95,
+      "type": 46,
+      "y": 2,
+      "count": 1,
+      "pattern": 0
+    },
+    {
       "time": 97,
       "type": 16,
       "y": -1,
@@ -366,6 +380,13 @@
       "pattern": 0
     },
     {
+      "time": 140,
+      "type": 45,
+      "y": 1.5,
+      "count": 1,
+      "pattern": 0
+    },
+    {
       "time": 141,
       "type": 4,
       "y": -3,
@@ -426,6 +447,13 @@
       "type": 16,
       "y": 0,
       "count": 4,
+      "pattern": 0
+    },
+    {
+      "time": 165,
+      "type": 46,
+      "y": -1,
+      "count": 1,
       "pattern": 0
     },
     {

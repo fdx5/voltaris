@@ -40,6 +40,24 @@ import { Shot } from '../../game/entities/BulletPool';
 import tuning from '../../../data/tuning.json';
 import { t } from '../../ui/i18n';
 
+/**
+ * A large hull's own vivid fresnel rim, cycled across the ten large types the
+ * same way `BOSS_ACCENT` gives every boss its own identity - the imported
+ * hull textures alone don't vary enough to read as "colourful" at a glance.
+ */
+const LARGE_ACCENT = [
+  '#ff3b3b',
+  '#ff9a3c',
+  '#ffe14d',
+  '#7cff4d',
+  '#00e6c3',
+  '#3ba7ff',
+  '#a06bff',
+  '#ff5bd6',
+  '#ff7b3b',
+  '#4dffb8',
+];
+
 /*
  * Share shader programs between instanced batches. Below a size limit three.js
  * stores a batch's instance matrices in a uniform buffer named after that
@@ -211,6 +229,17 @@ function shotStyles(): ShotStyle[] {
 export class ThreeBackend implements IRenderBackend {
   private readonly ios = isIOSDevice();
   private disposed = false;
+  /**
+   * Count of `warmup()` background compiles currently in flight. `compileAsync`
+   * runs across several real frames on some backends, not inside the single
+   * synchronous call it looks like - a real frame drawn while one is pending
+   * has shown a stray flash of whatever it's compiling (a hull mid-warmup
+   * reads as a flat circle at the origin), so `render()` holds the previous
+   * frame instead of drawing while this is nonzero.
+   */
+  private warmingUp = 0;
+  /** Set from `sync()`: true whenever anything but the hangar is on screen. */
+  private combatActive = false;
   renderer: T.WebGPURenderer;
   canvas: HTMLCanvasElement;
   readonly scene = new T.Scene();
@@ -677,11 +706,18 @@ export class ThreeBackend implements IRenderBackend {
       roughness: 0.45,
     });
     const accentMaterial = new T.MeshBasicNodeMaterial({ vertexColors: true, toneMapped: false });
+    let largeAccentIndex = 0;
     for (let i = 0; i < ENEMY_TYPES; i++) {
       const parts = enemyGeometry(i);
       const material = hullMaterial.clone();
       material.map = parts.map ?? null;
-      finishHull(material, parts.surface ?? null);
+      const large = fleetHardpoints[i].size === 'large';
+      finishHull(
+        material,
+        parts.surface ?? null,
+        undefined,
+        large ? LARGE_ACCENT[largeAccentIndex++ % LARGE_ACCENT.length] : undefined,
+      );
       const hull = new T.InstancedMesh(parts.hull!, material, 256);
       hull.count = 0;
       hull.frustumCulled = false;
@@ -1028,15 +1064,17 @@ export class ThreeBackend implements IRenderBackend {
    */
   /**
    * Compiles `object` for the scene pass's render target - where every frame is
-   * actually drawn - rather than the canvas, with the scene's lights. The target
-   * is only held while `compileAsync` collects the objects, which it does
-   * synchronously, so frames rendered while the compile finishes are unaffected.
+   * actually drawn - rather than the canvas, with the scene's lights. `compileAsync`
+   * itself compiles in the background across several real frames, so the target
+   * has to stay pointed at the offscreen pass for its whole duration: restoring
+   * it as soon as the call is made (rather than once its promise settles) let
+   * its still-pending internal work land on the visible canvas instead.
    */
-  private compileForPass(object: T.Object3D) {
+  private async compileForPass(object: T.Object3D) {
     const previous = this.renderer.getRenderTarget();
     if (this.scenePass) this.renderer.setRenderTarget(this.scenePass.renderTarget);
     try {
-      return this.renderer.compileAsync(object, this.camera, this.scene);
+      await this.renderer.compileAsync(object, this.camera, this.scene);
     } finally {
       this.renderer.setRenderTarget(previous);
     }
@@ -1057,6 +1095,13 @@ export class ThreeBackend implements IRenderBackend {
     const rest = this.scene.children.filter((object) => !first.includes(object));
     for (const object of [...first, ...rest]) {
       if (this.disposed) return;
+      // A flight in progress draws every frame from this same scene; compiling
+      // into it concurrently has shown a one-frame flash of whatever's being
+      // compiled, so this waits out combat rather than racing it.
+      while (this.combatActive) {
+        if (this.disposed) return;
+        await new Promise((resolve) => setTimeout(resolve, 250));
+      }
       await this.compileShown(object);
       await new Promise((resolve) => setTimeout(resolve, 0));
     }
@@ -1068,7 +1113,7 @@ export class ThreeBackend implements IRenderBackend {
    * queued work holds its own object references - and restored before the
    * next frame can draw any of it.
    */
-  private compileShown(target: T.Object3D) {
+  private async compileShown(target: T.Object3D) {
     const objects: T.Object3D[] = [];
     const flags: boolean[] = [];
     target.traverse((o) => {
@@ -1077,13 +1122,15 @@ export class ThreeBackend implements IRenderBackend {
       o.visible = true;
       o.frustumCulled = false;
     });
+    this.warmingUp++;
     try {
-      return this.compileForPass(target);
+      await this.compileForPass(target);
     } finally {
       for (let i = 0; i < objects.length; i++) {
         objects[i].visible = flags[i * 2];
         objects[i].frustumCulled = flags[i * 2 + 1];
       }
+      this.warmingUp--;
     }
   }
   resize() {
@@ -1581,6 +1628,7 @@ export class ThreeBackend implements IRenderBackend {
     this.visualTime += dt;
     const t = this.visualTime;
     const inactive = g.status === 'menu';
+    this.combatActive = !inactive;
     if (g.stageIndex !== this.stage) this.showStage(g.stageIndex);
     // The backdrop is framed by where the ship flies: diving low tilts the
     // view down toward the planet below, climbing lifts it to open sky.
@@ -1967,6 +2015,10 @@ export class ThreeBackend implements IRenderBackend {
     this.commit(this.novaSmoke);
   }
   render() {
+    // A background warmup() compile can still be mid-flight (see `warmingUp`);
+    // holding the previous frame here is unnoticeable, where drawing through
+    // it has shown a one-frame flash of whatever it's compiling.
+    if (this.warmingUp) return;
     this.renderer.info.autoReset = false;
     this.renderer.info.reset();
     if (this.pipeline) this.pipeline.render();

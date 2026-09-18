@@ -7,6 +7,7 @@ import {
   enemySalvo,
   groundSalvo,
   heavySalvo,
+  largeSalvo,
   type SalvoShot,
 } from './HostilePatterns';
 import fleetHardpoints from '../../data/enemies/fleet-hardpoints.json';
@@ -1052,13 +1053,20 @@ export class GameState {
     const max = this.stageIndex === 4 ? 3 : 4;
     return clamp(1 + Math.floor(this.progress * 2.2 + this.stageIndex * 0.7), 1, max);
   }
-  /** Medium hull integrity over the base scaling: 2.5x at first, 4x by the last stage's end. */
+  /**
+   * Medium hull integrity over the base scaling: 2.5x at first, 4x by the
+   * last stage's end. Large hulls share this same curve - their authored
+   * `hp` in enemy-defs.json is already set to 5x a comparable medium's, so
+   * reusing the multiplier keeps that ratio exact at every rank and stage
+   * instead of drifting as the run gets harder.
+   */
   get mediumArmour() {
     return 2.5 + 1.5 * clamp(this.progress * 0.55 + this.stageIndex * 0.15, 0, 1);
   }
   private spawnEnemy(type: number, x: number, y: number, pattern: number, n: number) {
     const d = defs[type];
-    const armour = fleetHardpoints[type].size === 'medium' ? this.mediumArmour : 1;
+    const size = fleetHardpoints[type].size;
+    const armour = size === 'medium' || size === 'large' ? this.mediumArmour : 1;
     const hp = Math.max(1, Math.round(d.hp * this.hullScale * armour));
     const i = this.enemies.acquire(x, y, -d.speed, 0, type, 30, d.radius, hp);
     if (i >= 0) {
@@ -1236,10 +1244,13 @@ export class GameState {
   /**
    * A light hull fires its authored salvo. A medium gunship fires like a
    * mini-boss: its authored salvo opens every third volley, and the two in
-   * between are dense barrages of its own.
+   * between are dense barrages of its own. A large hull never lightens up -
+   * every volley is boss weight, cycled across three phrases in `largeSalvo`.
    */
   private hostilePlan(type: number, aim: number, cycle: number) {
-    return fleetHardpoints[type].size === 'medium' && cycle % 3 !== 0
+    const size = fleetHardpoints[type].size;
+    if (size === 'large') return largeSalvo(type, aim, cycle);
+    return size === 'medium' && cycle % 3 !== 0
       ? heavySalvo(type, aim, cycle)
       : enemySalvo(type, aim, cycle);
   }

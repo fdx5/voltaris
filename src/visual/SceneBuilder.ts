@@ -51,7 +51,7 @@ export {
  * as two instanced draw calls: a lit hull and an additive accent pass.
  * Accent colours are written above 1.0 so the bloom pass catches them.
  * ------------------------------------------------------------------ */
-export const ENEMY_TYPES = 44;
+export const ENEMY_TYPES = enemyDefs.length;
 
 const linear = new T.Color();
 function paint(g: T.BufferGeometry, hex: string, gain = 1) {

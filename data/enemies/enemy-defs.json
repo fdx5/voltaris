@@ -1450,5 +1450,335 @@
       ]
     },
     "sizeClass": "medium"
+  },
+  {
+    "name": "DREADWING",
+    "hp": 470,
+    "radius": 2.3,
+    "speed": 0.95,
+    "score": 4200,
+    "period": 1.9,
+    "amp": 0.8,
+    "freq": 1,
+    "hover": -99,
+    "fire": {
+      "pattern": "dread-fan",
+      "count": 3,
+      "spread": 0.2,
+      "speed": 1.1,
+      "kind": 0
+    },
+    "burst": {
+      "count": 170,
+      "speed": 3.4,
+      "spread": 13,
+      "life": 0.85,
+      "size": 0.26,
+      "ring": 1,
+      "shake": 0.65,
+      "palette": [
+        1,
+        0,
+        2
+      ]
+    },
+    "sizeClass": "large"
+  },
+  {
+    "name": "INFERNO",
+    "hp": 510,
+    "radius": 2.5,
+    "speed": 0.8,
+    "score": 4500,
+    "period": 2,
+    "amp": 0.8,
+    "freq": 1,
+    "hover": -99,
+    "fire": {
+      "pattern": "inferno-lob",
+      "count": 3,
+      "spread": 0.2,
+      "speed": 1.1,
+      "kind": 1
+    },
+    "burst": {
+      "count": 170,
+      "speed": 3.4,
+      "spread": 13,
+      "life": 0.85,
+      "size": 0.26,
+      "ring": 1,
+      "shake": 0.65,
+      "palette": [
+        3,
+        2,
+        0
+      ]
+    },
+    "sizeClass": "large"
+  },
+  {
+    "name": "VANGUARD",
+    "hp": 440,
+    "radius": 2.2,
+    "speed": 1.1,
+    "score": 4000,
+    "period": 1.8,
+    "amp": 0.8,
+    "freq": 1,
+    "hover": -99,
+    "fire": {
+      "pattern": "vanguard-needle",
+      "count": 3,
+      "spread": 0.2,
+      "speed": 1.1,
+      "kind": 2
+    },
+    "burst": {
+      "count": 170,
+      "speed": 3.4,
+      "spread": 13,
+      "life": 0.85,
+      "size": 0.26,
+      "ring": 1,
+      "shake": 0.65,
+      "palette": [
+        4,
+        0,
+        3
+      ]
+    },
+    "sizeClass": "large"
+  },
+  {
+    "name": "ECLIPSE",
+    "hp": 530,
+    "radius": 2.35,
+    "speed": 0.85,
+    "score": 4600,
+    "period": 2,
+    "amp": 0.8,
+    "freq": 1,
+    "hover": -99,
+    "fire": {
+      "pattern": "eclipse-bounce",
+      "count": 3,
+      "spread": 0.2,
+      "speed": 1.1,
+      "kind": 3
+    },
+    "burst": {
+      "count": 170,
+      "speed": 3.4,
+      "spread": 13,
+      "life": 0.85,
+      "size": 0.26,
+      "ring": 1,
+      "shake": 0.65,
+      "palette": [
+        6,
+        5,
+        3
+      ]
+    },
+    "sizeClass": "large"
+  },
+  {
+    "name": "WRAITH",
+    "hp": 460,
+    "radius": 2.3,
+    "speed": 1.05,
+    "score": 4300,
+    "period": 1.85,
+    "amp": 0.8,
+    "freq": 1,
+    "hover": -99,
+    "fire": {
+      "pattern": "wraith-seeker",
+      "count": 3,
+      "spread": 0.2,
+      "speed": 1.1,
+      "kind": 4
+    },
+    "burst": {
+      "count": 170,
+      "speed": 3.4,
+      "spread": 13,
+      "life": 0.85,
+      "size": 0.26,
+      "ring": 1,
+      "shake": 0.65,
+      "palette": [
+        5,
+        7,
+        0
+      ]
+    },
+    "sizeClass": "large"
+  },
+  {
+    "name": "JUGGERNAUT",
+    "hp": 560,
+    "radius": 2.6,
+    "speed": 0.7,
+    "score": 4800,
+    "period": 2.1,
+    "amp": 0.8,
+    "freq": 1,
+    "hover": -99,
+    "fire": {
+      "pattern": "juggernaut-wave",
+      "count": 3,
+      "spread": 0.2,
+      "speed": 1.1,
+      "kind": 5
+    },
+    "burst": {
+      "count": 170,
+      "speed": 3.4,
+      "spread": 13,
+      "life": 0.85,
+      "size": 0.26,
+      "ring": 1,
+      "shake": 0.65,
+      "palette": [
+        2,
+        1,
+        0
+      ]
+    },
+    "sizeClass": "large"
+  },
+  {
+    "name": "BASTION",
+    "hp": 520,
+    "radius": 2.4,
+    "speed": 0.8,
+    "score": 4500,
+    "period": 2,
+    "amp": 0.8,
+    "freq": 1,
+    "hover": -99,
+    "fire": {
+      "pattern": "bastion-split",
+      "count": 3,
+      "spread": 0.2,
+      "speed": 1.1,
+      "kind": 6
+    },
+    "burst": {
+      "count": 170,
+      "speed": 3.4,
+      "spread": 13,
+      "life": 0.85,
+      "size": 0.26,
+      "ring": 1,
+      "shake": 0.65,
+      "palette": [
+        1,
+        7,
+        0
+      ]
+    },
+    "sizeClass": "large"
+  },
+  {
+    "name": "COLOSSUS",
+    "hp": 580,
+    "radius": 2.7,
+    "speed": 0.65,
+    "score": 4900,
+    "period": 2.15,
+    "amp": 0.8,
+    "freq": 1,
+    "hover": -99,
+    "fire": {
+      "pattern": "colossus-shell",
+      "count": 3,
+      "spread": 0.2,
+      "speed": 1.1,
+      "kind": 7
+    },
+    "burst": {
+      "count": 170,
+      "speed": 3.4,
+      "spread": 13,
+      "life": 0.85,
+      "size": 0.26,
+      "ring": 1,
+      "shake": 0.65,
+      "palette": [
+        6,
+        3,
+        7
+      ]
+    },
+    "sizeClass": "large"
+  },
+  {
+    "name": "MARAUDER",
+    "hp": 450,
+    "radius": 2.3,
+    "speed": 1,
+    "score": 4200,
+    "period": 1.9,
+    "amp": 0.8,
+    "freq": 1,
+    "hover": -99,
+    "fire": {
+      "pattern": "marauder-pulse",
+      "count": 3,
+      "spread": 0.2,
+      "speed": 1.1,
+      "kind": 8
+    },
+    "burst": {
+      "count": 170,
+      "speed": 3.4,
+      "spread": 13,
+      "life": 0.85,
+      "size": 0.26,
+      "ring": 1,
+      "shake": 0.65,
+      "palette": [
+        0,
+        2,
+        3
+      ]
+    },
+    "sizeClass": "large"
+  },
+  {
+    "name": "HARBINGER",
+    "hp": 500,
+    "radius": 2.4,
+    "speed": 0.85,
+    "score": 4400,
+    "period": 1.95,
+    "amp": 0.8,
+    "freq": 1,
+    "hover": -99,
+    "fire": {
+      "pattern": "harbinger-shard",
+      "count": 3,
+      "spread": 0.2,
+      "speed": 1.1,
+      "kind": 9
+    },
+    "burst": {
+      "count": 170,
+      "speed": 3.4,
+      "spread": 13,
+      "life": 0.85,
+      "size": 0.26,
+      "ring": 1,
+      "shake": 0.65,
+      "palette": [
+        7,
+        5,
+        1
+      ]
+    },
+    "sizeClass": "large"
   }
 ]

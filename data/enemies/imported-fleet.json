@@ -31,52 +31,346 @@
       "url": "https://quaternius.com/packs/tanks.html"
     }
   },
-  "player": { "pack": "quaternius", "model": "Striker", "finish": "Blue", "view": 62 },
+  "player": {
+    "pack": "quaternius",
+    "model": "Striker",
+    "finish": "Blue",
+    "view": 62
+  },
   "enemies": [
-    { "name": "SKIFF", "pack": "polyy1", "model": "1", "view": 58 },
-    { "name": "LANCER", "pack": "polyy1", "model": "11", "view": 60 },
-    { "name": "CARRIER", "pack": "polyy1", "model": "9", "view": 50 },
-    { "name": "WARDEN", "pack": "polyy2", "model": "quad_wing_gunship", "view": 58 },
-    { "name": "WASP", "pack": "polyy1", "model": "2", "view": 60 },
-    { "name": "SPINNER", "pack": "polyy1", "model": "23", "view": 55 },
-    { "name": "MORTAR", "pack": "polyy1", "model": "6", "view": 50 },
-    { "name": "SHARD", "pack": "polyy1", "model": "5", "view": 60 },
-    { "name": "SENTRY", "pack": "quaternius", "model": "Challenger", "finish": "Red", "view": 52 },
-    { "name": "RAVEN", "pack": "polyy1", "model": "4", "view": 60 },
-    { "name": "HYDRA", "pack": "quaternius", "model": "Executioner", "finish": "Red", "view": 55 },
-    { "name": "BULWARK", "pack": "polyy2", "model": "four_engine_heavy_bomber", "view": 55 },
-    { "name": "SEEKER", "pack": "polyy2", "model": "canard_delta", "view": 58 },
-    { "name": "MANTIS", "pack": "polyy1", "model": "8", "view": 55 },
-    { "name": "DRILL", "pack": "polyy1", "model": "26", "view": 60 },
-    { "name": "MONOLITH", "pack": "polyy2", "model": "container_freighter", "view": 45 },
-    { "name": "SWARMER", "pack": "polyy1", "model": "29", "view": 50 },
-    { "name": "ARBITER", "pack": "polyy2", "model": "sponson_patrol", "view": 45 },
-    { "name": "SCOURGE", "pack": "polyy2", "model": "belly_bay_bomber", "view": 55 },
-    { "name": "HALBERD", "pack": "polyy2", "model": "split_nose_raider", "view": 55 },
-    { "name": "CINDER", "pack": "polyy1", "model": "3", "view": 60 },
-    { "name": "TALON", "pack": "polyy1", "model": "17", "view": 55 },
-    { "name": "VULTURE", "pack": "polyy1", "model": "10", "view": 55 },
-    { "name": "SIREN", "pack": "polyy1", "model": "15", "view": 55 },
-    { "name": "BASILISK", "pack": "polyy2", "model": "drill_miner", "view": 42 },
-    { "name": "COMET", "pack": "polyy1", "model": "30", "view": 50 },
-    { "name": "GORGON", "pack": "polyy1", "model": "34", "view": 45 },
-    { "name": "ANVIL", "pack": "polyy2", "model": "bulk_hauler", "view": 42 },
-    { "name": "WRAITH", "pack": "polyy1", "model": "31", "view": 60 },
-    { "name": "TEMPEST", "pack": "quaternius", "model": "Spitfire", "finish": "Red", "view": 55 },
-    { "name": "CHIMERA", "pack": "polyy2", "model": "grapple_tug", "view": 45 },
-    { "name": "OBELISK", "pack": "quaternius", "model": "Zenith", "finish": "Red", "view": 50 },
-    { "name": "NOVA", "pack": "polyy2", "model": "dorsal_engine_courier", "view": 50 },
-    { "name": "LEVIATHAN", "pack": "quaternius", "model": "Imperial", "finish": "Red", "view": 52 },
-    { "name": "SLEET", "pack": "polyy1", "model": "32", "view": 60 },
-    { "name": "GLIMMER", "pack": "polyy1", "model": "21", "view": 55 },
-    { "name": "SHIVER", "pack": "polyy1", "model": "22", "view": 58 },
-    { "name": "RIME", "pack": "polyy1", "model": "25", "view": 55 },
-    { "name": "FLOE", "pack": "polyy2", "model": "nacelle_escort", "view": 55 },
-    { "name": "CRYSTAL", "pack": "polyy1", "model": "18", "view": 55 },
-    { "name": "HOARFROST", "pack": "polyy1", "model": "35", "view": 55 },
-    { "name": "CALVING", "pack": "polyy1", "model": "16", "view": 48 },
-    { "name": "MORAINE", "pack": "quaternius", "model": "Dispatcher", "finish": "Red", "view": 52 },
-    { "name": "GLACIER", "pack": "quaternius", "model": "Pancake", "finish": "Red", "view": 48 }
+    {
+      "name": "SKIFF",
+      "pack": "polyy1",
+      "model": "1",
+      "view": 58
+    },
+    {
+      "name": "LANCER",
+      "pack": "polyy1",
+      "model": "11",
+      "view": 60
+    },
+    {
+      "name": "CARRIER",
+      "pack": "polyy1",
+      "model": "9",
+      "view": 50
+    },
+    {
+      "name": "WARDEN",
+      "pack": "polyy2",
+      "model": "quad_wing_gunship",
+      "view": 58
+    },
+    {
+      "name": "WASP",
+      "pack": "polyy1",
+      "model": "2",
+      "view": 60
+    },
+    {
+      "name": "SPINNER",
+      "pack": "polyy1",
+      "model": "23",
+      "view": 55
+    },
+    {
+      "name": "MORTAR",
+      "pack": "polyy1",
+      "model": "6",
+      "view": 50
+    },
+    {
+      "name": "SHARD",
+      "pack": "polyy1",
+      "model": "5",
+      "view": 60
+    },
+    {
+      "name": "SENTRY",
+      "pack": "quaternius",
+      "model": "Challenger",
+      "finish": "Red",
+      "view": 52
+    },
+    {
+      "name": "RAVEN",
+      "pack": "polyy1",
+      "model": "4",
+      "view": 60
+    },
+    {
+      "name": "HYDRA",
+      "pack": "quaternius",
+      "model": "Executioner",
+      "finish": "Red",
+      "view": 55
+    },
+    {
+      "name": "BULWARK",
+      "pack": "polyy2",
+      "model": "four_engine_heavy_bomber",
+      "view": 55
+    },
+    {
+      "name": "SEEKER",
+      "pack": "polyy2",
+      "model": "canard_delta",
+      "view": 58
+    },
+    {
+      "name": "MANTIS",
+      "pack": "polyy1",
+      "model": "8",
+      "view": 55
+    },
+    {
+      "name": "DRILL",
+      "pack": "polyy1",
+      "model": "26",
+      "view": 60
+    },
+    {
+      "name": "MONOLITH",
+      "pack": "polyy2",
+      "model": "container_freighter",
+      "view": 45
+    },
+    {
+      "name": "SWARMER",
+      "pack": "polyy1",
+      "model": "29",
+      "view": 50
+    },
+    {
+      "name": "ARBITER",
+      "pack": "polyy2",
+      "model": "sponson_patrol",
+      "view": 45
+    },
+    {
+      "name": "SCOURGE",
+      "pack": "polyy2",
+      "model": "belly_bay_bomber",
+      "view": 55
+    },
+    {
+      "name": "HALBERD",
+      "pack": "polyy2",
+      "model": "split_nose_raider",
+      "view": 55
+    },
+    {
+      "name": "CINDER",
+      "pack": "polyy1",
+      "model": "3",
+      "view": 60
+    },
+    {
+      "name": "TALON",
+      "pack": "polyy1",
+      "model": "17",
+      "view": 55
+    },
+    {
+      "name": "VULTURE",
+      "pack": "polyy1",
+      "model": "10",
+      "view": 55
+    },
+    {
+      "name": "SIREN",
+      "pack": "polyy1",
+      "model": "15",
+      "view": 55
+    },
+    {
+      "name": "BASILISK",
+      "pack": "polyy2",
+      "model": "drill_miner",
+      "view": 42
+    },
+    {
+      "name": "COMET",
+      "pack": "polyy1",
+      "model": "30",
+      "view": 50
+    },
+    {
+      "name": "GORGON",
+      "pack": "polyy1",
+      "model": "34",
+      "view": 45
+    },
+    {
+      "name": "ANVIL",
+      "pack": "polyy2",
+      "model": "bulk_hauler",
+      "view": 42
+    },
+    {
+      "name": "WRAITH",
+      "pack": "polyy1",
+      "model": "31",
+      "view": 60
+    },
+    {
+      "name": "TEMPEST",
+      "pack": "quaternius",
+      "model": "Spitfire",
+      "finish": "Red",
+      "view": 55
+    },
+    {
+      "name": "CHIMERA",
+      "pack": "polyy2",
+      "model": "grapple_tug",
+      "view": 45
+    },
+    {
+      "name": "OBELISK",
+      "pack": "quaternius",
+      "model": "Zenith",
+      "finish": "Red",
+      "view": 50
+    },
+    {
+      "name": "NOVA",
+      "pack": "polyy2",
+      "model": "dorsal_engine_courier",
+      "view": 50
+    },
+    {
+      "name": "LEVIATHAN",
+      "pack": "quaternius",
+      "model": "Imperial",
+      "finish": "Red",
+      "view": 52
+    },
+    {
+      "name": "SLEET",
+      "pack": "polyy1",
+      "model": "32",
+      "view": 60
+    },
+    {
+      "name": "GLIMMER",
+      "pack": "polyy1",
+      "model": "21",
+      "view": 55
+    },
+    {
+      "name": "SHIVER",
+      "pack": "polyy1",
+      "model": "22",
+      "view": 58
+    },
+    {
+      "name": "RIME",
+      "pack": "polyy1",
+      "model": "25",
+      "view": 55
+    },
+    {
+      "name": "FLOE",
+      "pack": "polyy2",
+      "model": "nacelle_escort",
+      "view": 55
+    },
+    {
+      "name": "CRYSTAL",
+      "pack": "polyy1",
+      "model": "18",
+      "view": 55
+    },
+    {
+      "name": "HOARFROST",
+      "pack": "polyy1",
+      "model": "35",
+      "view": 55
+    },
+    {
+      "name": "CALVING",
+      "pack": "polyy1",
+      "model": "16",
+      "view": 48
+    },
+    {
+      "name": "MORAINE",
+      "pack": "quaternius",
+      "model": "Dispatcher",
+      "finish": "Red",
+      "view": 52
+    },
+    {
+      "name": "GLACIER",
+      "pack": "quaternius",
+      "model": "Pancake",
+      "finish": "Red",
+      "view": 48
+    },
+    {
+      "name": "DREADWING",
+      "pack": "polyy1",
+      "model": "7",
+      "view": 55
+    },
+    {
+      "name": "INFERNO",
+      "pack": "polyy1",
+      "model": "14",
+      "view": 55
+    },
+    {
+      "name": "VANGUARD",
+      "pack": "polyy1",
+      "model": "19",
+      "view": 58
+    },
+    {
+      "name": "ECLIPSE",
+      "pack": "polyy1",
+      "model": "27",
+      "view": 55
+    },
+    {
+      "name": "WRAITH",
+      "pack": "polyy1",
+      "model": "33",
+      "view": 55
+    },
+    {
+      "name": "JUGGERNAUT",
+      "pack": "polyy2",
+      "model": "ramp_dropship",
+      "view": 50
+    },
+    {
+      "name": "BASTION",
+      "pack": "polyy2",
+      "model": "t_tail_shuttle",
+      "view": 50
+    },
+    {
+      "name": "COLOSSUS",
+      "pack": "polyy2",
+      "model": "outrigger_pod_courier",
+      "view": 50
+    },
+    {
+      "name": "MARAUDER",
+      "pack": "quaternius",
+      "model": "Insurgent",
+      "finish": "Red",
+      "view": 55
+    },
+    {
+      "name": "HARBINGER",
+      "pack": "quaternius",
+      "model": "Omen",
+      "finish": "Red",
+      "view": 50
+    }
   ],
   "ground": [
     {
@@ -86,7 +380,13 @@
       "view": 30,
       "turn": 90
     },
-    { "name": "TANK", "pack": "quaternius-tanks", "model": "Tank3", "view": 30, "turn": 180 },
+    {
+      "name": "TANK",
+      "pack": "quaternius-tanks",
+      "model": "Tank3",
+      "view": 30,
+      "turn": 180
+    },
     {
       "name": "SILO",
       "pack": "quaternius-turrets",
@@ -94,8 +394,18 @@
       "view": 30,
       "muzzle": "top"
     },
-    { "name": "FLAK", "pack": "quaternius-turrets", "model": "Cannon_4", "view": 30 },
-    { "name": "FROST GUN", "pack": "quaternius-turrets", "model": "Laser_2", "view": 30 },
+    {
+      "name": "FLAK",
+      "pack": "quaternius-turrets",
+      "model": "Cannon_4",
+      "view": 30
+    },
+    {
+      "name": "FROST GUN",
+      "pack": "quaternius-turrets",
+      "model": "Laser_2",
+      "view": 30
+    },
     {
       "name": "BLOOM",
       "pack": "quaternius-turrets",
@@ -103,7 +413,12 @@
       "view": 30,
       "muzzle": "top"
     },
-    { "name": "SLED", "pack": "quaternius-tanks", "model": "Tank2", "view": 30 },
+    {
+      "name": "SLED",
+      "pack": "quaternius-tanks",
+      "model": "Tank2",
+      "view": 30
+    },
     {
       "name": "PILLAR",
       "pack": "quaternius-turrets",
@@ -111,7 +426,12 @@
       "view": 30,
       "muzzle": "top"
     },
-    { "name": "CLAMP", "pack": "quaternius-turrets", "model": "Bomber_2", "view": 30 },
+    {
+      "name": "CLAMP",
+      "pack": "quaternius-turrets",
+      "model": "Bomber_2",
+      "view": 30
+    },
     {
       "name": "ICICLE",
       "pack": "quaternius-turrets",
@@ -119,33 +439,98 @@
       "view": 30,
       "muzzle": "top"
     },
-    { "name": "RAIL", "pack": "quaternius-turrets", "model": "Long_2", "view": 30 },
-    { "name": "CATHEDRAL", "pack": "quaternius-turrets", "model": "Cannon_7", "view": 30 }
+    {
+      "name": "RAIL",
+      "pack": "quaternius-turrets",
+      "model": "Long_2",
+      "view": 30
+    },
+    {
+      "name": "CATHEDRAL",
+      "pack": "quaternius-turrets",
+      "model": "Cannon_7",
+      "view": 30
+    }
   ],
   "bosses": {
     "gatekeeper": {
-      "hull": { "pack": "polyy2", "model": "hammerhead_cruiser", "detail": "full", "view": 50 },
-      "pod": { "pack": "quaternius", "model": "Bob", "finish": "Red", "view": 55 }
+      "hull": {
+        "pack": "polyy2",
+        "model": "hammerhead_cruiser",
+        "detail": "full",
+        "view": 50
+      },
+      "pod": {
+        "pack": "quaternius",
+        "model": "Bob",
+        "finish": "Red",
+        "view": 55
+      }
     },
     "ares": {
-      "hull": { "pack": "polyy2", "model": "chin_turret_gunship", "detail": "full", "view": 45 },
-      "pod": { "pack": "polyy1", "model": "24", "view": 55 }
+      "hull": {
+        "pack": "polyy2",
+        "model": "chin_turret_gunship",
+        "detail": "full",
+        "view": 45
+      },
+      "pod": {
+        "pack": "polyy1",
+        "model": "24",
+        "view": 55
+      }
     },
     "jove": {
-      "hull": { "pack": "polyy2", "model": "catamaran_cruiser", "detail": "full", "view": 50 },
-      "pod": { "pack": "polyy2", "model": "boomerang_skiff", "view": 55 }
+      "hull": {
+        "pack": "polyy2",
+        "model": "catamaran_cruiser",
+        "detail": "full",
+        "view": 50
+      },
+      "pod": {
+        "pack": "polyy2",
+        "model": "boomerang_skiff",
+        "view": 55
+      }
     },
     "nereid": {
-      "hull": { "pack": "polyy2", "model": "manta_flying_wing", "detail": "full", "view": 55 },
-      "pod": { "pack": "polyy2", "model": "v_tail_fighter", "view": 55 }
+      "hull": {
+        "pack": "polyy2",
+        "model": "manta_flying_wing",
+        "detail": "full",
+        "view": 55
+      },
+      "pod": {
+        "pack": "polyy2",
+        "model": "v_tail_fighter",
+        "view": 55
+      }
     },
     "warden": {
-      "hull": { "pack": "polyy2", "model": "trimaran_escort", "detail": "full", "view": 50 },
-      "pod": { "pack": "polyy2", "model": "twin_boom_interceptor", "view": 55 }
+      "hull": {
+        "pack": "polyy2",
+        "model": "trimaran_escort",
+        "detail": "full",
+        "view": 50
+      },
+      "pod": {
+        "pack": "polyy2",
+        "model": "twin_boom_interceptor",
+        "view": 55
+      }
     },
     "sovereign": {
-      "hull": { "pack": "polyy2", "model": "forward_swept_skirmisher", "detail": "full", "view": 50 },
-      "pod": { "pack": "polyy2", "model": "disc_tip_racer", "view": 55 }
+      "hull": {
+        "pack": "polyy2",
+        "model": "forward_swept_skirmisher",
+        "detail": "full",
+        "view": 50
+      },
+      "pod": {
+        "pack": "polyy2",
+        "model": "disc_tip_racer",
+        "view": 55
+      }
     }
   }
 }

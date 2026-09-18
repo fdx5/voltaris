@@ -191,6 +191,13 @@
       "pattern": 1
     },
     {
+      "time": 68,
+      "type": 44,
+      "y": 1,
+      "count": 1,
+      "pattern": 0
+    },
+    {
       "time": 69,
       "type": 6,
       "y": -2,
@@ -392,6 +399,13 @@
       "y": -3,
       "count": 30,
       "pattern": 1
+    },
+    {
+      "time": 150,
+      "type": 44,
+      "y": -1.5,
+      "count": 1,
+      "pattern": 0
     },
     {
       "time": 153,

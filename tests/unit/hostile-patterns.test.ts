@@ -7,9 +7,9 @@ import { STAGES } from '../../src/game/stages';
 import { GameState } from '../../src/game/GameState';
 
 describe('independent fleet designs and armaments', () => {
-  it('has 44 named designs, palettes and distinct deterministic firing recipes', () => {
-    expect(new Set(designs.map((d) => d.design)).size).toBe(44);
-    expect(new Set(designs.map((d) => d.palette[0])).size).toBe(44);
+  it('has 54 named designs, palettes and distinct deterministic firing recipes', () => {
+    expect(new Set(designs.map((d) => d.design)).size).toBe(54);
+    expect(new Set(designs.map((d) => d.palette[0])).size).toBe(54);
     const signatures = designs.map((d, i) => {
       const plan = enemySalvo(i, 2.7, 3);
       expect(plan).toEqual(enemySalvo(i, 2.7, 3));
@@ -25,9 +25,9 @@ describe('independent fleet designs and armaments', () => {
       }
       return JSON.stringify(plan);
     });
-    expect(new Set(signatures).size).toBe(44);
+    expect(new Set(signatures).size).toBe(54);
     // Every family flies its own imported hull.
-    expect(new Set(mounts.map((m) => `${m.source}/${m.model}`)).size).toBe(44);
+    expect(new Set(mounts.map((m) => `${m.source}/${m.model}`)).size).toBe(54);
   });
   it('gives medium ships larger hulls, more health and more complex bursts', () => {
     const medium = designs.filter((d) => d.size === 'medium');

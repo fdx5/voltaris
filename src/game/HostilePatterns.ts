@@ -314,6 +314,42 @@ export function enemySalvo(type: number, aim: number, cycle: number): SalvoShot[
             add(m, PI + (pass - 1) * 0.1, pass === 1 ? S.BOUNCE : S.NEEDLE, pass * 0.32, 0.88);
       fan(2, 4, aim, 0.2, S.PLASMA, 1.02, 0.62);
       break;
+    // Types 44-53: the ten large hulls. They never actually reach this
+    // recipe in play - `hostilePlan` always sends them to `largeSalvo` - but
+    // every design keeps one authored case, both for the fleet-wide
+    // uniqueness check and in case a future caller wants their "light" shot.
+    case 44: // Dreadwing: a tight aimed burst, three shots wide.
+      fan(0, 3, aim, 0.13, S.SHARD, 0, 0.9);
+      break;
+    case 45: // Inferno: a slow lobbed pair either side of the aim line.
+      for (let j = 0; j < 2; j++) add(0, aim + (j - 0.5) * 0.4, S.PLASMA, j * 0.2, 0.55);
+      break;
+    case 46: // Vanguard: a fast three-shot needle train.
+      for (let k = 0; k < 3; k++) add(0, aim, S.NEEDLE, k * 0.09, 1.1 + k * 0.1);
+      break;
+    case 47: // Eclipse: a narrow bouncing fan.
+      fan(0, 4, aim, 0.17, S.BOUNCE, 0, 0.75);
+      break;
+    case 48: // Wraith: a single seeking round trailed by two orbs.
+      add(0, aim, S.HOMING, 0, 0.6);
+      fan(0, 2, aim, 0.3, S.ORB, 0.18, 0.85);
+      break;
+    case 49: // Juggernaut: five-shot spread wave.
+      fan(0, 5, aim, 0.15, S.WAVE, 0, 0.7);
+      break;
+    case 50: // Bastion: a splitting pair, wide then narrow.
+      add(0, aim - 0.22, S.SPLIT, 0, 0.8);
+      add(0, aim + 0.22, S.SPLIT, 0.1, 0.8);
+      break;
+    case 51: // Colossus: a heavy accelerating shell.
+      add(0, aim, S.ACCEL, 0, 0.5);
+      break;
+    case 52: // Marauder: a tight pulse burst.
+      for (let k = 0; k < 4; k++) add(0, aim + (k - 1.5) * 0.06, S.PULSE, k * 0.05, 0.95);
+      break;
+    case 53: // Harbinger: a slow crystalline shard fan.
+      fan(0, 6, aim, 0.11, S.SHARD, 0.06, 0.65);
+      break;
     default:
       throw new Error(`Unmapped hostile design ${type}`);
   }
@@ -670,6 +706,53 @@ export function bossSalvo(
       // A few aimed needles punched straight through the ring, so standing
       // still in a gap stops being safe once the fight escalates.
       for (let j = 0; j < 3; j++) add(0, 0, aim + (j - 1) * 0.12, S.NEEDLE, 0.5 + j * 0.08, 1.1);
+    }
+  }
+  return out;
+}
+
+/**
+ * A large hull never opens with a light authored shot the way a medium does
+ * every third volley - every one of its salvos is boss weight, cycling
+ * through three broad phrases so a long fight against one doesn't repeat.
+ */
+export function largeSalvo(type: number, aim: number, cycle: number): SalvoShot[] {
+  const out: SalvoShot[] = [];
+  const add = (mount: number, angle: number, kind: number, delay = 0, speed = 1) =>
+    out.push({ mount, angle, kind, delay, speed, dx: 0, dy: 0 });
+  const primary = [S.SHARD, S.PULSE, S.WAVE, S.ORB, S.PLASMA][type % 5];
+  const secondary = [S.NEEDLE, S.ACCEL, S.BOUNCE, S.SPLIT, S.SHARD][(type * 3) % 5];
+  const turn = cycle % 2 ? 1 : -1;
+  switch (cycle % 3) {
+    case 0: {
+      // A full-circle ring, thrown twice at different speeds so the gaps
+      // in the first pass close behind the second.
+      const count = 22 + (type % 3) * 2;
+      for (const a of ring(aim, count, 0)) {
+        add(0, a, primary, 0, 0.85);
+        add(1, a + TAU / (count * 2), secondary, 0.35, 0.58);
+      }
+      break;
+    }
+    case 1: {
+      // Four arms spiral out together, tightening as they turn.
+      for (let beat = 0; beat < 14; beat++)
+        for (let arm = 0; arm < 4; arm++)
+          add(
+            arm,
+            aim + turn * beat * 0.17 + (arm * TAU) / 4,
+            beat % 4 === 3 ? secondary : primary,
+            beat * 0.07,
+            0.7 + beat * 0.015,
+          );
+      break;
+    }
+    default: {
+      // A dense aimed wall with a homing volley punched through its middle.
+      for (let j = 0; j < 24; j++)
+        add(j % 4, aim + (j - 11.5) * 0.05, primary, j * 0.03, 1.05);
+      for (let j = 0; j < 6; j++) add(0, aim + (j - 2.5) * 0.16, S.HOMING, 0.55 + j * 0.05, 0.6);
+      for (let j = 0; j < 8; j++) add(1, aim + (j - 3.5) * 0.22, secondary, 0.8, 0.75);
     }
   }
   return out;

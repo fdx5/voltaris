@@ -999,6 +999,13 @@
       "pattern": 0
     },
     {
+      "time": 55,
+      "type": 49,
+      "y": 1.5,
+      "count": 1,
+      "pattern": 0
+    },
+    {
       "time": 57,
       "type": 35,
       "y": 2,
@@ -1132,6 +1139,13 @@
       "pattern": 0
     },
     {
+      "time": 110,
+      "type": 50,
+      "y": -1.5,
+      "count": 1,
+      "pattern": 0
+    },
+    {
       "time": 112,
       "type": 34,
       "y": -2,
@@ -1262,6 +1276,13 @@
       "type": 35,
       "y": 0,
       "count": 17,
+      "pattern": 0
+    },
+    {
+      "time": 165,
+      "type": 49,
+      "y": 1,
+      "count": 1,
       "pattern": 0
     },
     {

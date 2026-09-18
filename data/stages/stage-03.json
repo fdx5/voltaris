@@ -496,6 +496,13 @@
       "pattern": 2
     },
     {
+      "time": 44,
+      "type": 47,
+      "y": 2,
+      "count": 1,
+      "pattern": 0
+    },
+    {
       "time": 45,
       "type": 22,
       "y": 3,
@@ -557,6 +564,13 @@
       "y": 3,
       "count": 13,
       "pattern": 1
+    },
+    {
+      "time": 66,
+      "type": 48,
+      "y": -2,
+      "count": 1,
+      "pattern": 0
     },
     {
       "time": 69,
@@ -636,6 +650,13 @@
       "pattern": 0
     },
     {
+      "time": 98,
+      "type": 47,
+      "y": 1,
+      "count": 1,
+      "pattern": 0
+    },
+    {
       "time": 100,
       "type": 27,
       "y": 0,
@@ -682,6 +703,13 @@
       "type": 32,
       "y": 3,
       "count": 5,
+      "pattern": 0
+    },
+    {
+      "time": 118,
+      "type": 48,
+      "y": -1.5,
+      "count": 1,
       "pattern": 0
     },
     {
@@ -734,6 +762,13 @@
       "pattern": 0
     },
     {
+      "time": 140,
+      "type": 47,
+      "y": 2,
+      "count": 1,
+      "pattern": 0
+    },
+    {
       "time": 141,
       "type": 21,
       "y": -3,
@@ -780,6 +815,13 @@
       "type": 29,
       "y": -1,
       "count": 14,
+      "pattern": 0
+    },
+    {
+      "time": 160,
+      "type": 48,
+      "y": -2,
+      "count": 1,
       "pattern": 0
     },
     {

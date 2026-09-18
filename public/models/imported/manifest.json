@@ -438,6 +438,96 @@
       "materials": 1
     },
     {
+      "slot": "enemy_44",
+      "pack": "polyy1",
+      "model": "7",
+      "sourceTriangles": 5882,
+      "triangles": 5882,
+      "texture": "1024x1024",
+      "materials": 1
+    },
+    {
+      "slot": "enemy_45",
+      "pack": "polyy1",
+      "model": "14",
+      "sourceTriangles": 14064,
+      "triangles": 14064,
+      "texture": "1024x1088",
+      "materials": 3
+    },
+    {
+      "slot": "enemy_46",
+      "pack": "polyy1",
+      "model": "19",
+      "sourceTriangles": 5628,
+      "triangles": 5628,
+      "texture": "1024x1024",
+      "materials": 1
+    },
+    {
+      "slot": "enemy_47",
+      "pack": "polyy1",
+      "model": "27",
+      "sourceTriangles": 11400,
+      "triangles": 11400,
+      "texture": "1024x1024",
+      "materials": 1
+    },
+    {
+      "slot": "enemy_48",
+      "pack": "polyy1",
+      "model": "33",
+      "sourceTriangles": 4834,
+      "triangles": 4834,
+      "texture": "1024x1024",
+      "materials": 1
+    },
+    {
+      "slot": "enemy_49",
+      "pack": "polyy2",
+      "model": "ramp_dropship",
+      "sourceTriangles": 15387,
+      "triangles": 15387,
+      "texture": "1024x1024",
+      "materials": 1
+    },
+    {
+      "slot": "enemy_50",
+      "pack": "polyy2",
+      "model": "t_tail_shuttle",
+      "sourceTriangles": 13161,
+      "triangles": 13161,
+      "texture": "1024x1024",
+      "materials": 1
+    },
+    {
+      "slot": "enemy_51",
+      "pack": "polyy2",
+      "model": "outrigger_pod_courier",
+      "sourceTriangles": 12835,
+      "triangles": 12835,
+      "texture": "1024x1024",
+      "materials": 1
+    },
+    {
+      "slot": "enemy_52",
+      "pack": "quaternius",
+      "model": "Insurgent (Red)",
+      "sourceTriangles": 8292,
+      "triangles": 8292,
+      "texture": "2048x2048",
+      "materials": 1
+    },
+    {
+      "slot": "enemy_53",
+      "pack": "quaternius",
+      "model": "Omen (Red)",
+      "sourceTriangles": 1426,
+      "triangles": 1426,
+      "texture": "2048x2048",
+      "materials": 1
+    },
+    {
       "slot": "boss_gatekeeper",
       "pack": "polyy2",
       "model": "hammerhead_cruiser",
