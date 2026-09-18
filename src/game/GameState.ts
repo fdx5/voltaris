@@ -188,6 +188,10 @@ export class GameState {
   /** Seconds of hit flash left on each live enemy, so a hull that is being
    *  worn down reads as taking damage rather than shrugging it off. */
   readonly enemyFlash = new Float32Array(tuning.pools.enemies);
+  /** HP a hostile spawned with, so the renderer can read off how worn down it
+   *  is - large hulls burn hotter across their plating the lower this ratio
+   *  runs, rather than just flashing white on a hit like everything else. */
+  readonly enemySpawnHp = new Float32Array(tuning.pools.enemies);
   /**
    * Roll about each hostile's nose and the tilt of its nose, in radians, both
    * following its vertical speed: climbing turns the dorsal plating to the
@@ -485,6 +489,7 @@ export class GameState {
     this.replayOverflow = false;
     this.flash = this.shake = 0;
     this.enemyFlash.fill(0);
+    this.enemySpawnHp.fill(0);
     this.impactAge.fill(IMPACT_LIFE);
     this.bossFlash = 0;
     this.partFlash.fill(0);
@@ -1071,6 +1076,7 @@ export class GameState {
     const i = this.enemies.acquire(x, y, -d.speed, 0, type, 30, d.radius, hp);
     if (i >= 0) {
       this.enemyFlash[i] = 0;
+      this.enemySpawnHp[i] = hp;
       this.enemies.aux[i] = pattern;
       this.enemies.life[i] = y;
       this.enemies.age[i] = -n * 0.08;

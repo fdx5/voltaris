@@ -1084,10 +1084,16 @@ export class ThreeBackend implements IRenderBackend {
     if (this.ios || this.disposed) return;
     // Everything the hangar does not draw, one top-level object at a time and
     // yielding between them, so the hangar keeps drawing while this runs - a
-    // single pass over the whole scene held the page for seconds. The boss
-    // hulls and the models that appear all at once (boss death shockwave,
-    // NOVA BOMB) go first, so they are ready long before they are needed.
+    // single pass over the whole scene held the page for seconds. Large hulls
+    // go first - Stage 1 can put one on screen within its first minute, far
+    // sooner than a boss ever appears - then the boss hulls and the models
+    // that appear all at once (boss death shockwave, NOVA BOMB), so all of
+    // them are ready long before they are needed.
     const first = [
+      ...this.enemyHulls.filter((_, i) => fleetHardpoints[i]?.size === 'large'),
+      ...this.enemyAccents.filter(
+        (accent, i): accent is T.InstancedMesh => !!accent && fleetHardpoints[i]?.size === 'large',
+      ),
       ...this.bosses.flatMap((boss) => [boss.root, ...boss.pods]),
       ...this.midBosses.flatMap((boss) => (boss ? [boss.root, ...boss.pods] : [])),
       ...this.hiddenUntilUsed,
@@ -1461,12 +1467,19 @@ export class ThreeBackend implements IRenderBackend {
       const slot = hull.count;
       this.push(hull, x, y, 0, 1, 1, 1, angle, bank);
       // instanceColor multiplies the baked hull colours, so a hit reads as the
-      // whole airframe flaring white for a frame or two.
+      // whole airframe flaring white for a frame or two. A large hull's own
+      // plating also darkens toward a scorched red as its HP runs out - it
+      // soaks up several times a medium's damage, so a player needs a read on
+      // how close it is without watching a health bar.
       if (hull.count > slot) {
         const flash = g.enemyFlash[i];
         if (flash > 0) {
           const flare = 1 + flash * 26;
           this.tint.setRGB(flare, flare, flare);
+          hull.setColorAt(slot, this.tint);
+        } else if (fleetHardpoints[type].size === 'large') {
+          const worn = 1 - T.MathUtils.clamp(e.hp[i] / (g.enemySpawnHp[i] || e.hp[i]), 0, 1);
+          this.tint.setRGB(1, 1 - worn * 0.55, 1 - worn * 0.72);
           hull.setColorAt(slot, this.tint);
         } else hull.setColorAt(slot, this.white);
       }
