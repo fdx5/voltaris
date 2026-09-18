@@ -356,6 +356,10 @@ const STRINGS = {
   PASSWORD_PLACEHOLDER: { ko: '4자 이상', en: '4+ characters' },
   CONNECTING: { ko: '연결 중…', en: 'Connecting…' },
   CHECKING_SESSION: { ko: '세션 확인 중…', en: 'Checking session…' },
+  SESSION_SLOW_HINT: {
+    ko: '서버가 잠시 쉬고 있었다면 깨우는 데 최대 1분 정도 걸릴 수 있어요. 계속 진행 중입니다.',
+    en: 'If the server was asleep, waking it can take up to a minute. Still working.',
+  },
   SIGN_UP_START: { ko: '가입하고 시작', en: 'Sign up and start' },
   LOGIN: { ko: '로그인', en: 'Log in' },
   LOGIN_EXISTING: { ko: '기존 계정으로 로그인', en: 'Log in with an existing account' },

@@ -10,7 +10,19 @@ export function LoginScreen() {
   const [register, setRegister] = useState(false),
     [username, setUsername] = useState(''),
     [password, setPassword] = useState(''),
-    [busy, setBusy] = useState(false);
+    [busy, setBusy] = useState(false),
+    [slow, setSlow] = useState(false);
+  // A cold Render instance can take most of a minute to answer the very
+  // first request - past a few seconds of silence that reads as hung, so
+  // the hint below names the likely cause instead of leaving a bare spinner.
+  useEffect(() => {
+    if (!account.loading) {
+      setSlow(false);
+      return;
+    }
+    const timer = setTimeout(() => setSlow(true), 5000);
+    return () => clearTimeout(timer);
+  }, [account.loading]);
   const submit = async (e: FormEvent) => {
     e.preventDefault();
     if (busy) return;
@@ -69,6 +81,14 @@ export function LoginScreen() {
               placeholder={t('PASSWORD_PLACEHOLDER')}
             />
           </label>
+          {account.loading && (
+            <div className="session-loading" role="status" aria-live="polite">
+              <div className="session-loading-bar">
+                <div className="session-loading-fill" />
+              </div>
+              {slow && <p className="session-loading-hint">{t('SESSION_SLOW_HINT')}</p>}
+            </div>
+          )}
           {account.error && (
             <p className="account-error" role="alert">
               {account.error}
