@@ -2108,7 +2108,8 @@ export class GameState {
     this.enemies.hp[i] -= damage;
     if (this.enemies.hp[i] > 0) {
       this.enemyFlash[i] = 0.09;
-      if (fleetHardpoints[this.enemies.type[i]].size === 'medium')
+      const hullSize = fleetHardpoints[this.enemies.type[i]].size;
+      if (hullSize === 'medium' || hullSize === 'large')
         this.impact(
           this.enemies.x[i],
           this.enemies.y[i],
