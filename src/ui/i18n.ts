@@ -393,4 +393,11 @@ const STRINGS = {
   LAUNCHED_AT: { ko: '출격 일시', en: 'Launched' },
   PREV: { ko: '이전', en: 'Prev' },
   NEXT: { ko: '다음', en: 'Next' },
+  RECENT_SORTIES: { ko: '최근 기록', en: 'Recent sorties' },
+  RECENT_SORTIES_EYEBROW: { ko: 'ALL STAGES / 최신 출격순', en: 'ALL STAGES / newest sortie first' },
+  RECENT_FINE_PRINT: {
+    ko: '스테이지 구분 없이 모든 파일럿의 출격 기록을 최신순으로 표시합니다.',
+    en: 'Every pilot, every stage, newest sortie first.',
+  },
+  ROW_NUMBER: { ko: '번호', en: '#' },
 } satisfies Record<string, Record<Locale, string>>;

@@ -29,6 +29,7 @@ import {
   Lock,
   Check,
   Download,
+  Clock,
 } from 'lucide-react';
 import { Runtime } from '../core/Runtime';
 import { PLAYER_CRAFT } from '../visual/PlayerLoadout';
@@ -47,7 +48,7 @@ const clock = (n: number) =>
     .padStart(2, '0')}:${Math.floor(n % 60)
     .toString()
     .padStart(2, '0')}`;
-type Panel = 'launch' | 'settings' | 'controls' | 'records' | null;
+type Panel = 'launch' | 'settings' | 'controls' | 'records' | 'recent' | null;
 const weaponInfo = {
   LASER: {
     title: 'PRECISION LANCE',
@@ -328,9 +329,19 @@ function GameApp() {
                   <ChevronRight size={16} aria-hidden="true" />
                 </span>
               </button>
-              <button className="flight-choice guide-choice" onClick={() => open('controls')}>
+              <button className="flight-choice recent-choice" onClick={() => open('recent')}>
                 <span className="choice-index" aria-hidden="true">
                   03
+                </span>
+                <span className="menu-button">
+                  <Clock size={18} aria-hidden="true" />
+                  {t('RECENT_SORTIES')}
+                  <ChevronRight size={16} aria-hidden="true" />
+                </span>
+              </button>
+              <button className="flight-choice guide-choice" onClick={() => open('controls')}>
+                <span className="choice-index" aria-hidden="true">
+                  04
                 </span>
                 <span className="menu-button">
                   <Keyboard size={18} aria-hidden="true" />
@@ -348,7 +359,7 @@ function GameApp() {
                 }}
               >
                 <span className="choice-index" aria-hidden="true">
-                  04
+                  05
                 </span>
                 <span className="menu-button">
                   <Target size={18} aria-hidden="true" />
@@ -1122,6 +1133,16 @@ function GameApp() {
           wide
         >
           <OnlineHistory />
+        </Modal>
+      )}
+      {panel === 'recent' && (
+        <Modal
+          title="SORTIE LOG"
+          eyebrow={t('RECENT_SORTIES_EYEBROW')}
+          onClose={() => setPanel(null)}
+          wide
+        >
+          <OnlineHistory mode="recent" />
         </Modal>
       )}
       {(account.error || account.saving || account.launching) && (

@@ -119,10 +119,17 @@ const MEDAL_TIER: Record<number, 'gold' | 'silver' | 'bronze'> = {
   2: 'silver',
   3: 'bronze',
 };
-export function OnlineHistory() {
+/**
+ * `ranking` (the default) is the existing per-stage leaderboard: one stage
+ * selected via tabs, sorted by score, top three ranks medalled.
+ * `recent` is a flat activity log across every stage at once, newest sortie
+ * first - no stage tabs, no medals, just `LAUNCHED_AT` order.
+ */
+export function OnlineHistory({ mode = 'ranking' }: { mode?: 'ranking' | 'recent' }) {
   const user = useAccount((s) => s.user);
   const t = useT();
   const locale = useLocaleStore((s) => s.locale);
+  const recent = mode === 'recent';
   const [page, setPage] = useState(1),
     [stage, setStage] = useState(1),
     [username, setUsername] = useState(''),
@@ -139,8 +146,10 @@ export function OnlineHistory() {
     const controller = new AbortController();
     setLoading(true);
     setError('');
+    const stageParam = recent ? 0 : stage;
+    const sort = recent ? 'recent' : 'score';
     api<typeof data>(
-      `/history?page=${page}&stage=${stage}&username=${encodeURIComponent(filter)}&sort=score`,
+      `/history?page=${page}&stage=${stageParam}&username=${encodeURIComponent(filter)}&sort=${sort}`,
       undefined,
       controller.signal,
     )
@@ -152,7 +161,7 @@ export function OnlineHistory() {
         if (!controller.signal.aborted) setLoading(false);
       });
     return () => controller.abort();
-  }, [page, stage, filter, refresh]);
+  }, [page, stage, filter, refresh, recent]);
   const labels: Record<string, string> = {
     started: t('STATUS_STARTED'),
     clear: t('STATUS_CLEAR'),
@@ -161,24 +170,26 @@ export function OnlineHistory() {
   };
   return (
     <div className="online-history">
-      <p className="fine">{t('HISTORY_FINE_PRINT')}</p>
-      <div className="history-tabs" role="tablist" aria-label={t('STAGE_SELECT_LABEL')}>
-        {STAGES.map((s, i) => (
-          <button
-            key={s.id}
-            role="tab"
-            aria-selected={stage === i + 1}
-            className={`history-tab ${stage === i + 1 ? 'active' : ''}`}
-            onClick={() => {
-              setPage(1);
-              setStage(i + 1);
-            }}
-          >
-            <b>STAGE {i + 1}</b>
-            <small>{s.name}</small>
-          </button>
-        ))}
-      </div>
+      <p className="fine">{t(recent ? 'RECENT_FINE_PRINT' : 'HISTORY_FINE_PRINT')}</p>
+      {!recent && (
+        <div className="history-tabs" role="tablist" aria-label={t('STAGE_SELECT_LABEL')}>
+          {STAGES.map((s, i) => (
+            <button
+              key={s.id}
+              role="tab"
+              aria-selected={stage === i + 1}
+              className={`history-tab ${stage === i + 1 ? 'active' : ''}`}
+              onClick={() => {
+                setPage(1);
+                setStage(i + 1);
+              }}
+            >
+              <b>STAGE {i + 1}</b>
+              <small>{s.name}</small>
+            </button>
+          ))}
+        </div>
+      )}
       <form
         className="history-filters"
         onSubmit={(e) => {
@@ -224,7 +235,7 @@ export function OnlineHistory() {
           <table>
             <thead>
               <tr>
-                <th>{t('RANK')}</th>
+                <th>{t(recent ? 'ROW_NUMBER' : 'RANK')}</th>
                 <th>{t('PILOT')}</th>
                 <th>{t('STAGE')}</th>
                 <th>{t('RESULT')}</th>
@@ -238,7 +249,9 @@ export function OnlineHistory() {
             <tbody>
               {data.rows.map((row, i) => {
                 const rank = (page - 1) * 20 + i + 1;
-                const tier = MEDAL_TIER[rank];
+                // A "most recent" list isn't a leaderboard - row 1 just
+                // launched most recently, it didn't score the highest.
+                const tier = recent ? undefined : MEDAL_TIER[rank];
                 return (
                   <tr key={row.id} className={tier ? `rank-${tier}` : undefined}>
                     <td className="rank-cell">
