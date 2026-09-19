@@ -381,6 +381,7 @@ export class GameState {
   stressCount = 1500;
   stressShips = 20;
   shotEvent = 0;
+  readonly destruction = new ObjectPool(48);
   explosionEvent = 0;
   /** Set with each explosion: true for a heavy hull, false for a light one. */
   explosionHeavy = false;
@@ -419,6 +420,7 @@ export class GameState {
     this.pendingSalvos.clear();
     this.enemies.clear();
     this.particles.clear();
+    this.destruction.clear();
     this.items.clear();
     this.ground.clear();
     this.groundFlash.fill(0);
@@ -723,6 +725,7 @@ export class GameState {
     if (this.bossDying) return;
     this.updateItems(dt);
     this.particles.move(dt);
+    this.destruction.move(dt);
   }
   /**
    * Places the option drones for the frame.
@@ -809,8 +812,8 @@ export class GameState {
       }
     };
     for (let i = 0; i < this.enemies.limit; i++)
-      if (this.enemies.active[i]) consider(this.enemies.x[i], this.enemies.y[i]);
-    if ((this.boss || this.midBoss) && this.bossTransition <= 0) {
+      if (this.canDamage(this.enemies, i)) consider(this.enemies.x[i], this.enemies.y[i]);
+    if (this.bossVulnerable) {
       consider(this.bossX, this.bossY);
       for (let i = 0; i < this.bossParts; i++)
         if (this.partHp[i] > 0) consider(this.partX[i], this.partY[i]);
@@ -857,14 +860,14 @@ export class GameState {
     for (let i = 0; i < this.enemies.limit; i++)
       if (
         this.enemies.active[i] &&
-        this.enemies.x[i] <= this.engageX &&
+        this.canDamage(this.enemies, i) &&
         touches(this.enemies.x[i], this.enemies.y[i], this.enemies.radius[i])
       )
         this.damageEnemy(i, damage, this.x, this.y);
     for (let i = 0; i < this.rocks.limit; i++)
       if (this.rocks.active[i] && touches(this.rocks.x[i], this.rocks.y[i], this.rocks.radius[i]))
         this.damageRock(i, damage);
-    if ((this.boss || this.midBoss) && this.bossTransition <= 0) {
+    if (this.bossVulnerable) {
       for (let i = 0; i < this.bossParts; i++)
         if (this.partHp[i] > 0 && touches(this.partX[i], this.partY[i], 0.7)) {
           this.partHp[i] -= damage;
@@ -883,7 +886,7 @@ export class GameState {
   }
   /**
    * Fires one volley of the equipped weapon. The ship and its option drones
-   * shoot the same number of rounds for the same damage, but in patterns of
+   * preserve volley damage with fewer, stronger escort rounds in patterns of
    * their own - and the renderer colours drone rounds differently - so the
    * player can always tell their own fire from their escorts'.
    *
@@ -899,14 +902,15 @@ export class GameState {
     // The hull's own shot hits twice as hard as an option's - every ship
     // type, so the main gun stays the headline weapon even as more options
     // come online.
-    const damage = w.damage * (this.effects[0] > 0 ? 2 : 1) * (option ? 1 : 2);
+    const count = option ? Math.max(1, Math.ceil(w.count / 2)) : w.count;
+    const damage = w.damage * (this.effects[0] > 0 ? 2 : 1) * (option ? w.count / count : 2);
     // A maxed-out weapon gets its own presentation on the ship's own shots
     // only - an option drone stays the smaller escort round it's always
     // been, so the upgrade reads as the hull itself coming into its own.
     const maxed = !option && this.level === weapons[this.weapon].length;
     const beat = this.shotEvent % 2 ? 1 : -1;
-    for (let j = 0; j < w.count; j++) {
-      const mid = j - (w.count - 1) / 2;
+    for (let j = 0; j < count; j++) {
+      const mid = count === 1 ? 0 : (j / (count - 1) - 0.5) * (w.count - 1);
       let spread = 0,
         offset = 0,
         speed = 30;
@@ -963,17 +967,43 @@ export class GameState {
     const cameraHeight = (this.stage as { cameraHeight?: number }).cameraHeight;
     return cameraHeight ? cameraHeight / 32 : 1;
   }
-  /**
-   * The right-edge x beyond which a hostile is still off-screen - the same
-   * threshold `updateEnemies` already uses to decide a hull is close enough
-   * to start firing. `collisions()` uses it the other way round: a target
-   * spawns a couple of units past this line (see `formationPosition`'s
-   * `17.4 * edgeScale` entry point) so player fire travelling at 30 units/s
-   * would otherwise land kills on hulls the player has never actually seen
-   * arrive, before they cross into view.
+  /** Coarse boundary for pickup placement and target seeking.
+   * Damage uses the stricter model-aware canDamage gate below.
    */
   get engageX() {
     return 16.5 * this.worldScale;
+  }
+  /** Conservative shared viewport keeps combat identical in replays on all displays.
+   * Model bounds (larger than hitboxes) must fit, with an inward safety margin.
+   * Previous-position checks prevent hits on the crossing frame; a velocity
+   * margin gives incoming hulls about 120ms of additional travel into view.
+   */
+  private fullyVisible(x: number, y: number, radius: number) {
+    return (
+      Math.abs(x) + radius <= 15.7 * this.worldScale &&
+      Math.abs(y - this.cameraFollowY) + radius <= 8.6 * this.worldScale
+    );
+  }
+  canDamage(pool: ObjectPool, i: number) {
+    const scale = pool === this.enemies ? 1.45 : pool === this.ground ? 1.25 : 1;
+    return (
+      !!pool.active[i] &&
+      this.fullyVisible(
+        pool.x[i],
+        pool.y[i],
+        pool.radius[i] * scale + Math.abs(pool.vx[i]) * 0.12,
+      ) &&
+      this.fullyVisible(pool.px[i], pool.py[i], pool.radius[i] * scale)
+    );
+  }
+  get bossVulnerable() {
+    return (
+      (this.boss || this.midBoss) &&
+      !this.bossDying &&
+      this.bossTransition <= 0 &&
+      this.bossTime >= 0.5 &&
+      this.fullyVisible(this.bossX, this.bossY, Math.max(4.6, this.bossDef.ringRadius + 0.7))
+    );
   }
   /**
    * The camera never zooms out - screen scale stays identical on every
@@ -1027,7 +1057,7 @@ export class GameState {
   }
   damageGround(i: number, damage: number) {
     const g = this.ground;
-    if (!g.active[i]) return;
+    if (!this.canDamage(g, i)) return;
     g.hp[i] -= damage;
     if (g.hp[i] > 0) {
       this.groundFlash[i] = 0.09;
@@ -1280,7 +1310,7 @@ export class GameState {
         continue;
       }
       const period = this.firePeriod(e.type[i]);
-      if (a > 0.45 && a % period >= period - dt && e.x[i] < 16.5 * this.worldScale)
+      if (a > 0.45 && a % period >= period - dt && this.canDamage(e, i))
         this.queueSalvo(
           this.hostilePlan(
             e.type[i],
@@ -1323,6 +1353,7 @@ export class GameState {
     const nova = tuning.nova;
     this.novaActive = false;
     this.novaBlast = 0;
+    this.destruction.acquire(this.novaX, this.novaY, 0, 0, 3, 3.2, 3);
     this.novaBlastX = this.novaX;
     this.novaBlastY = this.novaY;
     this.effects[NOVA_SKILL] = nova.blast;
@@ -1338,7 +1369,7 @@ export class GameState {
     for (let i = 0; i < this.ground.limit; i++)
       if (this.ground.active[i]) this.damageGround(i, damage);
     for (let i = 0; i < this.rocks.limit; i++) if (this.rocks.active[i]) this.damageRock(i, damage);
-    if ((this.boss || this.midBoss) && !this.bossDying) {
+    if (this.bossVulnerable) {
       for (let p = 0; p < this.bossParts; p++) {
         if (this.partHp[p] <= 0) continue;
         this.partHp[p] -= damage;
@@ -1439,7 +1470,7 @@ export class GameState {
   }
   damageRock(i: number, damage: number) {
     const r = this.rocks;
-    if (!r.active[i]) return;
+    if (!this.canDamage(r, i)) return;
     r.hp[i] -= damage;
     if (r.hp[i] > 0) {
       this.rockFlash[i] = 0.08;
@@ -1482,7 +1513,7 @@ export class GameState {
       const period = d.period / (1 + this.rank * 0.006) / this.stage.pressure;
       // A roof mount's muzzle hangs below its footing, not above it.
       const muzzle = g.aux[i] === 1 ? -d.radius : d.radius;
-      if (g.age[i] > 0.6 && g.age[i] % period >= period - dt && g.x[i] < 15 * this.worldScale)
+      if (g.age[i] > 0.6 && g.age[i] % period >= period - dt && this.canDamage(g, i))
         this.queueSalvo(
           groundSalvo(
             g.type[i],
@@ -1580,7 +1611,7 @@ export class GameState {
       y += dy;
     } else {
       const pool = source === 'ground' ? this.ground : this.enemies;
-      if (!pool.active[index] || pool.generation[index] !== generation) return;
+      if (!this.canDamage(pool, index) || pool.generation[index] !== generation) return;
       const type = pool.type[index];
       if (source === 'enemy') {
         const mounts = fleetHardpoints[type].muzzles;
@@ -1738,8 +1769,11 @@ export class GameState {
         }
       }
     }
-    this.bossX += (10 - this.bossX) * dt * 0.65;
-    this.bossY = Math.sin(this.bossTime * 0.45) * 1.6;
+    const envelope = Math.max(4.6, this.bossDef.ringRadius + 0.7);
+    const anchor = Math.min(10, 15.2 * this.worldScale - envelope);
+    this.bossX += (anchor - this.bossX) * dt * 0.65;
+    this.bossY =
+      Math.sin(this.bossTime * 0.45) * Math.min(1.6, Math.max(0, 8.3 * this.worldScale - envelope));
     this.bossAngle += dt * (0.22 + this.bossPhase * 0.08);
     const parts = this.bossParts,
       ring = this.bossDef.ringRadius;
@@ -1859,7 +1893,7 @@ export class GameState {
       }
       this.volley++;
     }
-    if (this.effects[4] > 0) {
+    if (this.effects[4] > 0 && this.bossVulnerable) {
       this.bossHp -= 90 * dt;
       if (this.bossHp <= 0) this.finish(true);
     }
@@ -1890,13 +1924,13 @@ export class GameState {
         let target = b.param[i];
         if (
           target < 0 ||
-          !this.enemies.active[target] ||
+          !this.canDamage(this.enemies, target) ||
           this.enemies.generation[target] !== b.heading[i]
         ) {
           target = -1;
           let best = 10000;
           for (let j = 0; j < this.enemies.limit; j++) {
-            if (!this.enemies.active[j] || this.enemies.x[j] < b.x[i] - 2) continue;
+            if (!this.canDamage(this.enemies, j) || this.enemies.x[j] < b.x[i] - 2) continue;
             const d = (this.enemies.x[j] - b.x[i]) ** 2 + (this.enemies.y[j] - b.y[i]) ** 2;
             if (d < best) {
               best = d;
@@ -1906,7 +1940,7 @@ export class GameState {
           b.param[i] = target;
           b.heading[i] = target >= 0 ? this.enemies.generation[target] : 0;
         }
-        const anyBoss = this.boss || this.midBoss;
+        const anyBoss = this.bossVulnerable;
         const tx = target >= 0 ? this.enemies.x[target] : anyBoss ? this.bossX : 25,
           ty = target >= 0 ? this.enemies.y[target] : anyBoss ? this.bossY : b.y[i];
         const dx = tx - b.x[i],
@@ -2038,17 +2072,13 @@ export class GameState {
       e = this.enemies;
     this.grid.clear();
     this.bulletGrid.clear();
-    // A hull still short of `engageX` hasn't scrolled into view yet (it
-    // spawns a couple of units further out still, see `formationPosition`) -
-    // leaving it out of the grid means player fire simply passes through
-    // rather than killing something the player never saw arrive.
-    for (let i = 0; i < e.limit; i++)
-      if (e.active[i] && e.x[i] <= this.engageX) this.grid.insert(i, e.x[i], e.y[i]);
+    // Protected entrants never consume projectiles or their piercing budget.
+    for (let i = 0; i < e.limit; i++) if (this.canDamage(e, i)) this.grid.insert(i, e.x[i], e.y[i]);
     for (let i = 0; i < b.limit; i++)
       if (b.active[i] && b.type[i] === 1) this.bulletGrid.insert(i, b.x[i], b.y[i]);
     this.groundGrid.clear();
     for (let i = 0; i < this.ground.limit; i++)
-      if (this.ground.active[i] && this.ground.x[i] <= this.engageX)
+      if (this.canDamage(this.ground, i))
         this.groundGrid.insert(i, this.ground.x[i], this.ground.y[i]);
     const r = this.rocks;
     for (let i = 0; i < b.limit; i++) {
@@ -2082,7 +2112,7 @@ export class GameState {
       // piercing rounds included.
       for (let j = 0; j < r.limit && b.active[i]; j++) {
         if (
-          r.active[j] &&
+          this.canDamage(r, j) &&
           segmentCircle(b.px[i], b.py[i], b.x[i], b.y[i], r.x[j], r.y[j], r.radius[j] + b.radius[i])
         ) {
           this.damageRock(j, b.hp[i]);
@@ -2105,7 +2135,7 @@ export class GameState {
           }
         }
       }
-      if (!b.active[i] || (!this.boss && !this.midBoss) || this.bossTransition > 0) continue;
+      if (!b.active[i] || !this.bossVulnerable) continue;
       for (let p = 0; p < this.bossParts; p++) {
         if (this.partHp[p] <= 0 || !b.active[i]) continue;
         if (
@@ -2265,7 +2295,7 @@ export class GameState {
     }
   }
   damageEnemy(i: number, damage: number, fromX = this.x, fromY = this.y) {
-    if (!this.enemies.active[i]) return;
+    if (!this.canDamage(this.enemies, i)) return;
     this.enemies.hp[i] -= damage;
     if (this.enemies.hp[i] > 0) {
       this.enemyFlash[i] = 0.09;
@@ -2450,6 +2480,8 @@ export class GameState {
     this.explosionEvent++;
     // Debris count stands in for mass: a skiff puffs, a cruiser comes apart.
     this.explosionHeavy = b.count >= 34;
+    if (b.count >= 24)
+      this.destruction.acquire(x, y, 0, 0, b.count >= 50 ? 1 : 0, 2.8, b.count >= 50 ? 1.3 : 0.8);
     this.shake = Math.max(this.shake, b.shake);
     for (let j = 0; j < b.count; j++) {
       // A ring burst throws its debris out evenly; everything else scatters.
@@ -2471,6 +2503,7 @@ export class GameState {
   explode(x: number, y: number, count: number) {
     this.explosionEvent++;
     this.explosionHeavy = count >= 40;
+    if (count >= 28) this.destruction.acquire(x, y, 0, 0, 0, 2.6, count >= 100 ? 1.3 : 0.65);
     this.shake = Math.max(this.shake, count > 40 ? 0.4 : 0.08);
     for (let j = 0; j < count; j++) {
       const a = this.rng.next() * Math.PI * 2,
@@ -2544,6 +2577,7 @@ export class GameState {
     this.bossDeathTime = Math.min(7, before + dt);
     const t = this.bossDeathTime;
     this.particles.move(dt);
+    this.destruction.move(dt);
     // Sweep detonations over the whole silhouette, not just the central reactor.
     if (Math.floor(t * 9) > Math.floor(before * 9) && t < 6.7) {
       const n = Math.floor(t * 9);
@@ -2557,7 +2591,10 @@ export class GameState {
       this.shake = t > 4.5 ? 0.55 : 0.22;
       this.flash = t > 4.5 ? 0.12 : 0.04;
     }
+    if (before < 5.5 && t >= 5.5)
+      this.destruction.acquire(this.bossX, this.bossY, 0, 0, 4, 1.15, 4);
     if (before < 6.65 && t >= 6.65) {
+      this.destruction.acquire(this.bossX, this.bossY, 0, 0, 2, 3.2, 3.5);
       for (let i = 0; i < 8; i++) {
         const a = (i / 8) * Math.PI * 2;
         this.explode(this.bossX + Math.cos(a) * 2.3, this.bossY + Math.sin(a) * 2.3, 110);
@@ -2574,6 +2611,7 @@ export class GameState {
     this.enemies.clear();
     this.items.clear();
     this.particles.clear();
+    this.destruction.clear();
     this.rocks.clear();
     this.boss = false;
     this.setStressCount(this.stressCount);

@@ -3090,7 +3090,10 @@ export function buildBackdrop(
       for (const belt of belts) belt.tumble(t * scale);
       for (const layer of layers) {
         const shift = (t * layer.speed * scale) % layer.span;
-        layer.object.position.x = -shift;
+        // Translational parallax complements perspective without moving the playfield.
+        const depth = Math.min(1, layer.speed / 8);
+        layer.object.position.x = -shift - lookX * depth * 1.8 * reach;
+        layer.object.position.y = -lookY * depth * 1.4 * rise;
       }
       globe.rotation.y = t * p.spin;
       if (clouds) {

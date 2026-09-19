@@ -35,6 +35,18 @@ type Layer = {
 
 // Heights cover the view tilting with the ship's altitude, not just a level frame.
 const LAYERS: Layer[] = [
+  // Sparse near-field dust supplies scale cues without obscuring hostile fire.
+  {
+    count: 90,
+    span: 100,
+    height: 65,
+    near: -14,
+    far: -28,
+    size: [0.06, 0.19],
+    bright: [0.12, 0.35],
+    speed: 8.5,
+    glints: 0,
+  },
   // Deep field: a dust of pinpricks, barely drifting.
   {
     count: 4900,
@@ -44,7 +56,7 @@ const LAYERS: Layer[] = [
     far: -155,
     size: [0.32, 0.8],
     bright: [0.3, 1.0],
-    speed: 0.35,
+    speed: 0.22,
     glints: 0,
   },
   // Middle distance: most of the recognisable stars.
@@ -68,7 +80,7 @@ const LAYERS: Layer[] = [
     far: -66,
     size: [0.28, 0.95],
     bright: [0.55, 1.6],
-    speed: 2.6,
+    speed: 4.2,
     glints: 0.12,
   },
 ];

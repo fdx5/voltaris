@@ -325,6 +325,8 @@ describe('arcade rules', () => {
     g.level = 6;
     g.optionCount = 3;
     g.shield = 2;
+    g.bossX = 8;
+    g.bossTime = 2;
     g.bossHp = 1;
     g.effects[4] = 1;
     g.tick(dt);

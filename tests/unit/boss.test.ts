@@ -11,6 +11,8 @@ describe('boss refit', () => {
     g.start('LASER', 3, true);
     g.autoFire = false;
     g.bossX = 8;
+    g.bossX = 8;
+    g.bossTime = 2;
     g.bossHp = 1;
     g.bossPhase = 3;
     g.bossTransition = 0;
@@ -31,6 +33,8 @@ describe('boss refit', () => {
     g.autoFire = false;
     g.bossPhase = 3;
     g.bossTransition = 0;
+    g.bossX = 8;
+    g.bossTime = 2;
     g.bossHp = 1;
     g.effects[4] = 1;
     g.tick(dt);

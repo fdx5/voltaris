@@ -69,7 +69,7 @@ class Ribbon {
           sign = side ? 1 : -1;
         this.positions[k] = cx + nx * radius * sign;
         this.positions[k + 1] = cy + ny * radius * sign;
-        this.positions[k + 2] = z;
+        this.positions[k + 2] = strand < 0 ? z : 0.22 + Math.cos(phase) * width * 0.7;
         // The helix dims behind the column, then flashes lemon-yellow as it
         // crosses the front: an unmistakable wrap instead of a dotted border.
         const front = (Math.cos(phase) + 1) * 0.5;
@@ -84,6 +84,17 @@ class Ribbon {
 }
 export class PlasmaWhip {
   readonly root = new T.Group();
+  private readonly tubePositions = new Float32Array((WHIP_SEGMENTS + 1) * 11 * 3);
+  private readonly tube = new T.Mesh(
+    new T.BufferGeometry(),
+    new T.MeshStandardNodeMaterial({
+      color: '#a243ee',
+      metalness: 0.35,
+      roughness: 0.24,
+      emissive: '#6517b5',
+      emissiveIntensity: 0.65,
+    }),
+  );
   private readonly sparks = new T.InstancedMesh(
     new T.PlaneGeometry(1, 1),
     new T.MeshBasicNodeMaterial({
@@ -99,8 +110,8 @@ export class PlasmaWhip {
   private readonly sparkTransform = new T.Object3D();
   private readonly sparkColor = new T.Color();
   private readonly layers = [
-    new Ribbon('#6511c9', 0.22, true),
-    new Ribbon('#8625f4', 0.4, true),
+    new Ribbon('#6511c9', 0.035, true),
+    new Ribbon('#8625f4', 0.09, true),
     new Ribbon('#8822e8', 0.94),
     new Ribbon('#c976ff', 0.88),
     new Ribbon('#e4baff', 0.9, true),
@@ -114,11 +125,41 @@ export class PlasmaWhip {
     this.sparks.frustumCulled = false;
     this.sparks.instanceMatrix.setUsage(T.DynamicDrawUsage);
     this.root.add(this.sparks);
+    const indices: number[] = [];
+    for (let i = 0; i < WHIP_SEGMENTS; i++)
+      for (let j = 0; j < 10; j++) {
+        const k = i * 11 + j;
+        indices.push(k, k + 1, k + 11, k + 1, k + 12, k + 11);
+      }
+    this.tube.geometry.setIndex(indices);
+    this.tube.geometry.setAttribute(
+      'position',
+      new T.BufferAttribute(this.tubePositions, 3).setUsage(T.DynamicDrawUsage),
+    );
+    this.tube.frustumCulled = false;
+    this.root.add(this.tube);
     this.root.visible = false;
   }
   update(xs: Float32Array, ys: Float32Array, width: number, time: number, active: boolean) {
     this.root.visible = active;
     if (!active) return;
+    for (let i = 0; i <= WHIP_SEGMENTS; i++) {
+      const prev = Math.max(0, i - 1),
+        next = Math.min(WHIP_SEGMENTS, i + 1);
+      const dx = xs[next] - xs[prev],
+        dy = ys[next] - ys[prev];
+      const length = Math.hypot(dx, dy) || 1;
+      const radius = width * (0.55 + 0.45 * Math.min(1, (i / WHIP_SEGMENTS) * 18));
+      for (let j = 0; j <= 10; j++) {
+        const angle = (j / 10) * Math.PI * 2;
+        const k = (i * 11 + j) * 3;
+        this.tubePositions[k] = xs[i] - (dy / length) * Math.cos(angle) * radius;
+        this.tubePositions[k + 1] = ys[i] + (dx / length) * Math.cos(angle) * radius;
+        this.tubePositions[k + 2] = 0.22 + Math.sin(angle) * radius * 0.55;
+      }
+    }
+    this.tube.geometry.attributes.position.needsUpdate = true;
+    this.tube.geometry.computeVertexNormals();
     const scales = [1.9, 1.4, 1, 0.48, 0.15, 1, 1];
     this.updateSparks(xs, ys, width, time);
     this.layers.forEach((layer, i) => {

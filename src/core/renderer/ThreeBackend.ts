@@ -1,3 +1,4 @@
+import { DestructionEffects } from '../../visual/DestructionEffects';
 import { PlasmaWhip } from '../../visual/PlasmaWhip';
 import { specialStats } from '../../game/SpecialWeapons';
 import * as T from 'three/webgpu';
@@ -313,32 +314,71 @@ export class ThreeBackend implements IRenderBackend {
   private readonly options: T.Group[] = [];
   /** The tumbling inner shape of each option, spun independently of its gun. */
   private readonly optionCores: T.Mesh[] = [];
+  private readonly destruction = new DestructionEffects();
   private readonly plasmaWhip = new PlasmaWhip();
   private readonly crescents = new T.InstancedMesh(
     ThreeBackend.crescentGeometry(),
-    glow('#36df79', 1.05),
+    new T.MeshStandardNodeMaterial({
+      color: '#ffffff',
+      vertexColors: true,
+      metalness: 0.45,
+      roughness: 0.22,
+      emissive: '#26b861',
+      emissiveIntensity: 0.25,
+      side: T.DoubleSide,
+    }),
     512,
   );
   private static crescentGeometry() {
-    const shape = new T.Shape();
-    // Keep the outer semicircle and its spread; halve only the luminous band.
-    const samples = 64;
-    for (let i = 0; i <= samples; i++) {
-      const angle = -Math.PI / 2 + (i / samples) * Math.PI;
-      const x = Math.cos(angle),
-        y = Math.sin(angle);
-      if (i === 0) shape.moveTo(x, y);
-      else shape.lineTo(x, y);
+    const positions: number[] = [],
+      colors: number[] = [],
+      indices: number[] = [];
+    const rails = [0, 0.035, 0.09, 0.3, 0.55, 0.8, 0.91, 0.965, 1];
+    const color = new T.Color();
+    for (let side = 0; side < 2; side++) {
+      for (let i = 0; i <= 64; i++) {
+        const angle = -Math.PI / 2 + (i / 64) * Math.PI;
+        const y = Math.sin(angle),
+          outer = Math.cos(angle);
+        // Original band was (outer - oldInner) / 2; retain exactly 3/5.
+        const thickness = (outer - 0.45 * (1 - y * y)) * 0.5 * 0.6;
+        for (const u of rails) {
+          positions.push(
+            outer - thickness * u,
+            y,
+            (side ? -1 : 1) * Math.sin(Math.PI * u) * outer * 0.075,
+          );
+          color.set(
+            u <= 0.035 || u >= 0.965
+              ? '#ff861c'
+              : side
+                ? '#126644'
+                : u < 0.3
+                  ? '#d9ffe5'
+                  : u < 0.8
+                    ? '#45eb91'
+                    : '#12814f',
+          );
+          colors.push(color.r, color.g, color.b);
+        }
+      }
+      const offset = side * 65 * rails.length;
+      for (let i = 0; i < 64; i++)
+        for (let j = 0; j < rails.length - 1; j++) {
+          const k = offset + i * rails.length + j,
+            n = k + rails.length;
+          if (side) indices.push(k, k + 1, n, k + 1, n + 1, n);
+          else indices.push(k, n, k + 1, k + 1, n, n + 1);
+        }
     }
-    for (let i = samples - 1; i >= 0; i--) {
-      const angle = -Math.PI / 2 + (i / samples) * Math.PI;
-      const y = Math.sin(angle);
-      const oldInner = 0.45 * (1 - y * y);
-      shape.lineTo((Math.cos(angle) + oldInner) * 0.5, y);
-    }
-    shape.closePath();
-    return new T.ShapeGeometry(shape, 24);
+    const geometry = new T.BufferGeometry();
+    geometry.setAttribute('position', new T.Float32BufferAttribute(positions, 3));
+    geometry.setAttribute('color', new T.Float32BufferAttribute(colors, 3));
+    geometry.setIndex(indices);
+    geometry.computeVertexNormals();
+    return geometry;
   }
+
   private readonly itemBatches: T.InstancedMesh[] = [];
   private readonly particles: T.InstancedMesh;
   /** Solid rocks in the play field, one body and one outline batch per model. */
@@ -521,7 +561,8 @@ export class ThreeBackend implements IRenderBackend {
       this.scene.add(batch);
       this.deferred.push(batch);
     }
-    this.scene.add(this.plasmaWhip.root);
+    this.scene.add(this.plasmaWhip.root, this.destruction.root);
+    this.deferred.push(this.destruction.root);
     this.deferred.push(this.plasmaWhip.root);
     ThreeBackend.tintable(this.bossFire);
     ThreeBackend.tintable(this.hitFire);
@@ -1804,6 +1845,14 @@ export class ThreeBackend implements IRenderBackend {
         (!g.bossDying || g.bossDeathTime < 2.4 + i * 0.35);
       pod.position.set(g.partX[i], g.partY[i], 0.4);
       pod.rotation.z = Math.sin(t * 1.4 + i) * 0.08;
+      if (g.bossDying) {
+        const age = Math.max(0, g.bossDeathTime - (1.1 + i * 0.35));
+        const angle = i * 2.399963;
+        pod.position.x += Math.cos(angle) * age * 2;
+        pod.position.y += Math.sin(angle) * age * 2 - age * age * 0.7;
+        pod.position.z += age * 0.4;
+        pod.rotation.set(age * 1.6, age, angle * age);
+      } else pod.rotation.set(0, 0, Math.sin(t * 1.4 + i) * 0.08);
       // Each pod burns its own red glow from its own remaining armour, plus a
       // quick flash on a fresh hit - a pod near death reads as such on its
       // own instead of only the shared hull-wide pulse saying so.
@@ -1902,12 +1951,14 @@ export class ThreeBackend implements IRenderBackend {
     }
     this.commit(this.hitFire);
     this.syncNova(g, t);
+    this.destruction.root.visible = !inactive;
+    this.destruction.update(g.destruction, t, this.quality === 'LOW', this.reducedMotion);
     this.bossShockwave.visible = g.bossDying && death > 6.65;
     if (g.bossDying) {
       for (let j = 0; j < 24; j++) {
         const n = Math.floor(death * 9) - j;
         const age = death - n / 9;
-        if (n < 1 || n / 9 >= 6.65 || age > 2.3) continue;
+        if (death > 5.5 || n < 1 || n / 9 >= 6.65 || age > 2.3) continue;
         const a = n * 2.399963,
           r = 0.6 + (n % 7) * 0.48;
         const x = g.bossX + Math.cos(a) * r,
@@ -1986,7 +2037,9 @@ export class ThreeBackend implements IRenderBackend {
     }
     const u = inactive ? -1 : g.novaBlast;
     const burning = u >= 0;
-    this.novaWhiteout.visible = this.novaCore.visible = this.novaHalo.visible = burning;
+    this.novaWhiteout.visible = burning;
+    this.novaCore.visible = burning && u < 0.22;
+    this.novaHalo.visible = burning && u < 0.7;
     for (const ring of this.novaRings) ring.visible = false;
     this.novaFire.count = this.novaSmoke.count = 0;
     if (burning) {
@@ -1995,7 +2048,7 @@ export class ThreeBackend implements IRenderBackend {
       // White-out: full strength almost at once, then draining away.
       const flash =
         (u < 0.06 ? u / 0.06 : Math.exp(-(u - 0.06) * 3.2)) * (this.reducedMotion ? 0.45 : 1);
-      (this.novaWhiteout.material as T.MeshBasicNodeMaterial).opacity = flash;
+      (this.novaWhiteout.material as T.MeshBasicNodeMaterial).opacity = flash * 0.4;
       const camera = this.camera.position;
       this.novaWhiteout.position.set(camera.x, camera.y, camera.z - 2);
       const span = 2 * 2 * Math.tan(T.MathUtils.degToRad(this.camera.fov / 2)) * 1.2;
@@ -2004,12 +2057,12 @@ export class ThreeBackend implements IRenderBackend {
       const fade = u > 2.2 ? Math.max(0, 1 - (u - 2.2) / 0.8) : 1;
       const radius = 1.2 + 5.3 * (1 - Math.exp(-u * 2.6));
       this.novaCore.position.set(x, y, 1.5);
-      this.novaCore.scale.setScalar(radius);
+      this.novaCore.scale.setScalar(radius * 0.35);
       const core = this.novaCore.material as T.MeshBasicNodeMaterial;
       core.color.set(u < 0.25 ? '#fffbef' : u < 0.8 ? '#ffd26a' : u < 1.6 ? '#ff8a2e' : '#d8391a');
       core.color.multiplyScalar(3.2 * Math.exp(-u * 0.75) * fade);
       this.novaHalo.position.set(x, y, 1.2);
-      this.novaHalo.scale.setScalar(radius * 1.5);
+      this.novaHalo.scale.setScalar(radius * 0.8);
       const halo = this.novaHalo.material as T.MeshBasicNodeMaterial;
       halo.color.set(u < 0.6 ? '#ffc56b' : '#ff5a22');
       halo.color.multiplyScalar(1.3 * Math.exp(-u * 0.9) * fade);
@@ -2024,47 +2077,9 @@ export class ThreeBackend implements IRenderBackend {
         ring.scale.setScalar(1 + age * (11 + k * 3) * (1 - age * 0.2));
         const material = ring.material as T.MeshBasicNodeMaterial;
         material.color.set(k === 0 ? '#fff4d8' : '#ffb56a').multiplyScalar(2.4);
-        material.opacity = Math.max(0, 1 - age / 1.8);
+        material.opacity = Math.max(0, 1 - age / 1.8) * 0.45;
       }
-      // Fire thrown outward on golden-angle headings, in staggered waves.
-      for (let n = 0; n < 40; n++) {
-        const age = u - (n % 5) * 0.12;
-        if (age <= 0 || age > 1.7) continue;
-        const heading = n * 2.399963,
-          reach = (3 + (n % 7) * 1.1) * (1 - Math.exp(-age * 2.4));
-        const size =
-          (0.6 + (n % 4) * 0.3) * (0.5 + Math.sin(Math.min(1, age / 1.7) * Math.PI) * 1.2);
-        const index = this.novaFire.count;
-        this.push(
-          this.novaFire,
-          x + Math.cos(heading) * reach,
-          y + Math.sin(heading) * reach * 0.8,
-          1.8,
-          size,
-          size,
-          size * 0.8,
-        );
-        this.tint.set(age < 0.2 ? '#fff3b3' : age < 0.6 ? '#ffab32' : '#ff4018');
-        this.tint.multiplyScalar(2.4 * (1 - age / 1.7));
-        this.novaFire.setColorAt(index, this.tint);
-      }
-      // A smoke pall that rises and spreads as the fire dies back.
-      for (let n = 0; n < 20; n++) {
-        const age = u - 0.45 - (n % 4) * 0.1;
-        if (age <= 0) continue;
-        const heading = n * 2.399963 + 0.7,
-          reach = (2 + (n % 5) * 1.3) * (1 - Math.exp(-age * 1.2));
-        const size = (0.8 + (n % 3) * 0.5) * (0.6 + age * 0.9) * fade;
-        this.push(
-          this.novaSmoke,
-          x + Math.cos(heading) * reach,
-          y + Math.sin(heading) * reach * 0.7 + age * 0.9,
-          1,
-          size,
-          size * 0.85,
-          size * 0.7,
-        );
-      }
+      // Turbulent fire and smoke are drawn by DestructionEffects.
     }
     this.commit(this.novaFire);
     this.commit(this.novaSmoke);
@@ -2090,6 +2105,7 @@ export class ThreeBackend implements IRenderBackend {
   }
   dispose() {
     this.disposed = true;
+    this.destruction.disposeTextures();
     for (const batch of this.itemBatches)
       (batch.material as T.MeshBasicNodeMaterial).map?.dispose();
     this.scene.traverse((obj) => {

@@ -13,7 +13,7 @@ it('renders continuous indexed ribbons with visible wrapping electric strands an
   }
   visual.update(xs, ys, 0.67, 1.1, true);
   expect(visual.root.visible).toBe(true);
-  expect(visual.root.children).toHaveLength(8);
+  expect(visual.root.children).toHaveLength(9);
   const buffers = visual.root.children.slice(0, 7).map((child) => {
     const mesh = child as Mesh;
     expect(mesh.geometry.index!.count).toBe(WHIP_SEGMENTS * 6);
@@ -30,6 +30,10 @@ it('renders continuous indexed ribbons with visible wrapping electric strands an
   );
   const body = (visual.root.children[2] as Mesh).geometry.attributes.position.array;
   expect(Math.hypot(body[i + 3] - body[i], body[i + 4] - body[i + 1])).toBeCloseTo(0.67 * 2);
+  const tube = visual.root.children[8] as Mesh;
+  const zs = Array.from(tube.geometry.attributes.position.array).filter((_, i) => i % 3 === 2);
+  expect(Math.max(...zs) - Math.min(...zs)).toBeGreaterThan(0.6);
+  expect(Array.from(tube.geometry.attributes.normal.array).every(Number.isFinite)).toBe(true);
   const sparks = visual.root.children[7] as InstancedMesh;
   expect(sparks.count).toBeGreaterThan(0);
   expect(sparks.count).toBeLessThanOrEqual(48);
