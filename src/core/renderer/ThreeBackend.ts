@@ -1,3 +1,4 @@
+import { specialStats, whipPoint, WHIP_SEGMENTS } from '../../game/SpecialWeapons';
 import * as T from 'three/webgpu';
 import { float, normalView, pass, positionGeometry, positionViewDirection } from 'three/tsl';
 import { bloom } from 'three/addons/tsl/display/BloomNode.js';
@@ -311,6 +312,28 @@ export class ThreeBackend implements IRenderBackend {
   private readonly options: T.Group[] = [];
   /** The tumbling inner shape of each option, spun independently of its gun. */
   private readonly optionCores: T.Mesh[] = [];
+  private readonly whipBody = new T.InstancedMesh(
+    new T.PlaneGeometry(1, 1),
+    glow('#982cff', 2.2),
+    64,
+  );
+  private readonly whipElectric = new T.InstancedMesh(
+    new T.PlaneGeometry(1, 1),
+    glow('#ffdf32', 3),
+    128,
+  );
+  private readonly crescents = new T.InstancedMesh(
+    ThreeBackend.crescentGeometry(),
+    glow('#36ff79', 2.2),
+    512,
+  );
+  private static crescentGeometry() {
+    const shape = new T.Shape();
+    shape.moveTo(-0.35, -1);
+    shape.quadraticCurveTo(1.15, 0, -0.35, 1);
+    shape.quadraticCurveTo(0.25, 0, -0.35, -1);
+    return new T.ShapeGeometry(shape, 24);
+  }
   private readonly itemBatches: T.InstancedMesh[] = [];
   private readonly particles: T.InstancedMesh;
   /** Solid rocks in the play field, one body and one outline batch per model. */
@@ -486,7 +509,14 @@ export class ThreeBackend implements IRenderBackend {
     this.scene.add(bounceFill);
     this.scene.add(bounce);
     this.scene.add(this.engineLight, this.explosionLight);
-    for (const batch of [this.bossFire, this.bossSmoke, this.hitFire]) {
+    for (const batch of [
+      this.bossFire,
+      this.bossSmoke,
+      this.hitFire,
+      this.whipBody,
+      this.whipElectric,
+      this.crescents,
+    ]) {
       batch.count = 0;
       batch.frustumCulled = false;
       batch.instanceMatrix.setUsage(T.DynamicDrawUsage);
@@ -836,7 +866,7 @@ export class ThreeBackend implements IRenderBackend {
     // One instanced batch per pickup type (PICKUP_SAMPLES.length in
     // Runtime.ts), unrelated to how many options a ship can carry - only
     // coincidentally the same count (4) before options went to 5.
-    for (let i = 0; i < 4; i++) {
+    for (let i = 0; i < 6; i++) {
       const items = new T.InstancedMesh(new T.PlaneGeometry(1.2, 1.2), itemMaterial(i), 64);
       items.instanceMatrix.setUsage(T.DynamicDrawUsage);
       items.count = 0;
@@ -1289,6 +1319,36 @@ export class ThreeBackend implements IRenderBackend {
   /** Player bolts, missiles, the charge lance and all ten hostile families. */
   private syncBullets(g: Readonly<GameState>, alpha: number) {
     for (const b of this.allShotBatches) b.count = 0;
+    this.crescents.count = this.whipBody.count = this.whipElectric.count = 0;
+    if (g.whipActive && !g.respawn && g.status === 'playing') {
+      const width = specialStats(g.weapon, g.specialLevel).width;
+      let a = whipPoint(g.x, g.y, g.time, 0, g.whipTargetX, g.whipTargetY);
+      for (let n = 1; n <= WHIP_SEGMENTS; n++) {
+        const b = whipPoint(g.x, g.y, g.time, n / WHIP_SEGMENTS, g.whipTargetX, g.whipTargetY);
+        const dx = b.x - a.x,
+          dy = b.y - a.y,
+          length = Math.hypot(dx, dy);
+        const angle = Math.atan2(dy, dx),
+          x = (a.x + b.x) / 2,
+          y = (a.y + b.y) / 2;
+        this.push(this.whipBody, x, y, 0.2, length + 0.06, width * 2, 1, angle);
+        for (const side of [-1, 1]) {
+          const jitter = Math.sin(n * 9.7 + g.time * 65) * width * 0.3;
+          const edge = side * (width + jitter);
+          this.push(
+            this.whipElectric,
+            x - Math.sin(angle) * edge,
+            y + Math.cos(angle) * edge,
+            0.24,
+            length + 0.04,
+            0.025 + width * 0.09,
+            1,
+            angle + jitter,
+          );
+        }
+        a = b;
+      }
+    }
     const p = g.bullets,
       t = this.visualTime;
     for (let i = 0; i < p.capacity; i++) {
@@ -1298,6 +1358,9 @@ export class ThreeBackend implements IRenderBackend {
         r = p.radius[i],
         aim = Math.atan2(p.vy[i], p.vx[i]);
       switch (p.type[i]) {
+        case 6:
+          this.push(this.crescents, x, y, 0.2, r, r, 1, 0);
+          break;
         case 1: {
           const k = p.kind[i];
           if (k === Shot.HOMING) {
@@ -1709,6 +1772,9 @@ export class ThreeBackend implements IRenderBackend {
       surface.mesh.position.x = shift;
       if (surface.roof) surface.roof.position.x = shift;
     }
+    this.commit(this.crescents);
+    this.commit(this.whipBody);
+    this.commit(this.whipElectric);
     this.syncPool(g.items, this.itemBatches, alpha, false);
     if (g.status === 'stress') {
       for (const b of this.enemyHulls) b.count = 0;

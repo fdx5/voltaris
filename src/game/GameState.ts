@@ -1,3 +1,10 @@
+import {
+  SPECIAL_NAMES,
+  specialStats,
+  whipPoint,
+  WHIP_SEGMENTS,
+  type SpecialWeapon,
+} from './SpecialWeapons';
 import { formationPosition } from './formations';
 import {
   bossSalvo,
@@ -294,6 +301,15 @@ export class GameState {
   roof: Terrain | null = null;
   status: Status = 'menu';
   weapon: Weapon = 'LASER';
+  specialWeapon: SpecialWeapon = null;
+  specialLevel = 1;
+  whipActive = false;
+  whipTargetX = 10;
+  whipTargetY = 0;
+  private specialTimer = 0;
+  private specialDropTimer = 8;
+  private crescentLeft = 0;
+  private crescentTimer = 0;
   mode = 0;
   /** True while the option control key is down; the HUD lights up with it. */
   optionHold = false;
@@ -368,14 +384,20 @@ export class GameState {
   /** Set with each explosion: true for a heavy hull, false for a light one. */
   explosionHeavy = false;
   pickupEvent = 0;
-  readonly pickupEventsByType = new Uint32Array(4);
+  readonly pickupEventsByType = new Uint32Array(6);
   warningEvent = 0;
   hitEvent = 0;
   /**
    * Upgrade state a cleared stage hands to the next one. A fresh sortie wipes
    * it; clearing a stage saves whatever the player finished with.
    */
-  readonly loadout = { level: 1, optionCount: 0, shield: 0 };
+  readonly loadout = {
+    level: 1,
+    optionCount: 0,
+    shield: 0,
+    specialWeapon: null as SpecialWeapon,
+    specialLevel: 1,
+  };
   private spawnIndex = 0;
   private itemIndex = 0;
   private dropCounter = 0;
@@ -438,10 +460,21 @@ export class GameState {
     this.enemyPitch.fill(0);
     this.status = 'playing';
     this.weapon = weapon;
+    this.specialWeapon = carry ? this.loadout.specialWeapon : null;
+    this.specialLevel = carry ? this.loadout.specialLevel : 1;
+    this.whipActive = false;
+    this.specialTimer = this.crescentLeft = this.crescentTimer = 0;
+    this.specialDropTimer = 8;
+    this.whipTargetX = 10;
+    this.whipTargetY = 0;
     this.credits = credits;
     this.creditsUsed = 1;
     this.practice = practice;
-    if (!carry) this.loadout.level = this.loadout.optionCount = this.loadout.shield = 0;
+    if (!carry) {
+      this.loadout.level = this.loadout.optionCount = this.loadout.shield = 0;
+      this.loadout.specialWeapon = null;
+      this.loadout.specialLevel = 1;
+    }
     this.level = practice ? 6 : Math.max(1, carry ? this.loadout.level : 1);
     // Every sortie flies with one option, so option control is something the
     // player has from the first stage rather than a reward for surviving to
@@ -652,11 +685,13 @@ export class GameState {
       // second (including options) to 1/3 MISSILE and 1/2 SPREAD.
       const intervalScale = this.weapon === 'MISSILE' ? 3 : this.weapon === 'SPREAD' ? 2 : 1;
       this.fireTimer += intervalScale / weapons[this.weapon][this.level - 1].rate;
-      this.fireWeapon(this.x + 0.7, this.y, 0);
+      if (!this.specialWeapon) this.fireWeapon(this.x + 0.7, this.y, 0);
       for (let i = 0; i < this.optionCount; i++)
         this.fireWeapon(this.optionX[i], this.optionY[i], this.optionAngle[i], true);
       this.shotEvent++;
     }
+    this.updateSpecialWeapon(dt, !!firing);
+    if (this.bossDying) return;
     // Surface stages arm a ground salvo alongside the main gun: two bombs at
     // minimum power, five at maximum, spaced so one pass rakes a whole line.
     if (this.terrain) {
@@ -666,7 +701,13 @@ export class GameState {
         this.fireGroundSalvo();
       }
     }
-    if (bits & Key.Fire && this.weapon === 'LASER' && this.level >= 5) {
+    if (
+      !this.specialWeapon &&
+      !this.respawn &&
+      bits & Key.Fire &&
+      this.weapon === 'LASER' &&
+      this.level >= 5
+    ) {
       this.chargeShot += dt;
       if (this.chargeShot >= 2) {
         this.chargeShot = 0;
@@ -722,6 +763,105 @@ export class GameState {
       const gap = (tight ? 0.55 : 0.85) + i * 0.5;
       this.optionX[i] = Math.min(this.optionX[i], this.x - gap);
       this.optionAngle[i] = hold && this.mode === 2 ? this.optionAim : 0;
+    }
+  }
+  private updateSpecialWeapon(dt: number, firing: boolean) {
+    this.whipActive = firing && this.specialWeapon === 'PLASMA';
+    if (!firing || !this.specialWeapon) {
+      this.specialTimer = this.crescentLeft = this.crescentTimer = 0;
+      return;
+    }
+    const stats = specialStats(this.weapon, this.specialLevel);
+    const power = this.effects[0] > 0 ? 2 : 1;
+    if (this.specialWeapon === 'CRESCENT') {
+      this.specialTimer -= dt;
+      if (this.specialTimer <= 0) {
+        this.specialTimer += 0.6;
+        this.crescentLeft = stats.count;
+        this.crescentTimer = 0;
+      }
+      this.crescentTimer -= dt;
+      if (this.crescentLeft > 0 && this.crescentTimer <= 0) {
+        this.crescentLeft--;
+        this.crescentTimer += 0.09;
+        this.bullets.fire(
+          this.x + 0.9,
+          this.y,
+          25,
+          0,
+          6,
+          stats.radius,
+          ((stats.dps * 0.6) / stats.count) * power,
+          1,
+        );
+      }
+      return;
+    }
+    let tx = this.x + 17.7,
+      ty = this.y,
+      nearest = 17 * 17;
+    const consider = (x: number, y: number) => {
+      const d = (x - this.x) ** 2 + (y - this.y) ** 2;
+      if (x > this.x + 0.7 && x <= this.engageX && d < nearest) {
+        nearest = d;
+        tx = x;
+        ty = y;
+      }
+    };
+    for (let i = 0; i < this.enemies.limit; i++)
+      if (this.enemies.active[i]) consider(this.enemies.x[i], this.enemies.y[i]);
+    if ((this.boss || this.midBoss) && this.bossTransition <= 0) {
+      consider(this.bossX, this.bossY);
+      for (let i = 0; i < this.bossParts; i++)
+        if (this.partHp[i] > 0) consider(this.partX[i], this.partY[i]);
+    }
+    const follow = 1 - Math.exp(-14 * dt);
+    this.whipTargetX += (tx - this.whipTargetX) * follow;
+    this.whipTargetY += (ty - this.whipTargetY) * follow;
+    // One connected, moving whip; each target receives damage once per tick,
+    // regardless of how many curve segments overlap it.
+    const touches = (x: number, y: number, radius: number) => {
+      let a = whipPoint(this.x, this.y, this.time, 0, this.whipTargetX, this.whipTargetY);
+      for (let n = 1; n <= WHIP_SEGMENTS; n++) {
+        const b = whipPoint(
+          this.x,
+          this.y,
+          this.time,
+          n / WHIP_SEGMENTS,
+          this.whipTargetX,
+          this.whipTargetY,
+        );
+        if (segmentCircle(a.x, a.y, b.x, b.y, x, y, radius + stats.width)) return true;
+        a = b;
+      }
+      return false;
+    };
+    const damage = stats.dps * dt * power;
+    for (let i = 0; i < this.enemies.limit; i++)
+      if (
+        this.enemies.active[i] &&
+        this.enemies.x[i] <= this.engageX &&
+        touches(this.enemies.x[i], this.enemies.y[i], this.enemies.radius[i])
+      )
+        this.damageEnemy(i, damage, this.x, this.y);
+    for (let i = 0; i < this.rocks.limit; i++)
+      if (this.rocks.active[i] && touches(this.rocks.x[i], this.rocks.y[i], this.rocks.radius[i]))
+        this.damageRock(i, damage);
+    if ((this.boss || this.midBoss) && this.bossTransition <= 0) {
+      for (let i = 0; i < this.bossParts; i++)
+        if (this.partHp[i] > 0 && touches(this.partX[i], this.partY[i], 0.7)) {
+          this.partHp[i] -= damage;
+          this.partFlash[i] = 0.08;
+          if (this.partHp[i] <= 0) {
+            this.explode(this.partX[i], this.partY[i], 55);
+            this.score += 4000;
+          }
+        }
+      if (touches(this.bossX, this.bossY, this.bossDef.coreRadius)) {
+        this.bossHp -= damage;
+        this.bossFlash = 0.08;
+        if (this.bossHp <= 0) this.finish(true);
+      }
     }
   }
   /**
@@ -1562,7 +1702,11 @@ export class GameState {
         const center = (this.rng.next() - 0.5) * (this.stage.maxY - this.stage.minY) * 0.7;
         for (let n = 0; n < count; n++) {
           const type =
-            n === 0 ? baseType : medium ? pairedMediumType(baseType) : (escortDue + 5) % defs.length;
+            n === 0
+              ? baseType
+              : medium
+                ? pairedMediumType(baseType)
+                : (escortDue + 5) % defs.length;
           const pos = formationPosition(
             escortDue,
             n,
@@ -1929,7 +2073,7 @@ export class GameState {
         }
       }
       if (!b.active[i]) continue;
-      this.grid.query(b.x[i], b.y[i], 2.6);
+      this.grid.query(b.x[i], b.y[i], 2.6 + (b.type[i] === 6 ? b.radius[i] : 0));
       for (let n = 0; n < this.grid.resultCount; n++) {
         const j = this.grid.results[n];
         if (!e.active[j] || b.lastHit[i] === j) continue;
@@ -2168,6 +2312,10 @@ export class GameState {
     this.explode(this.x, this.y, 65);
     this.lives--;
     this.deaths++;
+    this.specialWeapon = null;
+    this.specialLevel = 1;
+    this.whipActive = false;
+    this.crescentLeft = this.specialTimer = 0;
     this.graze = 1;
     // A destroyed ship comes back with both specials armed and ready - a
     // guaranteed way back into the fight rather than leaving the comeback to
@@ -2204,6 +2352,21 @@ export class GameState {
     }
   }
   private updateItems(dt: number) {
+    if (this.level >= 4 && this.respawn <= 0) {
+      this.specialDropTimer -= dt;
+      if (this.specialDropTimer <= 0) {
+        this.specialDropTimer = 12 + this.rng.next() * 8;
+        this.items.acquire(
+          this.engageX - 1,
+          this.cameraFollowY + (this.rng.next() - 0.5) * 8,
+          -2.5,
+          0,
+          this.rng.next() < 0.5 ? 4 : 5,
+          15,
+          0.5,
+        );
+      }
+    }
     const a = this.items;
     for (let i = 0; i < a.limit; i++) {
       if (!a.active[i]) continue;
@@ -2213,7 +2376,7 @@ export class GameState {
       const dx = this.x - a.x[i],
         dy = this.y - a.y[i],
         d = dx * dx + dy * dy;
-      if (d < 36 && this.respawn <= 0) {
+      if (a.type[i] < 4 && d < 36 && this.respawn <= 0) {
         const length = Math.sqrt(d) || 1;
         a.x[i] += (dx / length) * 12 * dt;
         a.y[i] += (dy / length) * 12 * dt;
@@ -2223,7 +2386,18 @@ export class GameState {
       }
       if (d < 0.75 && this.respawn <= 0) {
         const type = a.type[i];
-        if (type === 0) {
+        if (type >= 4) {
+          const next = type === 4 ? 'PLASMA' : 'CRESCENT';
+          this.specialLevel = this.specialWeapon === next ? Math.min(8, this.specialLevel + 1) : 1;
+          this.specialWeapon = next;
+          this.specialTimer = this.crescentLeft = this.crescentTimer = this.chargeShot = 0;
+          this.whipActive = false;
+          this.announce(SPECIAL_NAMES[next] + ' / Lv.' + this.specialLevel, 2);
+        } else if (type === 0 && this.specialWeapon) {
+          if (this.specialLevel < 8) this.specialLevel++;
+          else this.score += 5000;
+          this.announce(SPECIAL_NAMES[this.specialWeapon] + ' / Lv.' + this.specialLevel, 1.3);
+        } else if (type === 0) {
           if (this.level < 8) {
             this.level++;
             this.rank = clamp(this.rank + 2, 0, 100);
@@ -2244,7 +2418,7 @@ export class GameState {
         this.pickupEventsByType[type]++;
         a.release(i);
       } else if (a.x[i] < -18 * this.worldScale || a.age[i] > 15) {
-        this.score = Math.max(0, this.score - 500);
+        if (a.type[i] < 4) this.score = Math.max(0, this.score - 500);
         a.release(i);
       }
     }
@@ -2291,6 +2465,7 @@ export class GameState {
     }
   }
   private finish(defeated: boolean) {
+    this.whipActive = false;
     if (defeated && !this.bossDying) {
       this.bossHp = 0;
       this.bossDying = true;
@@ -2326,6 +2501,8 @@ export class GameState {
     this.loadout.level = this.level;
     this.loadout.optionCount = this.optionCount;
     this.loadout.shield = this.shield;
+    this.loadout.specialWeapon = this.specialWeapon;
+    this.loadout.specialLevel = this.specialLevel;
     this.boss = false;
     this.bossKillTime = this.bossTime;
     this.bossHp = 0;

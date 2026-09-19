@@ -21,6 +21,8 @@ export interface UIState {
   bossName: string;
   score: number;
   level: number;
+  specialWeapon: 'PLASMA' | 'CRESCENT' | null;
+  specialLevel: number;
   lives: number;
   credits: number;
   creditsUsed: number;
@@ -71,6 +73,8 @@ export const useUI = create<UIState>(() => ({
   bossName: 'GATEKEEPER',
   score: 0,
   level: 1,
+  specialWeapon: null,
+  specialLevel: 1,
   lives: 3,
   credits: 3,
   creditsUsed: 1,

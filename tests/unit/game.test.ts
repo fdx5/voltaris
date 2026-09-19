@@ -94,7 +94,7 @@ describe('arcade rules', () => {
     const options = g.optionCount;
     for (const type of [0, 1, 2, 3, 0]) g.items.acquire(g.x, g.y, 0, 0, type, 12, 0.5);
     g.tick(dt);
-    expect(Array.from(g.pickupEventsByType)).toEqual([2, 1, 1, 1]);
+    expect(Array.from(g.pickupEventsByType)).toEqual([2, 1, 1, 1, 0, 0]);
     expect(g.pickupEvent).toBe(5);
     expect(g.items.count).toBe(0);
     expect(g.level).toBe(level + 2);
@@ -248,7 +248,7 @@ describe('arcade rules', () => {
     expect(g.bossHp).toBeGreaterThan(0);
     expect(g.bossDying).toBe(false);
   });
-  it('tints hostile fire from a vivid warning palette, not each ship\'s muted hull colour', () => {
+  it("tints hostile fire from a vivid warning palette, not each ship's muted hull colour", () => {
     const g = new GameState();
     g.start('LASER', 9, false, false, 0);
     g.invincible = 99;
@@ -711,7 +711,7 @@ describe('arcade rules', () => {
     }
     expect(g.rocks.count).toBe(0);
   });
-  it('gives a maxed-out weapon its own shot colour, only on the ship\'s own fire, only at the last level', () => {
+  it("gives a maxed-out weapon its own shot colour, only on the ship's own fire, only at the last level", () => {
     const cases: [Weapon, number][] = [
       ['LASER', MAX_LASER_TINT],
       ['MISSILE', MAX_MISSILE_TINT],

@@ -5,10 +5,10 @@ export function itemMaterial(type: number) {
   const canvas = document.createElement('canvas');
   canvas.width = canvas.height = 256;
   const ctx = canvas.getContext('2d')!;
-  const color = ['#ffad32', '#48e5ff', '#69efaa', '#cc85ff'][type];
+  const color = ['#ffad32', '#48e5ff', '#69efaa', '#cc85ff', '#b54dff', '#42ff83'][type];
   ctx.lineJoin = 'round';
   ctx.beginPath();
-  if (type === 0) {
+  if (type === 0 || type >= 4) {
     ctx.roundRect(63, 24, 130, 208, 65);
   } else if (type === 1) {
     // Side attachment lugs distinguish an extra weapon from a power capsule.
@@ -73,7 +73,7 @@ export function itemMaterial(type: number) {
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
   ctx.font = `900 ${type === 1 ? 80 : 112}px Arial, sans-serif`;
-  ctx.fillText(['P', 'W+', 'H', 'S'][type], 128, 132);
+  ctx.fillText(['P', 'W+', 'H', 'S', 'P', 'C'][type], 128, 132);
   const map = new T.CanvasTexture(canvas);
   map.colorSpace = T.SRGBColorSpace;
   return new T.MeshBasicNodeMaterial({

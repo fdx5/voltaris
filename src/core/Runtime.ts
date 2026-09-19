@@ -37,6 +37,8 @@ const PICKUP_SAMPLES = [
   asset('/audio/optionadd.mp3'),
   asset('/audio/itemadd.mp3'),
   asset('/audio/itemadd.mp3'),
+  asset('/audio/itemadd.mp3'),
+  asset('/audio/itemadd.mp3'),
 ] as const;
 /** Wreck samples, chosen by how much hull came apart. */
 const WRECK_LIGHT = asset('/audio/11_soft_puff.mp3');
@@ -94,7 +96,7 @@ export class Runtime {
   private novaBlasts = 0;
   /** Visual-clock time of the last armour blast, so a laser does not machine-gun it. */
   private armourSoundAt = -1;
-  private pickupSounds = new Uint32Array(4);
+  private pickupSounds = new Uint32Array(6);
   private lastStatus = 'menu';
   /** Which of a stage's (up to 4) music tracks is currently playing. */
   private trackPhase: TrackPhase = 'intro';
@@ -500,6 +502,8 @@ export class Runtime {
       bossName: g.bossDef.id,
       score: g.score,
       level: g.level,
+      specialWeapon: g.specialWeapon,
+      specialLevel: g.specialLevel,
       lives: g.lives,
       credits: g.credits,
       creditsUsed: g.creditsUsed,

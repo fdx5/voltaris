@@ -593,11 +593,19 @@ function GameApp() {
             </div>
             <div className="power">
               <span>
-                {weapon} <b>LV {ui.level}</b>
+                {ui.specialWeapon === 'PLASMA'
+                  ? 'PLASMA WHIP'
+                  : ui.specialWeapon === 'CRESCENT'
+                    ? 'CRESCENT BEAM'
+                    : weapon}{' '}
+                <b>LV {ui.specialWeapon ? ui.specialLevel : ui.level}</b>
               </span>
               <div>
                 {Array.from({ length: 8 }, (_, i) => (
-                  <i key={i} className={i < ui.level ? 'lit' : ''} />
+                  <i
+                    key={i}
+                    className={i < (ui.specialWeapon ? ui.specialLevel : ui.level) ? 'lit' : ''}
+                  />
                 ))}
               </div>
             </div>

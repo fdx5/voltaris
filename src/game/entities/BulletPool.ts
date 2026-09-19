@@ -4,6 +4,7 @@ import { ObjectPool } from '../../core/pool/ObjectPool';
  * Hostile projectile families. `type` still separates the factions
  * (0 player, 1 hostile, 2 player homing missile); `kind` picks the flight
  * behaviour and the instanced batch a hostile shot is drawn in.
+ * Player type 6 is a Crescent Beam; the continuous whip uses a sampled path.
  */
 export const Shot = {
   ORB: 0,
