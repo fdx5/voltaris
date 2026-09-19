@@ -789,7 +789,7 @@ export class GameState {
             Math.sin(angle) * 30,
             6,
             stats.radius,
-            (stats.dps / stats.rate / stats.count) * power,
+            (stats.dps / stats.rate / stats.count) * power * 1.5,
             1,
           );
         }

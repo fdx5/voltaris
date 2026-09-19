@@ -61,7 +61,7 @@ class Ribbon {
       const wrap = strand < 0 ? 0 : Math.sin(phase);
       const crackle = strand < 0 ? 0 : Math.sin(t * 247 + time * 47) * 0.09;
       const offset = (wrap * 1.17 + crackle) * width * taper;
-      const radius = strand < 0 ? width * scale * taper : (0.045 + width * 0.1) * scale;
+      const radius = strand < 0 ? width * scale * taper : (0.045 + width * 0.1) * scale * 0.5;
       const cx = xs[i] + nx * offset,
         cy = ys[i] + ny * offset;
       for (let side = 0; side < 2; side++) {
@@ -84,6 +84,20 @@ class Ribbon {
 }
 export class PlasmaWhip {
   readonly root = new T.Group();
+  private readonly sparks = new T.InstancedMesh(
+    new T.PlaneGeometry(1, 1),
+    new T.MeshBasicNodeMaterial({
+      color: '#ffffff',
+      toneMapped: false,
+      transparent: true,
+      opacity: 0.85,
+      depthWrite: false,
+      side: T.DoubleSide,
+    }),
+    48,
+  );
+  private readonly sparkTransform = new T.Object3D();
+  private readonly sparkColor = new T.Color();
   private readonly layers = [
     new Ribbon('#6511c9', 0.22, true),
     new Ribbon('#8625f4', 0.4, true),
@@ -95,14 +109,64 @@ export class PlasmaWhip {
   ];
   constructor() {
     for (const layer of this.layers) this.root.add(layer.mesh);
+    this.sparks.count = 0;
+    this.sparks.setColorAt(0, this.sparkColor);
+    this.sparks.frustumCulled = false;
+    this.sparks.instanceMatrix.setUsage(T.DynamicDrawUsage);
+    this.root.add(this.sparks);
     this.root.visible = false;
   }
   update(xs: Float32Array, ys: Float32Array, width: number, time: number, active: boolean) {
     this.root.visible = active;
     if (!active) return;
     const scales = [1.9, 1.4, 1, 0.48, 0.15, 1, 1];
+    this.updateSparks(xs, ys, width, time);
     this.layers.forEach((layer, i) => {
       layer.update(xs, ys, width, time, scales[i], 0.2 + i * 0.012, i < 5 ? -1 : i - 5);
     });
+  }
+  /** Short, sparse discharges travel out from the column and expire quickly. */
+  private updateSparks(xs: Float32Array, ys: Float32Array, width: number, time: number) {
+    this.sparks.count = 0;
+    for (let i = 0; i < 16; i++) {
+      const clock = time * 7 + i * 0.618034;
+      const age = clock - Math.floor(clock);
+      if (age > 0.42) continue;
+      const seed = i * 0.618034 + Math.floor(clock) * 0.137;
+      const n = 8 + Math.floor((seed - Math.floor(seed)) * (WHIP_SEGMENTS - 16));
+      const dx = xs[n + 1] - xs[n - 1],
+        dy = ys[n + 1] - ys[n - 1];
+      const length = Math.hypot(dx, dy) || 1;
+      const tx = dx / length,
+        ty = dy / length,
+        side = i % 2 ? 1 : -1;
+      const nx = -ty * side,
+        ny = tx * side;
+      const reach = (0.3 + width * 0.65) * (0.5 + age * 1.8);
+      let ax = xs[n] + nx * width * 1.1,
+        ay = ys[n] + ny * width * 1.1;
+      for (let step = 1; step <= 3; step++) {
+        const outward = width * 1.1 + (reach * step) / 3;
+        const kink = (step === 1 ? 0.1 : step === 2 ? -0.08 : 0.05) * side;
+        const bx = xs[n] + nx * outward + tx * kink;
+        const by = ys[n] + ny * outward + ty * kink;
+        const slot = this.sparks.count++;
+        this.sparkTransform.position.set((ax + bx) / 2, (ay + by) / 2, 0.31);
+        this.sparkTransform.rotation.z = Math.atan2(by - ay, bx - ax);
+        this.sparkTransform.scale.set(
+          Math.hypot(bx - ax, by - ay) + 0.006,
+          (0.012 + width * 0.009) * (1 - age),
+          1,
+        );
+        this.sparkTransform.updateMatrix();
+        this.sparks.setMatrixAt(slot, this.sparkTransform.matrix);
+        this.sparkColor.setRGB(1.4, 1.05, 0.16).multiplyScalar(1 - age / 0.48);
+        this.sparks.setColorAt(slot, this.sparkColor);
+        ax = bx;
+        ay = by;
+      }
+    }
+    this.sparks.instanceMatrix.needsUpdate = true;
+    if (this.sparks.instanceColor) this.sparks.instanceColor.needsUpdate = true;
   }
 }

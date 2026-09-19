@@ -107,7 +107,9 @@ describe('stage pickup weapons', () => {
       expect(frames.length).toBeGreaterThanOrEqual(Math.floor(stats.rate * 2));
       for (let n = 1; n < frames.length; n++)
         expect(frames[n] - frames[n - 1]).toBeLessThanOrEqual(4);
-      expect(Math.abs(damage - stats.dps * 2)).toBeLessThanOrEqual(stats.dps / stats.rate + 0.001);
+      expect(Math.abs(damage - stats.dps * 1.5 * 2)).toBeLessThanOrEqual(
+        (stats.dps * 1.5) / stats.rate + 0.001,
+      );
       expect(Math.max(...angles) - Math.min(...angles)).toBeCloseTo(stats.spread * 2);
     });
   }

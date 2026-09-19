@@ -316,14 +316,27 @@ export class ThreeBackend implements IRenderBackend {
   private readonly plasmaWhip = new PlasmaWhip();
   private readonly crescents = new T.InstancedMesh(
     ThreeBackend.crescentGeometry(),
-    glow('#36ff79', 1.7),
+    glow('#36df79', 1.05),
     512,
   );
   private static crescentGeometry() {
     const shape = new T.Shape();
-    shape.moveTo(0, -1);
-    shape.absarc(0, 0, 1, -Math.PI / 2, Math.PI / 2, false);
-    shape.quadraticCurveTo(0.9, 0, 0, -1);
+    // Keep the outer semicircle and its spread; halve only the luminous band.
+    const samples = 64;
+    for (let i = 0; i <= samples; i++) {
+      const angle = -Math.PI / 2 + (i / samples) * Math.PI;
+      const x = Math.cos(angle),
+        y = Math.sin(angle);
+      if (i === 0) shape.moveTo(x, y);
+      else shape.lineTo(x, y);
+    }
+    for (let i = samples - 1; i >= 0; i--) {
+      const angle = -Math.PI / 2 + (i / samples) * Math.PI;
+      const y = Math.sin(angle);
+      const oldInner = 0.45 * (1 - y * y);
+      shape.lineTo((Math.cos(angle) + oldInner) * 0.5, y);
+    }
+    shape.closePath();
     return new T.ShapeGeometry(shape, 24);
   }
   private readonly itemBatches: T.InstancedMesh[] = [];
