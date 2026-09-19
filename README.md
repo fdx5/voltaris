@@ -52,7 +52,7 @@
 | `NODE_VERSION`       | `22`                                                                                               |
 | `TURSO_DATABASE_URL` | `libsql://voltaris-fdx5555.aws-ap-northeast-1.turso.io`                                            |
 | `TURSO_AUTH_TOKEN`   | 발급받은 토큰. Render Environment에만 입력                                                         |
-| `APP_ORIGIN`         | 선택: `https://voltaris.onrender.com`처럼 실제 공개 주소. 끝의 `/` 없이 입력. 기본값은 요청 호스트 |
+| `APP_ORIGIN`         | 선택: `https://voltaris-nyyo.onrender.com`처럼 실제 공개 주소. 끝의 `/` 없이 입력. 기본값은 요청 호스트 |
 
 `PORT`는 Render가 제공하는 값을 그대로 사용하며 `0.0.0.0`에 바인딩합니다. 프런트와 API는 동일한 도메인으로 제공하므로 별도 API URL이나 CORS 설정이 필요하지 않습니다. DB 토큰에 `VITE_` 접두사를 붙이지 마세요. 브라우저 번들에 포함하면 안 됩니다.
 
