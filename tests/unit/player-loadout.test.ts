@@ -15,7 +15,10 @@ describe('player airframe armament', () => {
         const dt = 1 / 120;
         let main = 0,
           option = 0,
-          optionDamage = 0;
+          optionDamage = 0,
+          mainCore = 0,
+          coreDamage = 0,
+          coreRadius = 0;
         for (let frame = 0; frame < 1200; frame++) {
           g.enemies.clear();
           g.bullets.clear();
@@ -25,6 +28,11 @@ describe('player airframe armament', () => {
             if (g.bullets.option[i]) {
               option++;
               optionDamage += g.bullets.hp[i];
+            } else if (g.bullets.type[i] === 7) {
+              // SPREAD's heavy centre round, fired alongside (not part of) the fan.
+              mainCore++;
+              coreDamage += g.bullets.hp[i];
+              coreRadius = g.bullets.radius[i];
             } else main++;
           }
         }
@@ -35,6 +43,16 @@ describe('player airframe armament', () => {
         expect(option).toBe((main / w.count) * Math.ceil(w.count / 2) * 4);
         expect(optionDamage).toBeCloseTo(main * 4 * w.damage, 2);
         expect(g.weapon).toBe(weapon);
+        if (weapon === 'SPREAD') {
+          // One heavy core round per main-gun volley (never an option's) -
+          // twice a fan pellet's width, 1.5x a fan pellet's own damage.
+          const volleys = main / w.count;
+          expect(mainCore).toBeCloseTo(volleys, 0);
+          expect(coreDamage / mainCore).toBeCloseTo(w.damage * 2 * 1.5, 2);
+          expect(coreRadius).toBeCloseTo(w.width * 2, 5);
+        } else {
+          expect(mainCore).toBe(0);
+        }
       });
     }
   }

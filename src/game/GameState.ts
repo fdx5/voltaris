@@ -953,6 +953,24 @@ export class GameState {
       }
       if (option) this.bullets.option[slot] = 1;
     }
+    // A single heavy core round rides down the exact centre of every SPREAD
+    // volley from the ship's own gun (never a drone's), in addition to the
+    // fan around it - twice a fan pellet's width, 1.5x its damage, so the
+    // weapon keeps real single-target punch instead of only breadth. Its
+    // own bullet type (7) keeps it out of the fan's tint-based rendering
+    // and the maxed-SPREAD amber upgrade entirely - it looks the same, own
+    // distinct model and colour, at every weapon level.
+    if (this.weapon === 'SPREAD' && !option)
+      this.bullets.fire(
+        x,
+        y,
+        Math.cos(angle) * 30,
+        Math.sin(angle) * 30,
+        7,
+        w.width * 2,
+        damage * 1.5,
+        w.pierce,
+      );
   }
   /**
    * Hull integrity scaling applied at spawn. Every type is authored once; the

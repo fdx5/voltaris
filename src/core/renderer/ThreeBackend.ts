@@ -14,6 +14,7 @@ import {
   vec3,
 } from 'three/tsl';
 import { bloom } from 'three/addons/tsl/display/BloomNode.js';
+import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import type { IRenderBackend, Quality } from './IRenderBackend';
 import { isIOSDevice } from '../device';
 import {
@@ -293,6 +294,9 @@ export class ThreeBackend implements IRenderBackend {
   private readonly optionMissiles: T.InstancedMesh;
   private readonly optionExhaust: T.InstancedMesh;
   private readonly optionScatter: T.InstancedMesh;
+  /** SPREAD's heavy centre round: a hand-built crystal core, not the downloaded pellet model. */
+  private readonly spreadCore: T.InstancedMesh;
+  private readonly spreadCoreExhaust: T.InstancedMesh;
   private readonly lance: T.InstancedMesh;
   private readonly allShotBatches: T.InstancedMesh[] = [];
   /**
@@ -402,6 +406,15 @@ export class ThreeBackend implements IRenderBackend {
     geometry.setAttribute('color', new T.Float32BufferAttribute(colors, 3));
     geometry.setIndex(indices);
     geometry.computeVertexNormals();
+    return geometry;
+  }
+  /** A faceted core banded by a containment ring - forward along local +X, matching `push`'s angle convention. */
+  private static spreadCoreGeometry() {
+    const core = new T.OctahedronGeometry(0.55, 0).scale(1.9, 0.62, 0.62);
+    const ring = new T.TorusGeometry(0.5, 0.09, 6, 14).rotateY(Math.PI / 2);
+    const geometry = mergeGeometries([core, ring])!;
+    core.dispose();
+    ring.dispose();
     return geometry;
   }
 
@@ -781,6 +794,22 @@ export class ThreeBackend implements IRenderBackend {
       18,
     );
     this.optionScatter = ordnance('spread-option', 1024);
+    // A faceted crystal core banded by a containment ring - a fresh
+    // procedural silhouette (not a recolour of the downloaded spread-main
+    // pellet) so the one heavy round riding down the centre of every SPREAD
+    // volley reads as a different kind of ordnance, not just a bigger one.
+    this.spreadCore = batch(ThreeBackend.spreadCoreGeometry(), lit('#ff3d6b', 2.4), 128);
+    this.spreadCoreExhaust = batch(
+      new T.CapsuleGeometry(1, 3, 2, 5).rotateZ(Math.PI / 2),
+      Object.assign(lit('#ff88ab', 1.2), {
+        transparent: true,
+        opacity: 0.3,
+        blending: T.AdditiveBlending,
+        depthWrite: false,
+      }),
+      384,
+      18,
+    );
     this.lance = batch(
       new T.CapsuleGeometry(1, 6, 4, 10).rotateZ(Math.PI / 2),
       lit('#a8ecff', 4),
@@ -1406,6 +1435,21 @@ export class ThreeBackend implements IRenderBackend {
         r = p.radius[i],
         aim = Math.atan2(p.vy[i], p.vx[i]);
       switch (p.type[i]) {
+        case 7:
+          // SPREAD's heavy centre round: a slow tumble sells the extra mass
+          // a plain forward-facing bolt wouldn't read at this speed.
+          this.push(
+            this.spreadCoreExhaust,
+            x - Math.cos(aim) * r * 3.4,
+            y - Math.sin(aim) * r * 3.4,
+            0.12,
+            r * 1.4,
+            r * 0.32,
+            r * 0.32,
+            aim,
+          );
+          this.push(this.spreadCore, x, y, 0.15, r, r, r, aim, t * 6 + p.age[i] * 4);
+          break;
         case 6:
           this.push(
             this.crescents,
