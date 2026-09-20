@@ -1,0 +1,9 @@
+{
+  "author": "NASA/VTAD",
+  "page": "https://science.nasa.gov/resource/international-space-station-3d-model/",
+  "download": "https://assets.science.nasa.gov/content/dam/science/psd/solar/2023/09/i/ISS_stationary.glb",
+  "sourceSha256": "26dba905b4b7555edbcb0c5f5a61b5c18659f5166076ab27dbb0e64025759fca",
+  "outputSha256": "76e455d5f05f8485eb8ad4a9539e5125869a435ff89e6532cbd117287971b8b0",
+  "bytes": 11340984,
+  "adaptation": "Joined meshes; geometry simplified with meshoptimizer ratio 0.25 error 0.001; textures WebP 1024px quality 85"
+}

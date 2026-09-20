@@ -1,3 +1,4 @@
+import { loadDepthAssets } from './visual/DepthAssets';
 import ReactDOM from 'react-dom/client';
 import { App } from './ui/App';
 import './ui/styles.css';
@@ -17,7 +18,7 @@ function start() {
       {t('PREPARING_HANGAR')}
     </div>,
   );
-  void Promise.all([loadImportedFleet(), loadNovaMissile(), loadPlayerLoadout()])
+  void Promise.all([loadImportedFleet(), loadNovaMissile(), loadPlayerLoadout(), loadDepthAssets()])
     .then(() => root.render(<App />))
     .catch(() => {
       root.render(

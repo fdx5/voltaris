@@ -217,12 +217,18 @@ export function finishHull(
   // every silhouette, and a little of the paint glows so its colours survive
   // on the unlit side.
   const facing = normalView.dot(positionViewDirection).clamp(0, 1);
-  const rim = color(rimColor).mul(float(1).sub(facing).pow(2.6)).mul(0.55);
+  const rim = color(rimColor)
+    .mul(float(1).sub(facing).pow(2.6))
+    .mul(boss ? 0.55 : 0.42);
   // A boss's own texture detail (panel lines, decals) all but vanishes under
   // a 14%-strength paint pass at that scale, so it runs over twice as hot;
   // a soft core shadow - the fresnel falloff turned inward instead of out -
   // gives the broad flat faces a sense of curvature the rim alone can't.
-  const paint = material.map ? texture(material.map).rgb.mul(boss ? 0.3 : 0.14).add(rim) : rim;
+  const paint = material.map
+    ? texture(material.map)
+        .rgb.mul(boss ? 0.3 : 0.1)
+        .add(rim)
+    : rim;
   const coreShade = boss ? facing.pow(3).mul(0.2) : float(0);
   const shaded = paint.sub(coreShade);
   // A damaged boss burns red from within: a floor of red emission plus a hot

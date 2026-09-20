@@ -103,3 +103,17 @@ The game instances each design as one merged mesh and animates its exhaust.
 `tools/import-player-loadout.mjs` records exact download URLs and rebuilds the
 assets. `tools/blender/render-player-loadout.py` renders the real ship assets
 for the three armament card images (existing STRIKER blue, KESTREL, MANTA).
+
+
+## Depth scenery
+
+- Distant structures, dishes, crystals and debris: Kenney **Space Kit**, CC0.
+  https://kenney.nl/assets/space-kit
+  Original GLBs are included; their colors/transforms are batched at runtime.
+  Source archive and SHA-256 checksums: `models/scenery/manifest.json`.
+- Detailed orbital station: **International Space Station 3D Model**, NASA
+  Visualization Technology Applications and Development (VTAD).
+  https://science.nasa.gov/resource/international-space-station-3d-model/
+  NASA media usage guidelines: https://www.nasa.gov/nasa-brand-center/images-and-media/
+  Adaptation: joined meshes, simplified geometry, 1024px WebP texture conversion.
+  NASA is credited as the source; no endorsement is implied.

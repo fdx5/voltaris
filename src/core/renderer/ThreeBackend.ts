@@ -1,3 +1,5 @@
+import { DepthScenery, SECTOR_LIGHT } from '../../visual/DepthScenery';
+import { DepthAccents } from '../../visual/DepthAccents';
 import { DestructionEffects } from '../../visual/DestructionEffects';
 import { PlasmaWhip } from '../../visual/PlasmaWhip';
 import { specialStats } from '../../game/SpecialWeapons';
@@ -328,6 +330,11 @@ export class ThreeBackend implements IRenderBackend {
   private readonly options: T.Group[] = [];
   /** The tumbling inner shape of each option, spun independently of its gun. */
   private readonly optionCores: T.Mesh[] = [];
+  private readonly depthScenery = new DepthScenery();
+  private readonly depthAccents = new DepthAccents();
+  private readonly keyLight = new T.DirectionalLight('#fff1d9', 3.1);
+  private readonly rimLight = new T.DirectionalLight('#629adb', 3.2);
+  private reflectionEnvironment: T.Texture | null = null;
   private readonly destruction = new DestructionEffects();
   private readonly plasmaWhip = new PlasmaWhip();
   /** 0 at normal charge, 1 at Lv.8: recolours the blade without a second mesh. */
@@ -411,7 +418,7 @@ export class ThreeBackend implements IRenderBackend {
   /** A faceted core banded by a containment ring - forward along local +X, matching `push`'s angle convention. */
   private static spreadCoreGeometry() {
     const core = new T.OctahedronGeometry(0.55, 0).scale(1.9, 0.62, 0.62);
-    const ring = new T.TorusGeometry(0.5, 0.09, 6, 14).rotateY(Math.PI / 2);
+    const ring = new T.TorusGeometry(0.5, 0.09, 6, 14).toNonIndexed().rotateY(Math.PI / 2);
     const geometry = mergeGeometries([core, ring])!;
     core.dispose();
     ring.dispose();
@@ -576,13 +583,11 @@ export class ThreeBackend implements IRenderBackend {
     this.canvas = this.attach();
     this.scene.background = new T.Color('#03060c');
     this.scene.fog = new T.FogExp2('#060d16', 0.003);
-    this.scene.add(new T.HemisphereLight('#b9d6eb', '#15161c', 2.1));
-    const sun = new T.DirectionalLight('#e1eff2', 3.5);
-    sun.position.set(-9, 13, 20);
-    this.scene.add(sun);
-    const rim = new T.DirectionalLight('#527991', 3);
-    rim.position.set(4, -6, -10);
-    this.scene.add(rim);
+    this.scene.add(new T.HemisphereLight('#b9d6eb', '#15161c', 1.65));
+    this.keyLight.position.set(-9, 13, 20);
+    this.rimLight.position.set(4, -6, -10);
+    this.scene.add(this.keyLight, this.rimLight, this.depthScenery.root, this.depthAccents.root);
+    this.deferred.push(this.depthAccents.root);
     // Two up-lights. Open space barely notices them; a cave ceiling would be
     // solid black without them, since every other light points downwards, and
     // the hemisphere light hands a down-facing normal its ground colour.
@@ -1170,6 +1175,10 @@ export class ThreeBackend implements IRenderBackend {
     studio.add(horizon);
     const pmrem = new T.PMREMGenerator(this.renderer);
     const environment = pmrem.fromScene(studio, 0.02).texture;
+    this.reflectionEnvironment?.dispose();
+    this.reflectionEnvironment = environment;
+    this.scene.environment = environment;
+    this.scene.environmentIntensity = 0.32;
     pmrem.dispose();
     studio.traverse((o) => {
       const mesh = o as T.Mesh;
@@ -1416,8 +1425,7 @@ export class ThreeBackend implements IRenderBackend {
   private syncBullets(g: Readonly<GameState>, alpha: number) {
     for (const b of this.allShotBatches) b.count = 0;
     this.crescents.count = 0;
-    this.crescentPower.value =
-      g.specialWeapon === 'CRESCENT' && g.specialLevel >= 8 ? 1 : 0;
+    this.crescentPower.value = g.specialWeapon === 'CRESCENT' && g.specialLevel >= 8 ? 1 : 0;
     this.plasmaWhip.update(
       g.whipX,
       g.whipY,
@@ -1826,6 +1834,29 @@ export class ThreeBackend implements IRenderBackend {
       this.camera.position.z,
       T.MathUtils.clamp(g.time / g.stage.durationSec, 0, 1),
     );
+    const halfHeight = this.camera.position.z * Math.tan(T.MathUtils.degToRad(this.camera.fov / 2));
+    this.depthScenery.update(
+      t,
+      this.stage,
+      halfHeight * this.camera.aspect,
+      halfHeight,
+      this.camera.position.z,
+      g.cameraFollowY,
+      this.look.x,
+      this.look.y,
+      this.quality,
+      this.reducedMotion,
+      !inactive,
+      g.terrain ?? undefined,
+      g.scroll,
+    );
+    this.depthAccents.update(g, t, this.quality === 'LOW', this.reducedMotion);
+    const palette = SECTOR_LIGHT[this.stage];
+    this.keyLight.color.set(palette.key);
+    this.rimLight.color.set(palette.fill);
+    this.keyLight.position.set(-9 + Math.sin(t * 0.06) * 2, 13 + g.cameraFollowY, 20);
+    this.rimLight.position.y = -6 + g.cameraFollowY;
+    (this.scene.fog as T.FogExp2).color.set(palette.haze);
     if (inactive) {
       // The title screen frames the ship above the sector selector.
       this.ship.position.set(3.2, 0.85 + Math.sin(t * 0.6) * 0.2, 0);
@@ -1841,7 +1872,7 @@ export class ThreeBackend implements IRenderBackend {
       this.ship.scale.setScalar(0.7);
       // Roll about the nose: climbing turns the canopy and dorsal plating to
       // the camera, diving shows the ventral keel and underside panels.
-      this.ship.rotation.set(-g.roll * 0.72, 0, g.pitch * 0.3, 'ZXY');
+      this.ship.rotation.set(-g.roll * 0.72, g.pitch * 0.13, g.pitch * 0.3, 'ZXY');
       this.ship.visible =
         g.respawn <= 0 &&
         (g.effects[0] > 0 || g.invincible <= 0 || Math.floor(g.time * 15) % 2 === 0);
@@ -2189,6 +2220,7 @@ export class ThreeBackend implements IRenderBackend {
   dispose() {
     this.disposed = true;
     this.destruction.disposeTextures();
+    this.reflectionEnvironment?.dispose();
     for (const batch of this.itemBatches)
       (batch.material as T.MeshBasicNodeMaterial).map?.dispose();
     this.scene.traverse((obj) => {
