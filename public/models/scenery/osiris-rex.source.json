@@ -1,0 +1,8 @@
+{
+  "page": "https://science.nasa.gov/resource/osiris-rex-3d-model/",
+  "download": "https://assets.science.nasa.gov/content/dam/science/psd/solar/2023/09/o/Osiris_Rex.glb",
+  "author": "NASA/VTAD",
+  "sourceSha256": "8d9c3f8122386d978aeed096c6dbdd5ddce8e7f6c80107ce88be19db1f4f61db",
+  "outputSha256": "94712e1782a1e85884f618815374f08045c7e352f7eed71e55e3545dbb9cf739",
+  "adaptation": "Lossless mesh joining/welding; original geometry retained; textures up to 2048px WebP quality 92"
+}

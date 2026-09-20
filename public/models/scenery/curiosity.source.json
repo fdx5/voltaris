@@ -1,0 +1,8 @@
+{
+  "page": "https://science.nasa.gov/resource/curiosity-rover-3d-model/",
+  "download": "https://assets.science.nasa.gov/content/dam/science/psd/mars/resources/gltf_files/24584_Curiosity_static.glb",
+  "author": "NASA/JPL-Caltech",
+  "sourceSha256": "86a8ee6d39fb1711ae549ba99951d2f52b44a7b8367ce4814cc81aec60e94b31",
+  "outputSha256": "d02ad1c2c48534bc5d3ddbe2282acc66c122aab7b2f98a731cfdb331473e5146",
+  "adaptation": "Lossless mesh joining/welding; original geometry retained; textures up to 2048px WebP quality 92"
+}

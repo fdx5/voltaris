@@ -1,0 +1,8 @@
+{
+  "page": "https://science.nasa.gov/resource/spitzer-space-telescope-3d-model/",
+  "download": "https://assets.science.nasa.gov/content/dam/science/psd/solar/2023/09/s/SPITZER.glb",
+  "author": "NASA/VTAD",
+  "sourceSha256": "56b39ca3bbb7fdf8b5e20f73bd34ee318b657046bbe4ea52732edbc6d6132a59",
+  "outputSha256": "44664ed9de54c6e9132fab48afa6b92903944ba1181529e1421581ba630a08ae",
+  "adaptation": "Lossless mesh joining/welding; original geometry retained; textures up to 2048px WebP quality 92"
+}

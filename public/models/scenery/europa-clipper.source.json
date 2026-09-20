@@ -1,0 +1,8 @@
+{
+  "page": "https://science.nasa.gov/resource/europa-clipper-3d-model/",
+  "download": "https://assets.science.nasa.gov/content/dam/science/psd/solar/2023/09/c/clipper_spacecraft.glb",
+  "author": "NASA/VTAD",
+  "sourceSha256": "a3f5e4533b31bf4bb25f4332f6879055dfd744f3ff9add23bfa9bdfbefd4f7fe",
+  "outputSha256": "26f074f68254c63600f1cbbf2f40911fc0caaa715ba264d527634fa23a5a4ad4",
+  "adaptation": "Lossless mesh joining/welding; original geometry retained; textures up to 2048px WebP quality 92"
+}

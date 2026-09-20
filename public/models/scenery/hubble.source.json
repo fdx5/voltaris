@@ -1,0 +1,8 @@
+{
+  "page": "https://science.nasa.gov/resource/hubble-space-telescope-3d-model/",
+  "download": "https://assets.science.nasa.gov/content/dam/science/psd/solar/2023/09/h/Hubble.glb",
+  "author": "NASA/VTAD",
+  "sourceSha256": "e6a40640d6846e8f5d9438821ebe2d7de730c8dadba1cc9dfdbcc148ff1052cd",
+  "outputSha256": "370c06c48d5e60efbe8c667ee11acae5daee7a03498344adbb72bed2d8eb84d7",
+  "adaptation": "Lossless mesh joining/welding; original geometry retained; textures up to 2048px WebP quality 92"
+}

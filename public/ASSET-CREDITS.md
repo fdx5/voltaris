@@ -107,13 +107,24 @@ for the three armament card images (existing STRIKER blue, KESTREL, MANTA).
 
 ## Depth scenery
 
-- Distant structures, dishes, crystals and debris: Kenney **Space Kit**, CC0.
-  https://kenney.nl/assets/space-kit
-  Original GLBs are included; their colors/transforms are batched at runtime.
-  Source archive and SHA-256 checksums: `models/scenery/manifest.json`.
 - Detailed orbital station: **International Space Station 3D Model**, NASA
   Visualization Technology Applications and Development (VTAD).
   https://science.nasa.gov/resource/international-space-station-3d-model/
   NASA media usage guidelines: https://www.nasa.gov/nasa-brand-center/images-and-media/
   Adaptation: joined meshes, simplified geometry, 1024px WebP texture conversion.
   NASA is credited as the source; no endorsement is implied.
+
+- Cassini spacecraft: NASA/VTAD, https://science.nasa.gov/resource/cassini-3d-model/
+- Curiosity rover: NASA/JPL-Caltech, https://science.nasa.gov/resource/curiosity-rover-3d-model/
+  Original geometry retained; joined meshes and WebP textures up to 2048px.
+  Source URLs and SHA-256 checksums ship beside each GLB in `.source.json`.
+
+Additional detailed NASA/VTAD scenery (original geometry, authored textures retained):
+
+- **hubble**: https://science.nasa.gov/resource/hubble-space-telescope-3d-model/
+- **voyager**: https://science.nasa.gov/resource/voyager-3d-model/
+- **juno**: https://science.nasa.gov/resource/juno-3d-model/
+- **insight**: https://science.nasa.gov/resource/insight-3d-model/
+- **europa-clipper**: https://science.nasa.gov/resource/europa-clipper-3d-model/
+- **osiris-rex**: https://science.nasa.gov/resource/osiris-rex-3d-model/
+- **spitzer**: https://science.nasa.gov/resource/spitzer-space-telescope-3d-model/

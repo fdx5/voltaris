@@ -1,0 +1,8 @@
+{
+  "page": "https://science.nasa.gov/resource/juno-3d-model/",
+  "download": "https://assets.science.nasa.gov/content/dam/science/psd/solar/2023/09/j/Juno.glb",
+  "author": "NASA/VTAD",
+  "sourceSha256": "d467c3164806aebfdf72c61a29e12851895d91a20cbb64b9653abb421f3193eb",
+  "outputSha256": "285842349cd007637525b473f389a79f416ec8c6baae2e68c4bd12f10ddf2cfc",
+  "adaptation": "Lossless mesh joining/welding; original geometry retained; textures up to 2048px WebP quality 92"
+}

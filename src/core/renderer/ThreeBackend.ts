@@ -348,8 +348,8 @@ export class ThreeBackend implements IRenderBackend {
     const material = new T.MeshStandardNodeMaterial({
       color: '#ffffff',
       vertexColors: true,
-      metalness: 0.68,
-      roughness: 0.18,
+      metalness: 0.12,
+      roughness: 0.82,
       side: T.DoubleSide,
     });
     const color = attribute<'vec3'>('color', 'vec3');
@@ -361,8 +361,8 @@ export class ThreeBackend implements IRenderBackend {
     const fullPower = mix(bodyColor, edgeColor, edge);
     material.colorNode = mix(color, fullPower, this.crescentPower);
     // Only the orange cutting edge emits; the green bevel retains real shading.
-    const normalGlow = color.mul(edge.mul(2.4).add(0.06));
-    const fullPowerGlow = fullPower.mul(edge.mul(1.8).add(0.85));
+    const normalGlow = color.mul(edge.mul(0.22).add(0.025));
+    const fullPowerGlow = fullPower.mul(edge.mul(0.2).add(0.04));
     material.emissiveNode = mix(normalGlow, fullPowerGlow, this.crescentPower);
     return material;
   }
@@ -393,7 +393,7 @@ export class ThreeBackend implements IRenderBackend {
                 : u < 0.3
                   ? '#18694b'
                   : u < 0.54
-                    ? '#e5fff0'
+                    ? '#59a17c'
                     : '#12814f',
           );
           colors.push(color.r, color.g, color.b);
@@ -1459,17 +1459,7 @@ export class ThreeBackend implements IRenderBackend {
           this.push(this.spreadCore, x, y, 0.15, r, r, r, aim, t * 6 + p.age[i] * 4);
           break;
         case 6:
-          this.push(
-            this.crescents,
-            x,
-            y,
-            0.2,
-            r,
-            r,
-            r,
-            aim,
-            this.reducedMotion ? 0.12 : 0.18 + Math.sin(t * 7 + p.age[i] * 5) * 0.14,
-          );
+          this.push(this.crescents, x, y, 0.2, r, r, r, aim, 0.12);
           break;
         case 1: {
           const k = p.kind[i];
@@ -1849,6 +1839,7 @@ export class ThreeBackend implements IRenderBackend {
       !inactive,
       g.terrain ?? undefined,
       g.scroll,
+      g.time / g.stage.durationSec,
     );
     this.depthAccents.update(g, t, this.quality === 'LOW', this.reducedMotion);
     const palette = SECTOR_LIGHT[this.stage];

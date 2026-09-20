@@ -1,0 +1,8 @@
+{
+  "page": "https://science.nasa.gov/resource/insight-3d-model/",
+  "download": "https://assets.science.nasa.gov/content/dam/science/psd/solar/2023/09/i/InSight_deployed.glb",
+  "author": "NASA/VTAD",
+  "sourceSha256": "1e944bedb23af07962ba9f2b88d195b561665f255573b29ba7d028293a179387",
+  "outputSha256": "389816e6e48eb4f9ce3f21a8fe44261fdc4bb24e4e77c972ab5490eee0de32c3",
+  "adaptation": "Lossless mesh joining/welding; original geometry retained; textures up to 2048px WebP quality 92"
+}

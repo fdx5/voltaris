@@ -1,0 +1,8 @@
+{
+  "page": "https://science.nasa.gov/resource/cassini-3d-model/",
+  "download": "https://assets.science.nasa.gov/content/dam/science/psd/solar/2023/09/c/Cassini.glb",
+  "author": "NASA/VTAD",
+  "sourceSha256": "cacdca3279b28e64280ff8e823f572311f67a83bde2d0435b26f515a1b7926be",
+  "outputSha256": "d77fdc0150bef0af820cd8ba88381d2f662e1d7db36305473bf0dc6748afeeb9",
+  "adaptation": "Lossless mesh joining/welding; original geometry retained; textures up to 2048px WebP quality 92"
+}

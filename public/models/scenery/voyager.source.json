@@ -1,0 +1,8 @@
+{
+  "page": "https://science.nasa.gov/resource/voyager-3d-model/",
+  "download": "https://assets.science.nasa.gov/content/dam/science/psd/solar/2023/09/v/Voyager.glb",
+  "author": "NASA/VTAD",
+  "sourceSha256": "5338241f2e89e9cfe3ebb82f519b4cad64c97e66883cccba6fdda98667aec731",
+  "outputSha256": "6afef95ac08ec88f41a8ae0b9e3807d7dc5e013dc806e70ae21be9f0e8488db8",
+  "adaptation": "Lossless mesh joining/welding; original geometry retained; textures up to 2048px WebP quality 92"
+}
