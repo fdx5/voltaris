@@ -2328,7 +2328,7 @@ export class GameState {
     const e = this.enemies;
     this.kills++;
     this.score += Math.floor(defs[e.type[i]].score * this.graze);
-    this.burst(e.x[i], e.y[i], defs[e.type[i]].burst);
+    this.burst(e.x[i], e.y[i], defs[e.type[i]].burst, e.type[i], e.radius[i]);
     for (let s = 0; s < 3; s++)
       if (this.skills[s] >= 0)
         this.charge[s] = Math.min(1, this.charge[s] + 1 / tuning.skills[this.skills[s]].kills);
@@ -2476,13 +2476,35 @@ export class GameState {
     }
   }
   /** The wreck a specific hull leaves: its own shape, colour and weight. */
-  private burst(x: number, y: number, b: (typeof defs)[number]['burst']) {
+  private burst(
+    x: number,
+    y: number,
+    b: (typeof defs)[number]['burst'],
+    hullType = -1,
+    hullRadius = 0,
+  ) {
     this.explosionEvent++;
-    // Debris count stands in for mass: a skiff puffs, a cruiser comes apart.
-    this.explosionHeavy = b.count >= 34;
-    if (b.count >= 24)
-      this.destruction.acquire(x, y, 0, 0, b.count >= 50 ? 1 : 0, 2.8, b.count >= 50 ? 1.3 : 0.8);
-    this.shake = Math.max(this.shake, b.shake);
+    // Use actual hull class and dimensions, never particle count as a mass proxy.
+    const hull = hullType >= 0 ? fleetHardpoints[hullType].size : null;
+    const tier =
+      hull === 'large' ? 1 : hull === 'medium' ? 0 : hull === 'small' ? 5 : b.count >= 50 ? 1 : 0;
+    const size = hull
+      ? hullRadius * (tier === 1 ? 1.05 : tier === 0 ? 0.95 : 0.8)
+      : tier === 1
+        ? 1.3
+        : 0.8;
+    const life = tier === 1 ? 4.2 : tier === 0 ? 2.9 : 1.8;
+    const event = this.destruction.acquire(x, y, 0, 0, tier, life, size);
+    if (event >= 0) this.destruction.aux[event] = (Math.max(0, hullType) + this.kills) % 3;
+    this.explosionHeavy = hull ? hull !== 'small' : b.count >= 34;
+    const impact = hull
+      ? tier === 1
+        ? 0.42 + hullRadius * 0.09
+        : tier === 0
+          ? 0.15 + hullRadius * 0.05
+          : b.shake
+      : b.shake;
+    this.shake = Math.max(this.shake, impact);
     for (let j = 0; j < b.count; j++) {
       // A ring burst throws its debris out evenly; everything else scatters.
       const a = b.ring
@@ -2592,15 +2614,24 @@ export class GameState {
       this.flash = t > 4.5 ? 0.12 : 0.04;
     }
     if (before < 5.5 && t >= 5.5)
-      this.destruction.acquire(this.bossX, this.bossY, 0, 0, 4, 1.15, 4);
+      this.destruction.acquire(this.bossX, this.bossY, 0, 0, 4, 1.15, this.bossDef.ringRadius);
     if (before < 6.65 && t >= 6.65) {
-      this.destruction.acquire(this.bossX, this.bossY, 0, 0, 2, 3.2, 3.5);
+      const blast = this.destruction.acquire(
+        this.bossX,
+        this.bossY,
+        0,
+        0,
+        2,
+        4.8,
+        3.6 + this.bossDef.ringRadius * 0.24,
+      );
+      if (blast >= 0) this.destruction.aux[blast] = this.stageIndex % 3;
       for (let i = 0; i < 8; i++) {
         const a = (i / 8) * Math.PI * 2;
         this.explode(this.bossX + Math.cos(a) * 2.3, this.bossY + Math.sin(a) * 2.3, 110);
       }
       this.flash = 0.75;
-      this.shake = 0.9;
+      this.shake = 0.9 + this.bossDef.ringRadius * 0.06;
     }
     if (t >= 7 - 1e-8) this.finish(true);
   }

@@ -2,7 +2,14 @@ import { DestructionEffects } from '../../visual/DestructionEffects';
 import { PlasmaWhip } from '../../visual/PlasmaWhip';
 import { specialStats } from '../../game/SpecialWeapons';
 import * as T from 'three/webgpu';
-import { float, normalView, pass, positionGeometry, positionViewDirection } from 'three/tsl';
+import {
+  attribute,
+  float,
+  normalView,
+  pass,
+  positionGeometry,
+  positionViewDirection,
+} from 'three/tsl';
 import { bloom } from 'three/addons/tsl/display/BloomNode.js';
 import type { IRenderBackend, Quality } from './IRenderBackend';
 import { isIOSDevice } from '../device';
@@ -318,22 +325,27 @@ export class ThreeBackend implements IRenderBackend {
   private readonly plasmaWhip = new PlasmaWhip();
   private readonly crescents = new T.InstancedMesh(
     ThreeBackend.crescentGeometry(),
-    new T.MeshStandardNodeMaterial({
-      color: '#ffffff',
-      vertexColors: true,
-      metalness: 0.45,
-      roughness: 0.22,
-      emissive: '#26b861',
-      emissiveIntensity: 0.25,
-      side: T.DoubleSide,
-    }),
+    ThreeBackend.crescentMaterial(),
     512,
   );
+  private static crescentMaterial() {
+    const material = new T.MeshStandardNodeMaterial({
+      color: '#ffffff',
+      vertexColors: true,
+      metalness: 0.68,
+      roughness: 0.18,
+      side: T.DoubleSide,
+    });
+    const color = attribute<'vec3'>('color', 'vec3');
+    // Only the orange cutting edge emits; the green bevel retains real shading.
+    material.emissiveNode = color.mul(color.r.sub(color.g).max(0).mul(2.4).add(0.06));
+    return material;
+  }
   private static crescentGeometry() {
     const positions: number[] = [],
       colors: number[] = [],
       indices: number[] = [];
-    const rails = [0, 0.035, 0.09, 0.3, 0.55, 0.8, 0.91, 0.965, 1];
+    const rails = [0, 0.12, 0.17, 0.3, 0.46, 0.54, 0.72, 0.83, 0.88, 1];
     const color = new T.Color();
     for (let side = 0; side < 2; side++) {
       for (let i = 0; i <= 64; i++) {
@@ -346,17 +358,17 @@ export class ThreeBackend implements IRenderBackend {
           positions.push(
             outer - thickness * u,
             y,
-            (side ? -1 : 1) * Math.sin(Math.PI * u) * outer * 0.075,
+            (side ? -1 : 1) * Math.sin(Math.PI * u) ** 0.7 * outer * (side ? 0.1 : 0.18),
           );
           color.set(
-            u <= 0.035 || u >= 0.965
-              ? '#ff861c'
+            u <= 0.12 || u >= 0.88
+              ? '#ff7608'
               : side
-                ? '#126644'
+                ? '#073d30'
                 : u < 0.3
-                  ? '#d9ffe5'
-                  : u < 0.8
-                    ? '#45eb91'
+                  ? '#18694b'
+                  : u < 0.54
+                    ? '#e5fff0'
                     : '#12814f',
           );
           colors.push(color.r, color.g, color.b);
@@ -1378,7 +1390,17 @@ export class ThreeBackend implements IRenderBackend {
         aim = Math.atan2(p.vy[i], p.vx[i]);
       switch (p.type[i]) {
         case 6:
-          this.push(this.crescents, x, y, 0.2, r, r, 1, aim);
+          this.push(
+            this.crescents,
+            x,
+            y,
+            0.2,
+            r,
+            r,
+            r,
+            aim,
+            this.reducedMotion ? 0.12 : 0.18 + Math.sin(t * 7 + p.age[i] * 5) * 0.14,
+          );
           break;
         case 1: {
           const k = p.kind[i];

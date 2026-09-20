@@ -1,4 +1,5 @@
 import * as T from 'three/webgpu';
+import { float, positionGeometry } from 'three/tsl';
 import type { ObjectPool } from '../core/pool/ObjectPool';
 
 /** Bounded, deterministic visual simulation; never consumes gameplay randomness. */
@@ -10,7 +11,32 @@ export class DestructionEffects {
   private readonly smoke: T.InstancedMesh;
   private readonly shards: T.InstancedMesh;
   private readonly streaks: T.InstancedMesh;
+  private readonly pressure: T.InstancedMesh;
+  private readonly plates: T.InstancedMesh;
   constructor() {
+    const pressureMaterial = new T.MeshBasicNodeMaterial({
+      color: '#ffffff',
+      transparent: true,
+      blending: T.AdditiveBlending,
+      depthWrite: false,
+      side: T.DoubleSide,
+      toneMapped: false,
+    });
+    pressureMaterial.opacityNode = float(1)
+      .sub(positionGeometry.length().sub(0.9825).abs().div(0.0175))
+      .max(0)
+      .pow(1.3)
+      .mul(0.42);
+    this.pressure = this.batch(
+      new T.RingGeometry(0.965, 1, 32, 1, 0, Math.PI * 0.38),
+      pressureMaterial,
+      256,
+    );
+    this.plates = this.batch(
+      new T.BoxGeometry(1, 1, 0.15),
+      new T.MeshStandardNodeMaterial({ color: '#a1adba', metalness: 0.85, roughness: 0.3 }),
+      384,
+    );
     const geometry = new T.PlaneGeometry(2, 2);
     this.fire = this.batch(
       geometry,
@@ -91,7 +117,7 @@ export class DestructionEffects {
   }
   update(events: ObjectPool, time: number, low: boolean, reducedMotion: boolean) {
     void time;
-    const batches = [this.fire, this.smoke, this.shards, this.streaks];
+    const batches = [this.fire, this.smoke, this.shards, this.streaks, this.pressure, this.plates];
     for (const batch of batches) batch.count = 0;
     for (let i = 0; i < events.limit; i++) {
       if (!events.active[i]) continue;
@@ -137,19 +163,74 @@ export class DestructionEffects {
           );
         }
       }
-      const count = low ? 12 : 28;
+      const tier = events.type[i];
+      const capital = tier === 1 || tier === 2;
+      const variant = Math.floor(events.aux[i]) % 3;
+      const axis = variant === 0 ? 0.18 : variant === 1 ? -0.55 : 0.8;
+      const fireLife = tier === 2 ? 1.9 : tier === 1 ? 1.55 : tier === 5 ? 0.65 : 1.05;
+      const smokeLife = tier === 2 ? 4.3 : tier === 1 ? 3.7 : tier === 5 ? 1.45 : 2.6;
+      // Broken, tilted pressure fronts show a shell expanding through depth.
+      const waves = tier === 2 ? 3 : tier === 1 || tier === 3 ? 2 : tier === 5 ? 0 : 1;
+      for (let wave = 0; wave < waves; wave++) {
+        const u = age - wave * (tier === 2 ? 0.11 : 0.24);
+        if (u < 0 || u > 1.1) continue;
+        const radius = size * (0.25 + u * (tier === 2 ? 5 : 3.4));
+        for (let arc = 0; arc < 4; arc++) {
+          this.put(
+            this.pressure,
+            x,
+            y,
+            1.1 + wave * 0.18,
+            radius,
+            radius,
+            radius,
+            (arc * Math.PI) / 2 + axis + u * 0.25,
+            tier === 2 ? '#90d9ff' : '#ffb459',
+            (1 - u / 1.1) ** 2,
+            0.35 + wave * 0.38,
+          );
+        }
+      }
+      // Recognisable pieces of armour travel farther and tumble more slowly than sparks.
+      if (capital || tier === 3)
+        for (let j = 0; j < (low ? 6 : tier === 2 ? 22 : 12); j++) {
+          const u = age - (j % 3) * 0.1;
+          if (u < 0) continue;
+          const a = j * 2.399963 + axis;
+          const fade = Math.max(0, 1 - u / smokeLife);
+          const reach = size * (0.8 + (j % 4) * 0.23) * u;
+          const plate = size * (0.12 + (j % 3) * 0.025) * fade;
+          this.put(
+            this.plates,
+            x + Math.cos(a) * reach,
+            y + Math.sin(a) * reach - u * u * 0.38,
+            1 + Math.sin(a) * u * 0.8,
+            plate * 2,
+            plate,
+            plate,
+            a + u * 1.4,
+            u < 0.28 ? '#ffcb7c' : '#8494a0',
+            1,
+            a + u * 1.9,
+          );
+        }
+      const fullCount = tier === 2 ? 68 : tier === 1 ? 44 : tier === 5 ? 10 : 28;
+      const count = low ? Math.ceil(fullCount * 0.5) : fullCount;
       for (let j = 0; j < count; j++) {
-        const a = j * 2.399963 + i * 0.73;
-        const u = age - (j % 5) * 0.065;
+        const a = j * 2.399963 + variant * 1.7 + i * 0.73;
+        const group = j % (tier === 2 ? 4 : 3);
+        const u = age - (capital ? group * 0.19 : (j % 5) * 0.045);
         if (u < 0) continue;
         const speed = (1.5 + (j % 7) * 0.47) * size;
         const reach = speed * (1 - Math.exp(-u * 2)) * 0.65;
         const dx = Math.cos(a),
           dy = Math.sin(a);
-        const px = x + dx * reach,
-          py = y + dy * reach * 0.75;
+        const rupture = capital ? (group - (tier === 2 ? 1.5 : 1)) * size * 0.6 : 0;
+        const jet = variant === 1 ? 1.35 : variant === 2 ? 0.75 : 1;
+        const px = x + Math.cos(axis) * rupture + dx * reach * jet,
+          py = y + Math.sin(axis) * rupture + dy * reach * (variant === 2 ? 1.1 : 0.65);
         const z = 0.8 + Math.sin(a * 3) * size * 0.35;
-        const hot = Math.max(0, 1 - u / 1.05);
+        const hot = Math.max(0, 1 - u / fireLife);
         const radius = size * (0.3 + (j % 4) * 0.085 + u * 0.8) * hot;
         this.put(
           this.fire,
@@ -163,8 +244,8 @@ export class DestructionEffects {
           u < 0.3 ? '#fff6d5' : u < 0.65 ? '#ffca91' : '#d96631',
           hot,
         );
-        const smoke = Math.sin(Math.min(1, u / 2.6) * Math.PI);
-        const puff = size * (0.2 + u * 0.44) * smoke;
+        const smoke = Math.sin(Math.min(1, u / smokeLife) * Math.PI);
+        const puff = size * (0.2 + u * (capital ? 0.55 : 0.44)) * smoke;
         this.put(
           this.smoke,
           px - u * 0.3,
@@ -178,7 +259,7 @@ export class DestructionEffects {
           0.65 + hot * 0.35,
         );
         const travel = speed * u * 1.6;
-        const fade = Math.max(0, 1 - u / 2.5);
+        const fade = Math.max(0, 1 - u / smokeLife);
         const shard = size * (0.035 + (j % 3) * 0.025) * fade;
         this.put(
           this.shards,
@@ -219,7 +300,11 @@ export class DestructionEffects {
       batch.instanceMatrix.clearUpdateRanges();
       batch.instanceMatrix.addUpdateRange(0, batch.count * 16);
       batch.instanceMatrix.needsUpdate = true;
-      if (batch.instanceColor) batch.instanceColor.needsUpdate = true;
+      if (batch.instanceColor) {
+        batch.instanceColor.clearUpdateRanges();
+        batch.instanceColor.addUpdateRange(0, batch.count * 3);
+        batch.instanceColor.needsUpdate = true;
+      }
     }
   }
 }
