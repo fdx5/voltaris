@@ -1841,14 +1841,18 @@ export class ThreeBackend implements IRenderBackend {
       g.scroll,
       g.time / g.stage.durationSec,
     );
-    // A newly downloaded scenery model's shader and textures would otherwise
-    // compile on the very frame it's first revealed - parked off-frustum
-    // (see DepthScenery.ensurePopulated) and handed to the same background
-    // compile `warmup()` uses, so warming it here, as soon as it loads,
-    // lands well before its scheduled on-screen pass with no stray flash
-    // and no stutter mid-flight. `compileShown` briefly holds `render()`
-    // for a single small model, not the whole scene, so this stays cheap.
-    for (const object of this.depthScenery.takePendingCompiles()) void this.compileShown(object);
+    // `compileShown` (and `warmup()`, which is the only other caller) must
+    // never run while a flight is in progress: it redirects the renderer's
+    // render target for an async compile that can span several real frames,
+    // racing the live per-frame render loop's own target and producing a
+    // WebGPU validation error on the shared "output" texture that blacks
+    // out the whole canvas for the rest of the session, not just a flash.
+    // `warmup()` already waits out combat for exactly this reason; calling
+    // it reactively from here, mid-flight, skipped that guard - reverted.
+    // DepthScenery still populates each model as soon as it loads (parked
+    // off-frustum, harmless), so the only regression from removing this is
+    // the original hitch on a model's first on-screen frame.
+    this.depthScenery.takePendingCompiles();
     this.depthAccents.update(g, t, this.quality === 'LOW', this.reducedMotion);
     const palette = SECTOR_LIGHT[this.stage];
     this.keyLight.color.set(palette.key);
