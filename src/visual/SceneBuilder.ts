@@ -2569,6 +2569,14 @@ type PlanetConfig = {
   spin: number;
   /** Strength of the day/night falloff baked into the albedo, 0 to disable. */
   terminator: number;
+  /**
+   * A one-shot, one-way drift away from the camera over a stage's run (see
+   * the `progress` param on `update()`, same mechanism as `galaxy` below) -
+   * the planet eases from `position`/scale 1 at progress 0 to this end
+   * position and scale at progress 1, and never resets mid-stage. Omit for a
+   * planet that just sits where it's placed, like every other scene's.
+   */
+  recede?: { position: [number, number, number]; scale: number };
 };
 
 type SceneConfig = {
@@ -2629,7 +2637,9 @@ const SCENES: Record<SceneName, SceneConfig> = {
       clouds: 'planets/earth_clouds.png',
       lights: 'planets/earth_lights.png',
       radius: 33,
-      // Low and far right: only the upper limb crosses the play field.
+      // Low and far right: only the upper limb crosses the play field at
+      // the start of the run - it drifts back and shrinks from there (see
+      // `recede`) until the whole globe reads as a small, distant world.
       position: [22, -48, -74],
       tilt: -0.28,
       tint: '#8fa4ba',
@@ -2639,6 +2649,12 @@ const SCENES: Record<SceneName, SceneConfig> = {
       glowGain: 0.16,
       spin: 0.0125,
       terminator: 0,
+      // Eases toward a centred, fully-framed position as it pulls away, so
+      // the whole planet comes into view partway through the run rather
+      // than staying cropped at the corner while it shrinks. The end scale
+      // brings its on-screen footprint down to roughly 300x300px at a
+      // 1920x1080 reference size.
+      recede: { position: [6, -10, -140], scale: 0.39 },
     },
     moons: [{ radius: 4.6, at: [-46, 26, -102], speed: 1.1, span: 260 }],
     rocks: { count: 1, min: 1, max: 1, bias: 2 },
@@ -2899,6 +2915,13 @@ export function buildBackdrop(
   planet.position.set(...p.position);
   planet.rotation.z = p.tilt;
   sky.add(planet);
+  const recede = p.recede
+    ? {
+        start: new T.Vector3(...p.position),
+        end: new T.Vector3(...p.recede.position),
+        endScale: p.recede.scale,
+      }
+    : null;
   const sunDir = vec3(-0.42, 0.58, 0.7);
   const viewDir = cameraPosition.sub(positionWorld).normalize();
   const limb = float(1).sub(normalWorld.dot(viewDir).abs()).pow(3);
@@ -3094,6 +3117,14 @@ export function buildBackdrop(
         const depth = Math.min(1, layer.speed / 8);
         layer.object.position.x = -shift - lookX * depth * 1.8 * reach;
         layer.object.position.y = -lookY * depth * 1.4 * rise;
+      }
+      if (recede) {
+        // Same one-shot, progress-driven easing as the galaxy pan below -
+        // it only ever pulls away over a run, never resets or reverses.
+        const e = T.MathUtils.clamp(progress, 0, 1);
+        const ease = e * e * (3 - 2 * e);
+        planet.position.lerpVectors(recede.start, recede.end, ease);
+        planet.scale.setScalar(1 + (recede.endScale - 1) * ease);
       }
       globe.rotation.y = t * p.spin;
       if (clouds) {

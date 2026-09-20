@@ -1,7 +1,7 @@
 import * as T from 'three/webgpu';
 import { float, uv, sin, uniform } from 'three/tsl';
 import { depthModel, loadDepthAssets } from './DepthAssets';
-import { sceneryPass, SCENERY_MODELS, type SceneryModel } from './ScenerySchedule';
+import { sceneryPass, SCENERY_MODELS, SCENERY_SCHEDULE, type SceneryModel } from './ScenerySchedule';
 import type { Terrain } from '../core/math/Terrain';
 import type { Quality } from '../core/renderer/IRenderBackend';
 
@@ -22,6 +22,17 @@ export class DepthScenery {
   private readonly mist: T.Mesh[] = [];
   private readonly clock = uniform(0);
   private stage = -1;
+  /**
+   * Groups that just received their first real content, still hidden, and
+   * haven't been handed to the renderer for a background shader/texture
+   * warm-up yet - see `takePendingCompiles`. Populating a model as soon as
+   * it finishes loading rather than only at the moment its scheduled pass
+   * begins is what gives that warm-up somewhere to actually happen before
+   * the group is revealed; without it, the very first frame a downloaded
+   * model becomes visible is also the first frame its shader compiles and
+   * its textures upload, which reads as a stutter mid-flight.
+   */
+  private readonly pendingCompile: T.Object3D[] = [];
   constructor() {
     this.root.name = 'NASA curated nonrepeating scenery';
     for (const name of SCENERY_MODELS) {
@@ -52,6 +63,34 @@ export class DepthScenery {
       this.mist.push(sheet);
     }
   }
+  /** Drains the groups queued for a background compile since the last call. */
+  takePendingCompiles(): T.Object3D[] {
+    return this.pendingCompile.splice(0, this.pendingCompile.length);
+  }
+  /**
+   * Adds a model's downloaded content to its (still hidden) group the
+   * moment it's ready. Parked well outside the frustum rather than at the
+   * origin: the renderer's background warm-up (`compileParked` in
+   * ThreeBackend) has to force the group visible and unculled for a moment
+   * to compile it at all, and a stray frame drawn mid-compile must land
+   * nowhere near the play field instead of flashing a full-scale ship at
+   * (0, 0).
+   */
+  private ensurePopulated(name: SceneryModel, ground: boolean) {
+    const group = this.models.get(name)!;
+    if (group.children.length) return;
+    const model = depthModel(name);
+    if (!model) return;
+    group.add(model);
+    group.position.set(0, 0, 0);
+    group.scale.setScalar(1);
+    group.rotation.set(ground ? 0 : 0.3, -0.6, ground ? 0 : -0.25);
+    // Bounds must be measured at the origin - `bottoms` is a local offset,
+    // reused verbatim (scaled by pass.size) once this model is on screen.
+    this.bottoms.set(name, this.bounds.setFromObject(group).min.y);
+    group.position.set(400, 400, -60);
+    this.pendingCompile.push(group);
+  }
   update(
     time: number,
     stage: number,
@@ -79,19 +118,14 @@ export class DepthScenery {
     const t = time * (active ? (reducedMotion ? 0.35 : 1) : 0.2);
     this.clock.value = t;
     for (const group of this.models.values()) group.visible = false;
+    // Every model this stage will ever show gets populated (hidden) as soon
+    // as its download resolves, not just the one due right now - see
+    // `pendingCompile`'s note for why the lead time matters.
+    for (const scheduled of SCENERY_SCHEDULE[stage] ?? [])
+      this.ensurePopulated(scheduled.model, !!scheduled.ground);
     const pass = sceneryPass(stage, active ? stageProgress : 0.1);
     if (pass) {
       const group = this.models.get(pass.model)!;
-      if (!group.children.length) {
-        const model = depthModel(pass.model);
-        if (model) {
-          group.add(model);
-          group.position.set(0, 0, 0);
-          group.scale.setScalar(1);
-          group.rotation.set(pass.ground ? 0 : 0.3, -0.6, pass.ground ? 0 : -0.25);
-          this.bottoms.set(pass.model, this.bounds.setFromObject(group).min.y);
-        }
-      }
       group.visible = group.children.length > 0;
       const depth = pass.ground ? -10 : -17;
       const perspective = (cameraZ - depth) / cameraZ;

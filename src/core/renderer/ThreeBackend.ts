@@ -1841,6 +1841,14 @@ export class ThreeBackend implements IRenderBackend {
       g.scroll,
       g.time / g.stage.durationSec,
     );
+    // A newly downloaded scenery model's shader and textures would otherwise
+    // compile on the very frame it's first revealed - parked off-frustum
+    // (see DepthScenery.ensurePopulated) and handed to the same background
+    // compile `warmup()` uses, so warming it here, as soon as it loads,
+    // lands well before its scheduled on-screen pass with no stray flash
+    // and no stutter mid-flight. `compileShown` briefly holds `render()`
+    // for a single small model, not the whole scene, so this stays cheap.
+    for (const object of this.depthScenery.takePendingCompiles()) void this.compileShown(object);
     this.depthAccents.update(g, t, this.quality === 'LOW', this.reducedMotion);
     const palette = SECTOR_LIGHT[this.stage];
     this.keyLight.color.set(palette.key);
