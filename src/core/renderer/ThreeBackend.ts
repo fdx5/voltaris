@@ -5,10 +5,13 @@ import * as T from 'three/webgpu';
 import {
   attribute,
   float,
+  mix,
   normalView,
   pass,
   positionGeometry,
   positionViewDirection,
+  uniform,
+  vec3,
 } from 'three/tsl';
 import { bloom } from 'three/addons/tsl/display/BloomNode.js';
 import type { IRenderBackend, Quality } from './IRenderBackend';
@@ -323,12 +326,14 @@ export class ThreeBackend implements IRenderBackend {
   private readonly optionCores: T.Mesh[] = [];
   private readonly destruction = new DestructionEffects();
   private readonly plasmaWhip = new PlasmaWhip();
+  /** 0 at normal charge, 1 at Lv.8: recolours the blade without a second mesh. */
+  private readonly crescentPower = uniform(0);
   private readonly crescents = new T.InstancedMesh(
     ThreeBackend.crescentGeometry(),
-    ThreeBackend.crescentMaterial(),
+    this.crescentMaterial(),
     512,
   );
-  private static crescentMaterial() {
+  private crescentMaterial() {
     const material = new T.MeshStandardNodeMaterial({
       color: '#ffffff',
       vertexColors: true,
@@ -337,8 +342,17 @@ export class ThreeBackend implements IRenderBackend {
       side: T.DoubleSide,
     });
     const color = attribute<'vec3'>('color', 'vec3');
+    const edge = color.r.sub(color.g).max(0).min(1);
+    // Lv.8 crescent power-up: a deep red body with a vivid purple edge trim -
+    // a visibly different weapon at full charge, not just a bigger hitbox.
+    const bodyColor = vec3(0.72, 0.035, 0.07);
+    const edgeColor = vec3(0.58, 0.14, 0.98);
+    const fullPower = mix(bodyColor, edgeColor, edge);
+    material.colorNode = mix(color, fullPower, this.crescentPower);
     // Only the orange cutting edge emits; the green bevel retains real shading.
-    material.emissiveNode = color.mul(color.r.sub(color.g).max(0).mul(2.4).add(0.06));
+    const normalGlow = color.mul(edge.mul(2.4).add(0.06));
+    const fullPowerGlow = fullPower.mul(edge.mul(1.8).add(0.85));
+    material.emissiveNode = mix(normalGlow, fullPowerGlow, this.crescentPower);
     return material;
   }
   private static crescentGeometry() {
@@ -1373,12 +1387,15 @@ export class ThreeBackend implements IRenderBackend {
   private syncBullets(g: Readonly<GameState>, alpha: number) {
     for (const b of this.allShotBatches) b.count = 0;
     this.crescents.count = 0;
+    this.crescentPower.value =
+      g.specialWeapon === 'CRESCENT' && g.specialLevel >= 8 ? 1 : 0;
     this.plasmaWhip.update(
       g.whipX,
       g.whipY,
       specialStats(g.weapon, g.specialLevel).width,
       g.time,
       g.whipActive && !g.respawn && g.status === 'playing',
+      g.specialWeapon === 'PLASMA' && g.specialLevel >= 8,
     );
     const p = g.bullets,
       t = this.visualTime;

@@ -978,22 +978,33 @@ export class GameState {
    * Previous-position checks prevent hits on the crossing frame; a velocity
    * margin gives incoming hulls about 120ms of additional travel into view.
    */
-  private fullyVisible(x: number, y: number, radius: number) {
+  private fullyVisible(x: number, y: number, radius: number, verticalHalf = 8.6) {
     return (
       Math.abs(x) + radius <= 15.7 * this.worldScale &&
-      Math.abs(y - this.cameraFollowY) + radius <= 8.6 * this.worldScale
+      Math.abs(y - this.cameraFollowY) + radius <= verticalHalf * this.worldScale
     );
   }
   canDamage(pool: ObjectPool, i: number) {
     const scale = pool === this.enemies ? 1.45 : pool === this.ground ? 1.25 : 1;
+    // Stage 4's cave-roof turrets (ground.aux === 1, see spawn()) are
+    // deliberately mounted well above the normal flight corridor
+    // (surface.roof.base in stage-04.json puts them around y=7.6-8.3) - the
+    // shared 8.6-unit vertical band that protects everything else from
+    // "not yet scrolled into view" damage never contains a roof turret's
+    // hitbox, so it could never take damage at all and sat on screen,
+    // unkillable, for the rest of the level. Roof mounts get a taller band
+    // sized to their known height instead; every other pool, and floor-
+    // mounted ground units, keep the original tight band.
+    const verticalHalf = pool === this.ground && pool.aux[i] === 1 ? 12 : 8.6;
     return (
       !!pool.active[i] &&
       this.fullyVisible(
         pool.x[i],
         pool.y[i],
         pool.radius[i] * scale + Math.abs(pool.vx[i]) * 0.12,
+        verticalHalf,
       ) &&
-      this.fullyVisible(pool.px[i], pool.py[i], pool.radius[i] * scale)
+      this.fullyVisible(pool.px[i], pool.py[i], pool.radius[i] * scale, verticalHalf)
     );
   }
   get bossVulnerable() {

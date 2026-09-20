@@ -799,6 +799,21 @@ describe('arcade rules', () => {
     for (let i = 0; i < 60 && g.enemies.active[offscreen]; i++) g.tick(dt);
     expect(g.enemies.active[offscreen]).toBe(0);
   });
+  it('lets a stage-4 cave-roof turret be damaged and cleared like any other emplacement', () => {
+    // Stage 4 (index 3) mounts turrets on the cave roof, well above the
+    // normal flight corridor (surface.roof.base in stage-04.json, ~y=7.6-8.3)
+    // - the generic 8.6-unit vertical visibility band used everywhere else
+    // never contains a roof turret's hitbox, so canDamage was always false
+    // for it: no bullet, bomb, or nova blast could ever touch it and it sat
+    // on screen, unkillable, for the rest of the level.
+    const g = new GameState();
+    g.start('LASER', 1, false, false, 3);
+    const i = g.ground.acquire(0, g.surfaceAt(0, true), 0, 0, 5, 1e9, 1.0, 50);
+    g.ground.aux[i] = 1;
+    expect(g.canDamage(g.ground, i)).toBe(true);
+    g.damageGround(i, 100);
+    expect(g.ground.active[i]).toBe(0);
+  });
   it('restarts without carrying over bullets, rank, or credits used', () => {
     const g = new GameState();
     g.start('MISSILE', 9, true);

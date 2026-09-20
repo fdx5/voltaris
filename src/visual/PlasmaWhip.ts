@@ -1,6 +1,12 @@
 import * as T from 'three/webgpu';
 import { WHIP_SEGMENTS } from '../game/SpecialWeapons';
 
+/** The five bulk glow layers plus the tube: violet at normal charge, sun-
+ * yellow at Lv.8, so a fully powered whip reads as a different weapon rather
+ * than just a wider one. */
+const CORE_PALETTE = ['#6511c9', '#8625f4', '#8822e8', '#c976ff', '#e4baff'];
+const POWER_PALETTE = ['#b36a00', '#ffb200', '#ffb400', '#ffe08a', '#fff3c4'];
+
 /** Shared-vertex ribbons eliminate the corners and seams of overlapping quads.
  * Buffers are allocated once, then rewritten without allocations per frame.
  */
@@ -46,6 +52,7 @@ class Ribbon {
     scale: number,
     z: number,
     strand = -1,
+    power = false,
   ) {
     for (let i = 0; i <= WHIP_SEGMENTS; i++) {
       const prev = Math.max(0, i - 1),
@@ -70,12 +77,21 @@ class Ribbon {
         this.positions[k] = cx + nx * radius * sign;
         this.positions[k + 1] = cy + ny * radius * sign;
         this.positions[k + 2] = strand < 0 ? z : 0.22 + Math.cos(phase) * width * 0.7;
-        // The helix dims behind the column, then flashes lemon-yellow as it
-        // crosses the front: an unmistakable wrap instead of a dotted border.
+        // The helix dims behind the column, then flashes as it crosses the
+        // front: an unmistakable wrap instead of a dotted border. Lemon-
+        // yellow wraps the normal violet core; at Lv.8 the core itself turns
+        // sun-yellow, so the wrap flashes vivid purple instead, keeping the
+        // two readable against each other.
         const front = (Math.cos(phase) + 1) * 0.5;
-        this.colors[k] = 0.65 + front * 0.95;
-        this.colors[k + 1] = 0.32 + front * 1.0;
-        this.colors[k + 2] = 0.015 + front * 0.1;
+        if (power) {
+          this.colors[k] = 0.22 + front * 0.4;
+          this.colors[k + 1] = 0.02 + front * 0.1;
+          this.colors[k + 2] = 0.6 + front * 0.9;
+        } else {
+          this.colors[k] = 0.65 + front * 0.95;
+          this.colors[k + 1] = 0.32 + front * 1.0;
+          this.colors[k + 2] = 0.015 + front * 0.1;
+        }
       }
     }
     this.mesh.geometry.attributes.position.needsUpdate = true;
@@ -118,6 +134,8 @@ export class PlasmaWhip {
     new Ribbon('#ffffff', 0.98, false, true),
     new Ribbon('#ffffff', 0.98, false, true),
   ];
+  /** Tracked so the palette swap only runs on an actual power change. */
+  private power = false;
   constructor() {
     for (const layer of this.layers) this.root.add(layer.mesh);
     this.sparks.count = 0;
@@ -140,9 +158,26 @@ export class PlasmaWhip {
     this.root.add(this.tube);
     this.root.visible = false;
   }
-  update(xs: Float32Array, ys: Float32Array, width: number, time: number, active: boolean) {
+  update(
+    xs: Float32Array,
+    ys: Float32Array,
+    width: number,
+    time: number,
+    active: boolean,
+    power = false,
+  ) {
     this.root.visible = active;
     if (!active) return;
+    if (this.power !== power) {
+      this.power = power;
+      this.tube.material.color.set(power ? '#ffcf3d' : '#a243ee');
+      this.tube.material.emissive.set(power ? '#ff8c00' : '#6517b5');
+      this.tube.material.emissiveIntensity = power ? 0.95 : 0.65;
+      const palette = power ? POWER_PALETTE : CORE_PALETTE;
+      this.layers.forEach((layer, i) => {
+        if (i < 5) layer.mesh.material.color.set(palette[i]);
+      });
+    }
     for (let i = 0; i <= WHIP_SEGMENTS; i++) {
       const prev = Math.max(0, i - 1),
         next = Math.min(WHIP_SEGMENTS, i + 1);
@@ -163,7 +198,7 @@ export class PlasmaWhip {
     const scales = [1.9, 1.4, 1, 0.48, 0.15, 1, 1];
     this.updateSparks(xs, ys, width, time);
     this.layers.forEach((layer, i) => {
-      layer.update(xs, ys, width, time, scales[i], 0.2 + i * 0.012, i < 5 ? -1 : i - 5);
+      layer.update(xs, ys, width, time, scales[i], 0.2 + i * 0.012, i < 5 ? -1 : i - 5, power);
     });
   }
   /** Short, sparse discharges travel out from the column and expire quickly. */
