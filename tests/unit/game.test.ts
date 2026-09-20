@@ -814,6 +814,25 @@ describe('arcade rules', () => {
     g.damageGround(i, 100);
     expect(g.ground.active[i]).toBe(0);
   });
+  it('lets stage-5 enemies at the very top/bottom edge be damaged with the player pinned there', () => {
+    // Stage 5 (index 4) triples the vertical range and pans the camera
+    // instead of zooming (cameraFollowY), but the pan clamp only ever gets
+    // the camera within 9 units of the stage's own top/bottom edge. The old
+    // flat 8.6-unit damage band left a ~1.2-unit dead strip at both extremes
+    // that no bullet, bomb, or nova blast could ever reach, however close
+    // the player got - COLOSSUS (radius 2.7, the largest hull in the
+    // roster) spawned right at either edge was permanently unkillable.
+    const g = new GameState();
+    g.start('LASER', 1, false, false, 4);
+    g.y = g.stage.minY;
+    const bottom = g.enemies.acquire(0, g.stage.minY, 0, 0, 51, 20, 2.7, 100);
+    g.enemies.px[bottom] = g.enemies.py[bottom] = g.stage.minY;
+    expect(g.canDamage(g.enemies, bottom)).toBe(true);
+    g.y = g.stage.maxY;
+    const top = g.enemies.acquire(0, g.stage.maxY, 0, 0, 51, 20, 2.7, 100);
+    g.enemies.px[top] = g.enemies.py[top] = g.stage.maxY;
+    expect(g.canDamage(g.enemies, top)).toBe(true);
+  });
   it('restarts without carrying over bullets, rank, or credits used', () => {
     const g = new GameState();
     g.start('MISSILE', 9, true);

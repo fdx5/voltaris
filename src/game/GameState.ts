@@ -39,6 +39,13 @@ type BossConfig = StageDef['boss'];
 const MID_BOSS_TIME = 180;
 /** Guaranteed ordinary combat between a mid-boss's defeat and the real boss. */
 const POST_MID_BOSS_GAP = 150;
+/**
+ * `cameraFollowY`'s own conservative visible half-height: how close the
+ * pan clamp ever lets the camera get to a panning stage's top/bottom edge.
+ * `canDamage` derives its panning-stage vertical band from this same
+ * number, so the two stay consistent - see the note there.
+ */
+const CAMERA_PAN_HALF = 9;
 /** Enemy type ids for every medium-tier hull, read off the roster once. */
 const MEDIUM_TYPES = fleetHardpoints.reduce<number[]>((acc, f, i) => {
   if (f.size === 'medium') acc.push(i);
@@ -995,7 +1002,22 @@ export class GameState {
     // unkillable, for the rest of the level. Roof mounts get a taller band
     // sized to their known height instead; every other pool, and floor-
     // mounted ground units, keep the original tight band.
-    const verticalHalf = pool === this.ground && pool.aux[i] === 1 ? 12 : 8.6;
+    //
+    // Panning stages (Section 5's tripled vertical range, see
+    // `cameraFollowY`) have the same class of problem at their own top and
+    // bottom edges: the pan clamp only ever brings the camera within
+    // `CAMERA_PAN_HALF` (9) units of the true edge, so an enemy spawned
+    // right at that edge (formationPosition seats it within its own radius
+    // of minY/maxY) needed a band of at least 9 + its scaled hitbox radius
+    // to ever be reachable. The old flat 8.6 band left a permanent ~1.2-unit
+    // dead strip at both extremes that nothing could kill however close the
+    // player got - confirmed by probing every stage-5 hull type at the true
+    // edge with the player pinned there. 14 clears the largest hull
+    // (COLOSSUS, radius 2.7, ×1.45 enemy scale ≈ 3.9) plus its velocity
+    // margin with room to spare. Non-panning stages are unaffected, since
+    // `cameraPans` is false for all of them and they keep the tight 8.6.
+    const verticalHalf =
+      pool === this.ground && pool.aux[i] === 1 ? 12 : this.cameraPans ? 14 : 8.6;
     return (
       !!pool.active[i] &&
       this.fullyVisible(
@@ -1027,10 +1049,13 @@ export class GameState {
    * isn't needed here, only "never shows past the level bounds."
    */
   get cameraFollowY() {
-    const half = 9;
     const span = this.stage.maxY - this.stage.minY;
-    if (span <= half * 2) return 0;
-    return clamp(this.y, this.stage.minY + half, this.stage.maxY - half);
+    if (span <= CAMERA_PAN_HALF * 2) return 0;
+    return clamp(this.y, this.stage.minY + CAMERA_PAN_HALF, this.stage.maxY - CAMERA_PAN_HALF);
+  }
+  /** Same span test `cameraFollowY` uses to decide whether it pans at all. */
+  private get cameraPans() {
+    return this.stage.maxY - this.stage.minY > CAMERA_PAN_HALF * 2;
   }
   /** Height of the deck, or of the roof, at a point on the field. */
   surfaceAt(x: number, roof = false) {
