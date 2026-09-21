@@ -1,4 +1,3 @@
-import { prepareVisibility } from './prepareVisibility';
 import { waitForSceneAssets } from '../../visual/SceneAssets';
 import { DepthScenery, SECTOR_LIGHT } from '../../visual/DepthScenery';
 import { DepthAccents } from '../../visual/DepthAccents';
@@ -1199,8 +1198,19 @@ export class ThreeBackend implements IRenderBackend {
   }
   /**
    * Awaited before GameState.start(), including immediate launch and stage
-   * transitions. `onProgress` reports 0..1 across model download, texture
-   * decode and GPU pipeline compile, for a loading indicator.
+   * transitions. `onProgress` reports 0..1 across model download and texture
+   * decode, for a loading indicator.
+   *
+   * This used to also run an exclusive `compileAsync` + upload-render pass
+   * over every combat mesh (all 54 enemy and 12 ground hull types' unique
+   * materials) before returning, to pre-warm GPU pipelines and avoid a
+   * mid-combat compile stutter. In practice that pass could take well over a
+   * minute on real hardware - turning an occasional first-encounter hitch
+   * into a multi-minute unresponsive "preparing mission" screen on every
+   * single launch. An instant launch beats a pre-warmed pipeline, so this
+   * step only loads what's actually necessary to render correctly (scenery
+   * models and their textures); combat shaders now compile lazily on first
+   * use during play, same as any ordinary Three.js scene.
    */
   async prepareStage(index: number, onProgress?: (fraction: number) => void) {
     if (this.disposed) throw new Error('Renderer disposed');
@@ -1213,46 +1223,9 @@ export class ThreeBackend implements IRenderBackend {
     }
     this.warmingUp++;
     try {
-      await this.depthScenery.prepareStage(this.stage, (f) => onProgress?.(f * 0.45));
-      await waitForSceneAssets((f) => onProgress?.(0.45 + f * 0.35));
+      await this.depthScenery.prepareStage(this.stage, (f) => onProgress?.(f * 0.6));
+      await waitForSceneAssets((f) => onProgress?.(0.6 + f * 0.4));
       if (this.disposed) throw new Error('Renderer disposed');
-      const excluded = new Set<T.Object3D>(this.depthScenery.inactiveModels(this.stage));
-      for (let i = 0; i < this.skies.length; i++) {
-        if (i !== this.stage && this.skies[i]) excluded.add(this.skies[i]!.root);
-      }
-      for (let i = 0; i < this.bosses.length; i++) {
-        if (i === this.stage) continue;
-        for (const boss of [this.bosses[i], this.midBosses[i]]) {
-          if (!boss) continue;
-          excluded.add(boss.root);
-          boss.pods.forEach((pod) => excluded.add(pod));
-        }
-      }
-      // Every enemy/ground hull type keeps its own instanced mesh and unique
-      // material, all permanently resident and visible - but any one stage
-      // only ever spawns a fraction of the 54 enemy and 12 ground types (only
-      // Section 5 mixes every hull as an escort). Compiling the rest wasted
-      // most of this pass's time on shaders this stage will never draw.
-      const stageDef = STAGES[this.stage] as {
-        spawns?: { type: number }[];
-        ground?: { type: number }[];
-      };
-      if (this.stage !== 4) {
-        const usedEnemyTypes = new Set(stageDef.spawns?.map((s) => s.type) ?? []);
-        for (let i = 0; i < this.enemyHulls.length; i++) {
-          if (usedEnemyTypes.has(i)) continue;
-          excluded.add(this.enemyHulls[i]);
-          const accent = this.enemyAccents[i];
-          if (accent) excluded.add(accent);
-        }
-      }
-      const usedGroundTypes = new Set(stageDef.ground?.map((g) => g.type) ?? []);
-      for (let i = 0; i < this.groundHulls.length; i++) {
-        if (usedGroundTypes.has(i)) continue;
-        excluded.add(this.groundHulls[i]);
-        const accent = this.groundAccents[i];
-        if (accent) excluded.add(accent);
-      }
       // Additive, depth-read-only effects are order independent: both faces
       // can share a single draw. Avoid the renderer switching shared flame/
       // shockwave materials between front/back variants on first use.
@@ -1268,8 +1241,6 @@ export class ThreeBackend implements IRenderBackend {
             material.forceSinglePass = true;
         }
       });
-      onProgress?.(0.8);
-      await prepareVisibility(this.scene, excluded, () => this.compileForPass(this.scene, true));
       this.preparedStages.add(this.stage);
       onProgress?.(1);
     } catch (error) {
