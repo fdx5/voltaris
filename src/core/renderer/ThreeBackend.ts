@@ -1823,6 +1823,8 @@ export class ThreeBackend implements IRenderBackend {
       this.look.y * (this.reducedMotion ? 0.5 : 1),
       this.camera.position.z,
       T.MathUtils.clamp(g.time / g.stage.durationSec, 0, 1),
+      this.host.clientHeight,
+      this.camera.fov,
     );
     const halfHeight = this.camera.position.z * Math.tan(T.MathUtils.degToRad(this.camera.fov / 2));
     this.depthScenery.update(

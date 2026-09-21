@@ -2558,6 +2558,12 @@ type PlanetConfig = {
   lights?: string;
   radius: number;
   position: [number, number, number];
+  /** Baseline scale the body is built/placed at, before any `drift` eases it elsewhere. Defaults to 1. */
+  scale?: number;
+  /** CSS-pixel diameter at the start of an approach, independent of resolution. */
+  startDiameterPx?: number;
+  /** Stage progress interval in which the complete body is visible (end exclusive). */
+  visibleDuring?: [number, number];
   tilt: number;
   tint: string;
   /** Limb scattering: a tight bright shell and a wide soft one. */
@@ -2570,13 +2576,18 @@ type PlanetConfig = {
   /** Strength of the day/night falloff baked into the albedo, 0 to disable. */
   terminator: number;
   /**
-   * A one-shot, one-way drift away from the camera over a stage's run (see
-   * the `progress` param on `update()`, same mechanism as `galaxy` below) -
-   * the planet eases from `position`/scale 1 at progress 0 to this end
-   * position and scale at progress 1, and never resets mid-stage. Omit for a
-   * planet that just sits where it's placed, like every other scene's.
+   * A one-shot, one-way ease over a stage's run (see the `progress` param
+   * on `update()`, same mechanism as `galaxy` below) - the planet eases
+   * from `position`/`scale` (its own baseline above) at `window[0]` to this
+   * end position/scale at `window[1]`, holding at whichever endpoint is
+   * nearer outside that range, and never resets mid-stage. Works in either
+   * direction: a small end scale reads as receding into the distance
+   * (Earth), or a tiny *baseline* `scale` easing up to a normal one reads as
+   * approaching out of nowhere (Mars' `secondPlanet` handoff to Jupiter).
+   * Omit for a planet that just sits where it's placed, like every other
+   * scene's.
    */
-  recede?: { position: [number, number, number]; scale: number };
+  drift?: { position: [number, number, number]; scale: number; window?: [number, number] };
 };
 
 type SceneConfig = {
@@ -2587,6 +2598,14 @@ type SceneConfig = {
   nebulaGain: number;
   stars: StarPalette;
   planet: PlanetConfig;
+  /**
+   * A second full planet body, handed off from the first over the run (see
+   * `PlanetConfig.drift`) - Mars shrinking away into Jupiter growing in for
+   * stage 2. Its position and starting diameter describe the distant body,
+   * and its `drift` is where it grows to. Omit for a scene
+   * with only the one planet.
+   */
+  secondPlanet?: PlanetConfig;
   moons: { radius: number; at: [number, number, number]; speed: number; span: number }[];
   /** Multipliers on the shared rock classes: how many, how big, how varied. */
   rocks: { count: number; min: number; max: number; bias: number };
@@ -2639,7 +2658,7 @@ const SCENES: Record<SceneName, SceneConfig> = {
       radius: 33,
       // Low and far right: only the upper limb crosses the play field at
       // the start of the run - it drifts back and shrinks from there (see
-      // `recede`) until the whole globe reads as a small, distant world.
+      // `drift`) until the whole globe reads as a small, distant world.
       position: [22, -48, -74],
       tilt: -0.28,
       tint: '#8fa4ba',
@@ -2654,7 +2673,7 @@ const SCENES: Record<SceneName, SceneConfig> = {
       // than staying cropped at the corner while it shrinks. The end scale
       // brings its on-screen footprint down to roughly 300x300px at a
       // 1920x1080 reference size.
-      recede: { position: [6, -10, -140], scale: 0.39 },
+      drift: { position: [6, -10, -140], scale: 0.39 },
     },
     moons: [{ radius: 4.6, at: [-46, 26, -102], speed: 1.1, span: 260 }],
     rocks: { count: 1, min: 1, max: 1, bias: 2 },
@@ -2685,7 +2704,9 @@ const SCENES: Record<SceneName, SceneConfig> = {
     planet: {
       map: 'planets/mars_color.jpg',
       radius: 26,
-      // Centred and far back, so the whole disc sits inside the frame.
+      // Centred and far back, so the whole disc sits inside the frame at
+      // the start of the run - it shrinks away to nothing by mid-stage
+      // (see `drift`), handing off to Jupiter growing in (`secondPlanet`).
       position: [14, -6, -118],
       tilt: 0.19,
       tint: '#6f5a4a',
@@ -2695,6 +2716,29 @@ const SCENES: Record<SceneName, SceneConfig> = {
       glowGain: 0.05,
       spin: 0.032,
       terminator: 0.85,
+      visibleDuring: [0, 0.5],
+      drift: { position: [20, -20, -140], scale: 0.0001, window: [0, 0.5] },
+    },
+    // Jupiter appears as a 10px speck at mid-stage, then
+    // grows across the second half to exactly the on-screen size Mars had
+    // at progress 0 - same position Mars started at, and its own scale set
+    // so radius*scale (26) matches Mars' own radius at scale 1.
+    secondPlanet: {
+      map: 'planets/jupiter_color.jpg',
+      radius: 46,
+      position: [0, 0, -150],
+      scale: 0.01,
+      startDiameterPx: 10,
+      visibleDuring: [0.5, Infinity],
+      tilt: 0.06,
+      tint: '#8a7358',
+      halo: ['#d08a3a', '#ffd9a8'],
+      haloGain: 0.34,
+      glow: '#b87a3a',
+      glowGain: 0.12,
+      spin: 0.05,
+      terminator: 0.7,
+      drift: { position: [14, -6, -118], scale: 26 / 46, window: [0.5, 1] },
     },
     // Phobos and Deimos: small, close, and moving fast enough to notice.
     moons: [
@@ -2910,92 +2954,107 @@ export function buildBackdrop(
   layers.push(...stars.layers);
 
   /* --- The planet ---------------------------------------------------- */
-  const p = config.planet;
-  const planet = new T.Group();
-  planet.position.set(...p.position);
-  planet.rotation.z = p.tilt;
-  sky.add(planet);
-  const recede = p.recede
-    ? {
-        start: new T.Vector3(...p.position),
-        end: new T.Vector3(...p.recede.position),
-        endScale: p.recede.scale,
-      }
-    : null;
   const sunDir = vec3(-0.42, 0.58, 0.7);
   const viewDir = cameraPosition.sub(positionWorld).normalize();
-  const limb = float(1).sub(normalWorld.dot(viewDir).abs()).pow(3);
-  const surface = new T.MeshStandardNodeMaterial({ metalness: 0.1, roughness: 0.9 });
-  let albedo = texture(loadTexture(p.map, true)).rgb.mul(color(p.tint));
-  if (p.terminator > 0) {
-    // Fill light alone leaves an airless planet looking like a flat disc, so
-    // the day/night falloff is folded into the albedo.
-    const day = normalWorld.dot(sunDir).smoothstep(-0.45, 0.6);
-    albedo = albedo.mul(mix(float(1 - p.terminator), float(1), day));
-  }
-  surface.colorNode = albedo;
-  if (p.normal) {
-    surface.normalMap = loadTexture(p.normal, false);
-    surface.normalScale = new T.Vector2(1.4, 1.4);
-  }
-  if (p.specular) {
-    // The specular map marks water: oceans read polished, land reads dry rock.
-    const water = texture(loadTexture(p.specular, false));
-    surface.roughnessNode = float(1).sub(water.g.mul(0.78));
-    surface.metalnessNode = water.g.mul(0.42);
-  } else {
-    surface.roughnessNode = float(0.96);
-    surface.metalnessNode = float(0.02);
-  }
-  let emissive = color(p.halo[0]).mul(limb).mul(0.5);
-  if (p.lights) {
-    const night = normalWorld.dot(sunDir).mul(-1).smoothstep(-0.06, 0.38);
-    emissive = texture(loadTexture(p.lights, true))
-      .rgb.mul(color('#ffcb7a'))
-      .mul(night)
-      .mul(1.6)
-      .add(emissive);
-  }
-  surface.emissiveNode = emissive;
-  const globe = new T.Mesh(new T.SphereGeometry(p.radius, 96, 64), surface);
-  planet.add(globe);
-
-  let clouds: T.Mesh | null = null;
-  if (p.clouds) {
-    const cloudMaterial = new T.MeshStandardNodeMaterial({
-      transparent: true,
-      depthWrite: false,
-      roughness: 1,
-      metalness: 0,
-    });
-    cloudMaterial.colorNode = color('#e9f2fa');
-    cloudMaterial.opacityNode = texture(loadTexture(p.clouds, true)).a.mul(0.85);
-    clouds = new T.Mesh(new T.SphereGeometry(p.radius * 1.012, 64, 44), cloudMaterial);
-    planet.add(clouds);
-  }
-
-  // Two shells of scattering: a tight bright limb and a wide soft halo.
   const inward = normalWorld.dot(viewDir).abs();
-  const haloMaterial = new T.MeshBasicNodeMaterial({
-    transparent: true,
-    side: T.BackSide,
-    blending: T.AdditiveBlending,
-    depthWrite: false,
-    fog: false,
-  });
-  haloMaterial.colorNode = mix(color(p.halo[0]), color(p.halo[1]), float(1).sub(inward).pow(2));
-  haloMaterial.opacityNode = float(1).sub(inward).pow(2.6).mul(p.haloGain);
-  planet.add(new T.Mesh(new T.SphereGeometry(p.radius * 1.055, 64, 44), haloMaterial));
-  const glowMaterial = new T.MeshBasicNodeMaterial({
-    transparent: true,
-    side: T.BackSide,
-    blending: T.AdditiveBlending,
-    depthWrite: false,
-    fog: false,
-  });
-  glowMaterial.colorNode = color(p.glow);
-  glowMaterial.opacityNode = float(1).sub(inward).pow(1.4).mul(p.glowGain);
-  planet.add(new T.Mesh(new T.SphereGeometry(p.radius * 1.15, 48, 32), glowMaterial));
+  const limb = float(1).sub(inward).pow(3);
+  /**
+   * One full planet body (globe, optional clouds, halo, glow) from a
+   * `PlanetConfig` - factored out so a scene can host a second one (see
+   * `secondPlanet`) without duplicating the whole material/mesh stack.
+   */
+  function buildPlanetBody(p: PlanetConfig) {
+    const group = new T.Group();
+    group.name = p.map;
+    group.visible = !p.visibleDuring || p.visibleDuring[0] === 0;
+    group.position.set(...p.position);
+    group.scale.setScalar(p.scale ?? 1);
+    group.rotation.z = p.tilt;
+    sky.add(group);
+    const surface = new T.MeshStandardNodeMaterial({ metalness: 0.1, roughness: 0.9 });
+    let albedo = texture(loadTexture(p.map, true)).rgb.mul(color(p.tint));
+    if (p.terminator > 0) {
+      // Fill light alone leaves an airless planet looking like a flat disc, so
+      // the day/night falloff is folded into the albedo.
+      const day = normalWorld.dot(sunDir).smoothstep(-0.45, 0.6);
+      albedo = albedo.mul(mix(float(1 - p.terminator), float(1), day));
+    }
+    surface.colorNode = albedo;
+    if (p.normal) {
+      surface.normalMap = loadTexture(p.normal, false);
+      surface.normalScale = new T.Vector2(1.4, 1.4);
+    }
+    if (p.specular) {
+      // The specular map marks water: oceans read polished, land reads dry rock.
+      const water = texture(loadTexture(p.specular, false));
+      surface.roughnessNode = float(1).sub(water.g.mul(0.78));
+      surface.metalnessNode = water.g.mul(0.42);
+    } else {
+      surface.roughnessNode = float(0.96);
+      surface.metalnessNode = float(0.02);
+    }
+    let emissive = color(p.halo[0]).mul(limb).mul(0.5);
+    if (p.lights) {
+      const night = normalWorld.dot(sunDir).mul(-1).smoothstep(-0.06, 0.38);
+      emissive = texture(loadTexture(p.lights, true))
+        .rgb.mul(color('#ffcb7a'))
+        .mul(night)
+        .mul(1.6)
+        .add(emissive);
+    }
+    surface.emissiveNode = emissive;
+    const globe = new T.Mesh(new T.SphereGeometry(p.radius, 96, 64), surface);
+    group.add(globe);
+
+    let clouds: T.Mesh | null = null;
+    if (p.clouds) {
+      const cloudMaterial = new T.MeshStandardNodeMaterial({
+        transparent: true,
+        depthWrite: false,
+        roughness: 1,
+        metalness: 0,
+      });
+      cloudMaterial.colorNode = color('#e9f2fa');
+      cloudMaterial.opacityNode = texture(loadTexture(p.clouds, true)).a.mul(0.85);
+      clouds = new T.Mesh(new T.SphereGeometry(p.radius * 1.012, 64, 44), cloudMaterial);
+      group.add(clouds);
+    }
+
+    // Two shells of scattering: a tight bright limb and a wide soft halo.
+    const haloMaterial = new T.MeshBasicNodeMaterial({
+      transparent: true,
+      side: T.BackSide,
+      blending: T.AdditiveBlending,
+      depthWrite: false,
+      fog: false,
+    });
+    haloMaterial.colorNode = mix(color(p.halo[0]), color(p.halo[1]), float(1).sub(inward).pow(2));
+    haloMaterial.opacityNode = float(1).sub(inward).pow(2.6).mul(p.haloGain);
+    group.add(new T.Mesh(new T.SphereGeometry(p.radius * 1.055, 64, 44), haloMaterial));
+    const glowMaterial = new T.MeshBasicNodeMaterial({
+      transparent: true,
+      side: T.BackSide,
+      blending: T.AdditiveBlending,
+      depthWrite: false,
+      fog: false,
+    });
+    glowMaterial.colorNode = color(p.glow);
+    glowMaterial.opacityNode = float(1).sub(inward).pow(1.4).mul(p.glowGain);
+    group.add(new T.Mesh(new T.SphereGeometry(p.radius * 1.15, 48, 32), glowMaterial));
+    const drift = p.drift
+      ? {
+          start: new T.Vector3(...p.position),
+          end: new T.Vector3(...p.drift.position),
+          startScale: p.scale ?? 1,
+          endScale: p.drift.scale,
+          window: p.drift.window ?? ([0, 1] as [number, number]),
+        }
+      : null;
+    return { group, globe, clouds, drift };
+  }
+  const p = config.planet;
+  const { group: planet, globe, clouds, drift: planetDrift } = buildPlanetBody(p);
+  const second = config.secondPlanet ? buildPlanetBody(config.secondPlanet) : null;
 
   /* --- Moons, drifting with the star bands --------------------------- */
   const moons: T.Mesh[] = [];
@@ -3097,7 +3156,16 @@ export function buildBackdrop(
      * backdrop's one-shot reveal pan - unlike the parallax layers above it
      * must not loop, so it stays out of `layers` and is driven directly here.
      */
-    update(t: number, scale = 1, lookX = 0, lookY = 0, cameraZ = 33.6, progress = 0) {
+    update(
+      t: number,
+      scale = 1,
+      lookX = 0,
+      lookY = 0,
+      cameraZ = 33.6,
+      progress = 0,
+      viewportHeight = 1080,
+      cameraFov = 30,
+    ) {
       // A surface stage keeps its terrain fixed, so its sky follows more gently.
       // Vertically most of all: planet and sky bobbing up and down behind a
       // fixed deck made players dizzy, so stages three and four rise and fall
@@ -3118,18 +3186,53 @@ export function buildBackdrop(
         layer.object.position.x = -shift - lookX * depth * 1.8 * reach;
         layer.object.position.y = -lookY * depth * 1.4 * rise;
       }
-      if (recede) {
-        // Same one-shot, progress-driven easing as the galaxy pan below -
-        // it only ever pulls away over a run, never resets or reverses.
-        const e = T.MathUtils.clamp(progress, 0, 1);
+      // Same one-shot, progress-driven easing as the galaxy pan below - it
+      // only ever eases one way over a run, never resets or reverses. Each
+      // planet's own `window` (default the whole run) decides when.
+      const applyDrift = (
+        group: T.Group,
+        body: PlanetConfig,
+        drift: {
+          start: T.Vector3;
+          end: T.Vector3;
+          startScale: number;
+          endScale: number;
+          window: [number, number];
+        },
+      ) => {
+        const [w0, w1] = drift.window;
+        const e = T.MathUtils.clamp((progress - w0) / Math.max(1e-6, w1 - w0), 0, 1);
         const ease = e * e * (3 - 2 * e);
-        planet.position.lerpVectors(recede.start, recede.end, ease);
-        planet.scale.setScalar(1 + (recede.endScale - 1) * ease);
+        group.position.lerpVectors(drift.start, drift.end, ease);
+        const startScale =
+          body.startDiameterPx === undefined
+            ? drift.startScale
+            : (body.startDiameterPx *
+                (cameraZ - drift.start.z) *
+                Math.tan(T.MathUtils.degToRad(cameraFov / 2))) /
+              (Math.max(1, viewportHeight) * body.radius);
+        group.scale.setScalar(startScale + (drift.endScale - startScale) * ease);
+      };
+      const visibleAt = (body: PlanetConfig) =>
+        !body.visibleDuring ||
+        (progress >= body.visibleDuring[0] && progress < body.visibleDuring[1]);
+      planet.visible = visibleAt(p);
+      if (planetDrift) applyDrift(planet, p, planetDrift);
+      if (second && config.secondPlanet) {
+        second.group.visible = visibleAt(config.secondPlanet);
+        if (second.drift) applyDrift(second.group, config.secondPlanet, second.drift);
       }
       globe.rotation.y = t * p.spin;
       if (clouds) {
         clouds.rotation.y = t * p.spin * 1.4;
         clouds.rotation.z = Math.sin(t * 0.03) * 0.02;
+      }
+      if (second && config.secondPlanet) {
+        second.globe.rotation.y = t * config.secondPlanet.spin;
+        if (second.clouds) {
+          second.clouds.rotation.y = t * config.secondPlanet.spin * 1.4;
+          second.clouds.rotation.z = Math.sin(t * 0.03) * 0.02;
+        }
       }
       skybox.rotation.y = t * 0.0016;
       for (const m of moons) m.rotation.y = t * 0.006;
