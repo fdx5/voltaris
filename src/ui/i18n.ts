@@ -404,4 +404,26 @@ const STRINGS = {
     en: 'Every pilot, every stage, newest sortie first.',
   },
   ROW_NUMBER: { ko: '번호', en: '#' },
+  GUESTBOOK: { ko: '방명록', en: 'Guestbook' },
+  GUESTBOOK_EYEBROW: { ko: 'PILOT LOG / 방명록', en: 'PILOT LOG / Guestbook' },
+  GUESTBOOK_FINE_PRINT: {
+    ko: '모든 파일럿에게 공개되는 메시지입니다. 로그인한 ID로 남습니다.',
+    en: 'Visible to every pilot, posted under your logged-in ID.',
+  },
+  GUESTBOOK_PLACEHOLDER: {
+    ko: '한마디 남겨보세요… (여러 줄 작성 가능)',
+    en: 'Leave a message… (multiple lines okay)',
+  },
+  GUESTBOOK_SEND: { ko: '남기기', en: 'Post' },
+  GUESTBOOK_SENDING: { ko: '전송 중…', en: 'Posting…' },
+  GUESTBOOK_SEND_HINT: {
+    ko: 'Ctrl/Cmd + Enter로도 남길 수 있습니다.',
+    en: 'You can also press Ctrl/Cmd + Enter to post.',
+  },
+  GUESTBOOK_TOO_MANY_LINES: { ko: '최대 8줄까지 작성할 수 있습니다.', en: 'Up to 8 lines allowed.' },
+  GUESTBOOK_LOADING: { ko: '방명록을 불러오는 중…', en: 'Loading guestbook…' },
+  GUESTBOOK_EMPTY: {
+    ko: '아직 남겨진 방명록이 없습니다. 첫 메시지를 남겨보세요!',
+    en: 'No entries yet - be the first to leave one!',
+  },
 } satisfies Record<string, Record<Locale, string>>;

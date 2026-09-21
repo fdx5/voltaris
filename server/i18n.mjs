@@ -50,6 +50,14 @@ export const MESSAGES = {
     en: 'Clear verification failed. The next stage was not unlocked.',
   },
   SEARCH_INVALID: { ko: '검색 조건이 올바르지 않습니다.', en: 'Invalid search parameters.' },
+  GUESTBOOK_INVALID: {
+    ko: '방명록 내용은 1자 이상 500자 이하, 8줄 이하로 입력하세요.',
+    en: 'Guestbook messages must be 1-500 characters and at most 8 lines.',
+  },
+  GUESTBOOK_RATE_LIMITED: {
+    ko: '방명록 작성이 너무 많습니다. 잠시 후 다시 시도하세요.',
+    en: 'Too many guestbook posts. Try again shortly.',
+  },
   API_NOT_FOUND: { ko: 'API를 찾을 수 없습니다.', en: 'API endpoint not found.' },
   SERVER_ERROR: {
     ko: '서버 처리 중 오류가 발생했습니다. 잠시 후 다시 시도하세요.',

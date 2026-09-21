@@ -1,5 +1,6 @@
 import { useAccount, loadAccount, api } from './store/useAccount';
 import { LoginScreen, OnlineHistory } from './Account';
+import { Guestbook } from './Guestbook';
 import { useEffect, useRef, useState, type ReactNode, type CSSProperties } from 'react';
 import {
   ArrowUpRight,
@@ -30,6 +31,7 @@ import {
   Check,
   Download,
   Clock,
+  NotebookPen,
 } from 'lucide-react';
 import { Runtime } from '../core/Runtime';
 import { PLAYER_CRAFT } from '../visual/PlayerLoadout';
@@ -48,7 +50,7 @@ const clock = (n: number) =>
     .padStart(2, '0')}:${Math.floor(n % 60)
     .toString()
     .padStart(2, '0')}`;
-type Panel = 'launch' | 'settings' | 'controls' | 'records' | 'recent' | null;
+type Panel = 'launch' | 'settings' | 'controls' | 'records' | 'recent' | 'guestbook' | null;
 const weaponInfo = {
   LASER: {
     title: 'PRECISION LANCE',
@@ -364,6 +366,16 @@ function GameApp() {
                 <span className="menu-button">
                   <Target size={18} aria-hidden="true" />
                   {t('BOSS_TRAINING')}
+                  <ChevronRight size={16} aria-hidden="true" />
+                </span>
+              </button>
+              <button className="flight-choice guestbook-choice" onClick={() => open('guestbook')}>
+                <span className="choice-index" aria-hidden="true">
+                  06
+                </span>
+                <span className="menu-button">
+                  <NotebookPen size={18} aria-hidden="true" />
+                  {t('GUESTBOOK')}
                   <ChevronRight size={16} aria-hidden="true" />
                 </span>
               </button>
@@ -1151,6 +1163,16 @@ function GameApp() {
           wide
         >
           <OnlineHistory mode="recent" />
+        </Modal>
+      )}
+      {panel === 'guestbook' && (
+        <Modal
+          title="PILOT LOG"
+          eyebrow={t('GUESTBOOK_EYEBROW')}
+          onClose={() => setPanel(null)}
+          wide
+        >
+          <Guestbook />
         </Modal>
       )}
       {(account.error || account.saving || account.launching) && (

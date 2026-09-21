@@ -346,6 +346,44 @@ export async function createApp(
     ).rows;
     res.json({ rows, total, page, pages: Math.max(1, Math.ceil(total / 20)) });
   });
+  const guestbookRowSql =
+    'SELECT g.id,u.username,g.message,g.created_at AS createdAt FROM guestbook_entries g JOIN users u ON u.id=g.user_id';
+  app.get('/api/guestbook', async (req, res) => {
+    const page = Number(req.query.page || 1);
+    if (!integer(page, 1, 100000)) throw fail(400, 'SEARCH_INVALID');
+    const total = Number(
+      (await db.execute('SELECT COUNT(*) AS count FROM guestbook_entries')).rows[0].count,
+    );
+    const rows = (
+      await db.execute({
+        sql: `${guestbookRowSql} ORDER BY g.created_at DESC,g.id DESC LIMIT 20 OFFSET ?`,
+        args: [(page - 1) * 20],
+      })
+    ).rows;
+    res.json({ rows, total, page, pages: Math.max(1, Math.ceil(total / 20)) });
+  });
+  const guestbookLimit = rateLimits
+    ? rateLimit({
+        windowMs: 10 * 60000,
+        limit: 5,
+        standardHeaders: 'draft-8',
+        legacyHeaders: false,
+        message: (req) => ({ error: t(resolveLocale(req), 'GUESTBOOK_RATE_LIMITED') }),
+      })
+    : (req, res, next) => next();
+  app.post('/api/guestbook', guestbookLimit, async (req, res) => {
+    const message = String(req.body?.message ?? '').trim();
+    if (!message || message.length > 500 || message.split('\n').length > 8)
+      throw fail(400, 'GUESTBOOK_INVALID');
+    const id = randomUUID();
+    await db.execute({
+      sql: 'INSERT INTO guestbook_entries(id,user_id,message) VALUES (?,?,?)',
+      args: [id, req.userId, message],
+    });
+    const row = (await db.execute({ sql: `${guestbookRowSql} WHERE g.id=?`, args: [id] }))
+      .rows[0];
+    res.status(201).json({ row });
+  });
   app.use('/api', (req, res) =>
     res.status(404).json({ error: t(resolveLocale(req), 'API_NOT_FOUND'), code: 'API_NOT_FOUND' }),
   );

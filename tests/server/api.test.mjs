@@ -306,3 +306,53 @@ test('an in-flight run from any other build is rejected, not silently re-scored'
     409,
   );
 });
+
+test('guestbook requires login, persists a multi-line entry and lists newest first', async (t) => {
+  const { request, register } = await fixture(t);
+  assert.equal((await request('/guestbook')).status, 401);
+  assert.equal((await request('/guestbook', { message: 'hi' })).status, 401);
+  const first = await register('guest_pilot_one');
+  const second = await register('guest_pilot_two');
+  const posted = await request(
+    '/guestbook',
+    { message: 'gg pilots\nsee you at Section 5!' },
+    first.cookie,
+  );
+  assert.equal(posted.status, 201);
+  assert.equal(posted.body.row.username, 'guest_pilot_one');
+  assert.equal(posted.body.row.message, 'gg pilots\nsee you at Section 5!');
+  const second_post = await request('/guestbook', { message: 'Nice run!' }, second.cookie);
+  assert.equal(second_post.status, 201);
+  const list = await request('/guestbook', undefined, first.cookie);
+  assert.equal(list.status, 200);
+  assert.equal(list.body.total, 2);
+  // Newest first: the second pilot's entry landed after the first's.
+  assert.equal(list.body.rows[0].username, 'guest_pilot_two');
+  assert.equal(list.body.rows[1].username, 'guest_pilot_one');
+  assert.equal(list.body.rows[1].message, 'gg pilots\nsee you at Section 5!');
+});
+
+test('guestbook rejects empty, oversized and too-many-line messages', async (t) => {
+  const { request, register } = await fixture(t);
+  const user = await register('picky_pilot');
+  assert.equal((await request('/guestbook', { message: '   ' }, user.cookie)).status, 400);
+  assert.equal((await request('/guestbook', {}, user.cookie)).status, 400);
+  assert.equal(
+    (await request('/guestbook', { message: 'x'.repeat(501) }, user.cookie)).status,
+    400,
+  );
+  assert.equal(
+    (await request('/guestbook', { message: 'x'.repeat(500) }, user.cookie)).status,
+    201,
+  );
+  assert.equal(
+    (await request('/guestbook', { message: Array(9).fill('line').join('\n') }, user.cookie))
+      .status,
+    400,
+  );
+  assert.equal(
+    (await request('/guestbook', { message: Array(8).fill('line').join('\n') }, user.cookie))
+      .status,
+    201,
+  );
+});
