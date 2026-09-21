@@ -249,6 +249,20 @@ export class ThreeBackend implements IRenderBackend {
   /** Preparation owns the renderer exclusively; no frame may mutate its scene or target. */
   private warmingUp = 0;
   private readonly preparedStages = new Set<number>();
+  /**
+   * Count of `warmup()` background compiles currently in flight. `compileAsync`
+   * runs across several real frames on some backends, not inside the single
+   * synchronous call it looks like - a real frame drawn while one is pending
+   * has shown a stray flash of whatever it's compiling (a hull mid-warmup
+   * reads as a flat circle at the origin), so `render()` holds the previous
+   * frame instead of drawing while this is nonzero. Kept separate from
+   * `warmingUp`, which instead guards against a second `prepareStage()` call
+   * racing this one - a background compile is expected to be in flight on
+   * every ordinary launch and must not trip that guard.
+   */
+  private compiling = 0;
+  /** Set from `sync()`: true whenever anything but the hangar is on screen. */
+  private combatActive = false;
   renderer: T.WebGPURenderer;
   canvas: HTMLCanvasElement;
   readonly scene = new T.Scene();
@@ -297,9 +311,16 @@ export class ThreeBackend implements IRenderBackend {
   /**
    * Everything the hangar never shows. Holding these back from the first
    * compile is the difference between a few hundred milliseconds and several
-   * seconds of black screen; they are prepared before the first sortie.
+   * seconds of black screen; they are warmed up straight afterwards.
    */
   private readonly deferred: T.Object3D[] = [];
+  /**
+   * Models kept hidden until the moment they are needed - the blast ring of a
+   * dying boss, the NOVA BOMB and its detonation. A compile pass skips hidden
+   * objects, so `warmup` shows these for its traversal; otherwise their
+   * shaders would build in the very frame they first appear.
+   */
+  private readonly hiddenUntilUsed: T.Object3D[] = [];
   private readonly enemyHulls: T.InstancedMesh[] = [];
   private readonly enemyAccents: (T.InstancedMesh | null)[] = [];
   private readonly enemyCores: T.InstancedMesh;
@@ -599,6 +620,7 @@ export class ThreeBackend implements IRenderBackend {
     this.bossShockwave.visible = false;
     this.scene.add(this.bossShockwave);
     this.deferred.push(this.bossShockwave);
+    this.hiddenUntilUsed.push(this.bossShockwave);
     // One boss model per stage slot, not per unique design - `this.bosses` is
     // indexed positionally by stage index (see `this.bosses[this.stage]`
     // below), so a stage reusing another's design still needs its own entry.
@@ -654,6 +676,7 @@ export class ThreeBackend implements IRenderBackend {
     ];
     this.scene.add(...novaParts);
     this.deferred.push(...novaParts);
+    this.hiddenUntilUsed.push(...novaParts);
 
     /* --- Projectiles ------------------------------------------------- */
     const batch = (g: T.BufferGeometry, m: T.Material, capacity: number, order = 20) => {
@@ -1184,16 +1207,79 @@ export class ThreeBackend implements IRenderBackend {
    * it as soon as the call is made (rather than once its promise settles) let
    * its still-pending internal work land on the visible canvas instead.
    */
-  private async compileForPass(object: T.Object3D, upload = false) {
+  private async compileForPass(object: T.Object3D) {
     const previous = this.renderer.getRenderTarget();
     if (this.scenePass) this.renderer.setRenderTarget(this.scenePass.renderTarget);
     try {
       await this.renderer.compileAsync(object, this.camera, this.scene);
-      // Compilation alone does not submit vertex/index buffers or every texture.
-      // Draw once to the real pass target while the simulation is stopped.
-      if (upload && !this.disposed) this.renderer.render(this.scene, this.camera);
     } finally {
       this.renderer.setRenderTarget(previous);
+    }
+  }
+  /**
+   * Compiles combat shaders behind the hangar rather than in front of it, one
+   * top-level scene object at a time with a yield in between so the hangar
+   * (or an active flight) keeps drawing while this runs - a single pass over
+   * the whole scene held the page for seconds. Large hulls go first - Stage 1
+   * can put one on screen within its first minute, far sooner than a boss
+   * ever appears - then boss hulls and the models that appear all at once
+   * (boss death shockwave, NOVA BOMB), so all of them are ready long before
+   * they are needed.
+   */
+  async warmup() {
+    if (this.ios || this.disposed) return;
+    const first = [
+      ...this.enemyHulls.filter((_, i) => fleetHardpoints[i]?.size === 'large'),
+      ...this.enemyAccents.filter(
+        (accent, i): accent is T.InstancedMesh => !!accent && fleetHardpoints[i]?.size === 'large',
+      ),
+      ...this.bosses.flatMap((boss) => [boss.root, ...boss.pods]),
+      ...this.midBosses.flatMap((boss) => (boss ? [boss.root, ...boss.pods] : [])),
+      ...this.hiddenUntilUsed,
+    ];
+    const rest = this.scene.children.filter((object) => !first.includes(object));
+    for (const object of [...first, ...rest]) {
+      if (this.disposed) return;
+      // A flight in progress draws every frame from this same scene; compiling
+      // into it concurrently has shown a one-frame flash of whatever's being
+      // compiled, so this waits out combat rather than racing it.
+      while (this.combatActive) {
+        if (this.disposed) return;
+        await new Promise((resolve) => setTimeout(resolve, 250));
+      }
+      await this.compileShown(object);
+      await new Promise((resolve) => setTimeout(resolve, 0));
+    }
+  }
+  /**
+   * Compiles `target` as though all of it were on screen. `compileAsync`
+   * skips hidden and frustum-culled objects, so everything under `target` is
+   * shown and unculled for the synchronous traversal it starts with - the
+   * queued work holds its own object references - and restored before the
+   * next frame can draw any of it.
+   */
+  private async compileShown(target: T.Object3D) {
+    const objects: T.Object3D[] = [];
+    const flags: boolean[] = [];
+    target.traverse((o) => {
+      objects.push(o);
+      flags.push(o.visible, o.frustumCulled);
+      o.visible = true;
+      o.frustumCulled = false;
+    });
+    // A separate counter from `warmingUp`: `prepareStage()` treats a nonzero
+    // `warmingUp` as itself already running and rejects a second launch, but
+    // this background compile can be mid-flight at that exact moment on
+    // every ordinary launch (see `warmup()`) and must not trip that guard.
+    this.compiling++;
+    try {
+      await this.compileForPass(target);
+    } finally {
+      for (let i = 0; i < objects.length; i++) {
+        objects[i].visible = flags[i * 2];
+        objects[i].frustumCulled = flags[i * 2 + 1];
+      }
+      this.compiling--;
     }
   }
   /**
@@ -1255,7 +1341,7 @@ export class ThreeBackend implements IRenderBackend {
     }
   }
   resize() {
-    if (this.warmingUp) return;
+    if (this.warmingUp || this.compiling) return;
     const w = Math.max(1, this.host.clientWidth),
       h = Math.max(1, this.host.clientHeight);
     this.camera.aspect = w / h;
@@ -1782,10 +1868,11 @@ export class ThreeBackend implements IRenderBackend {
     for (const b of this.rockRims) this.commit(b);
   }
   sync(g: Readonly<GameState>, alpha: number, dt: number) {
-    if (this.warmingUp) return;
+    if (this.warmingUp || this.compiling) return;
     this.visualTime += dt;
     const t = this.visualTime;
     const inactive = g.status === 'menu';
+    this.combatActive = !inactive;
     if (g.stageIndex !== this.stage) this.showStage(g.stageIndex);
     // The backdrop is framed by where the ship flies: diving low tilts the
     // view down toward the planet below, climbing lifts it to open sky.
@@ -2173,7 +2260,7 @@ export class ThreeBackend implements IRenderBackend {
     this.commit(this.novaSmoke);
   }
   render() {
-    if (this.warmingUp) return;
+    if (this.warmingUp || this.compiling) return;
     this.renderer.info.autoReset = false;
     this.renderer.info.reset();
     if (this.pipeline) this.pipeline.render();

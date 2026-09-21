@@ -164,6 +164,8 @@ export class Runtime {
       this.visual.sync(this.game, 0, 0);
       this.loop.start();
       this.checkOrientation();
+      // Combat shaders build behind the hangar rather than in front of it.
+      void this.visual.warmup().catch((e) => console.warn('[VOLTARIS] shader warmup skipped', e));
     } catch (e) {
       console.error('[VOLTARIS] renderer init failed', e);
       useUI.setState({ error: graphicsAdvice(e) });
