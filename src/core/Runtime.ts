@@ -242,6 +242,9 @@ export class Runtime {
       this.qualityTime = 0;
       this.checkOrientation();
       this.publish();
+      // Fetches ahead so clearing this stage doesn't stall on a fresh
+      // download of the next one's scenery in the middle of the run.
+      void this.visual.preloadStageAssets(stageIndex + 1);
     } catch (e) {
       this.audio.stopTrack();
       useAccount.setState({ error: e instanceof Error ? e.message : t('LAUNCH_FAILED') });

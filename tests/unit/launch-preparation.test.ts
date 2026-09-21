@@ -25,7 +25,12 @@ it.each([false, true])(
       audio: { unlock: vi.fn(), playTrack: vi.fn(), preload: vi.fn(), stopTrack: vi.fn() },
       finishRun: vi.fn(async () => {}),
       loop: { stop: vi.fn(), start: vi.fn() },
-      visual: { prepareStage: vi.fn(() => preparation), sync: vi.fn(), render: vi.fn() },
+      visual: {
+        prepareStage: vi.fn(() => preparation),
+        preloadStageAssets: vi.fn(),
+        sync: vi.fn(),
+        render: vi.fn(),
+      },
       input: { clear: vi.fn() },
       pickupSounds: new Uint32Array(6),
       sounds: new Uint32Array(7),

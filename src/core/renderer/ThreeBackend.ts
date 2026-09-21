@@ -1340,6 +1340,26 @@ export class ThreeBackend implements IRenderBackend {
       waitForSceneAssets();
     }
   }
+  /**
+   * Speculatively downloads a stage's scenery models and textures well
+   * before it's needed - called with the stage right after whichever one
+   * just started - so the `loop.stop()`/`prepareStage()` window at the real
+   * transition finds everything already cached instead of stalling on a
+   * fresh network fetch. Every stage clear goes through that same stop/
+   * prepare/start sequence as the initial hangar launch, so without this,
+   * a freshly-encountered stage always froze the screen for a moment right
+   * in the middle of a run. Never touches `this.stage`/`showStage`, so it
+   * has no effect on what's currently on screen.
+   */
+  async preloadStageAssets(index: number) {
+    if (this.disposed || index < 0 || index >= STAGES.length || this.preparedStages.has(index))
+      return;
+    try {
+      await this.depthScenery.prepareStage(index);
+    } catch {
+      /* purely speculative - the real prepareStage() will retry and surface any error */
+    }
+  }
   resize() {
     if (this.warmingUp || this.compiling) return;
     const w = Math.max(1, this.host.clientWidth),
