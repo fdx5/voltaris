@@ -1156,6 +1156,18 @@ function GameApp() {
       {(account.error || account.saving || account.launching) && (
         <div className="account-banner" role="status">
           {account.error || (account.saving ? t('SAVING_STATUS') : t('LAUNCHING_STATUS'))}
+          {!account.error && account.launching && (
+            <>
+              {' '}
+              {Math.round(account.launchProgress * 100)}%
+              <div className="account-banner-bar">
+                <div
+                  className="account-banner-fill"
+                  style={{ width: `${Math.max(4, account.launchProgress * 100)}%` }}
+                />
+              </div>
+            </>
+          )}
           {account.error && (
             <button
               onClick={() =>

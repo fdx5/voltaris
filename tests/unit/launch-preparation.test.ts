@@ -41,7 +41,9 @@ it.each([false, true])(
       false,
       1,
     );
-    await vi.waitFor(() => expect(runtime.visual.prepareStage).toHaveBeenCalledWith(1));
+    await vi.waitFor(() =>
+      expect(runtime.visual.prepareStage).toHaveBeenCalledWith(1, expect.any(Function)),
+    );
     expect(runtime.loop.stop).toHaveBeenCalledOnce();
     expect(runtime.loop.start).not.toHaveBeenCalled();
     expect(fetch).not.toHaveBeenCalled();

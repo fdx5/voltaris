@@ -63,3 +63,33 @@ it('waits for all outstanding decoded textures, including a later sector', async
   await next;
   expect(ready).toBe(true);
 });
+
+it('reports fractional progress as textures finish decoding', async () => {
+  sceneAssetManager.itemStart('a');
+  sceneAssetManager.itemStart('b');
+  const fractions: number[] = [];
+  const waiting = waitForSceneAssets((f) => fractions.push(f));
+  sceneAssetManager.itemEnd('a');
+  sceneAssetManager.itemEnd('b');
+  await waiting;
+  // itemsLoaded/itemsTotal are cumulative for the manager's whole lifetime,
+  // so the absolute values depend on other tests; only the shape matters.
+  expect(fractions.length).toBe(2);
+  expect(fractions[0]).toBeGreaterThan(0);
+  expect(fractions[0]).toBeLessThan(fractions[1]);
+  expect(fractions[1]).toBe(1);
+});
+
+// Placed last: itemError never advances the manager's loaded/total tally,
+// so it permanently strands itemsTotal one above itemsLoaded, which would
+// otherwise skew every fraction computed by tests that run afterwards.
+it('does not hang forever when a texture load fails', async () => {
+  sceneAssetManager.itemStart('broken-texture');
+  let ready = false;
+  const waiting = waitForSceneAssets().then(() => {
+    ready = true;
+  });
+  sceneAssetManager.itemError('broken-texture');
+  await waiting;
+  expect(ready).toBe(true);
+});

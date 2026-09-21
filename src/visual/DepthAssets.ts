@@ -6,9 +6,20 @@ import { SCENERY_SCHEDULE, type SceneryModel } from './ScenerySchedule';
 const models = new Map<SceneryModel, T.Group>();
 const pending = new Map<SceneryModel, Promise<void>>();
 /** Load only this sector's curated models, retaining cache across retries and sectors. */
-export function loadDepthAssets(stage = 0) {
+export function loadDepthAssets(stage = 0, onProgress?: (fraction: number) => void) {
+  const names = [...new Set(SCENERY_SCHEDULE[stage].map((pass) => pass.model))];
+  if (names.length === 0) {
+    onProgress?.(1);
+    return Promise.resolve();
+  }
+  let loaded = 0;
   return Promise.all(
-    [...new Set(SCENERY_SCHEDULE[stage].map((pass) => pass.model))].map(loadModel),
+    names.map((name) =>
+      loadModel(name).then(() => {
+        loaded++;
+        onProgress?.(loaded / names.length);
+      }),
+    ),
   ).then(() => undefined);
 }
 function loadModel(name: SceneryModel): Promise<void> {

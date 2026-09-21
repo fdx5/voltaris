@@ -58,8 +58,8 @@ export class DepthScenery {
     }
   }
   /** Download, clone and measure this sector before its simulation starts. */
-  async prepareStage(stage: number) {
-    await loadDepthAssets(stage);
+  async prepareStage(stage: number, onProgress?: (fraction: number) => void) {
+    await loadDepthAssets(stage, onProgress);
     for (const pass of SCENERY_SCHEDULE[stage] ?? [])
       this.ensurePopulated(pass.model, !!pass.ground);
   }

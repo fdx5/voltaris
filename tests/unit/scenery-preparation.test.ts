@@ -16,7 +16,7 @@ it('loads and clones only the selected sector before flight, never in update', a
   });
   const scenery = new DepthScenery();
   await scenery.prepareStage(1);
-  expect(assets.load).toHaveBeenCalledExactlyOnceWith(1);
+  expect(assets.load).toHaveBeenCalledExactlyOnceWith(1, undefined);
   expect(assets.model.mock.calls.map(([name]) => name)).toEqual(['cassini', 'juno']);
   const inactive = scenery.inactiveModels(1);
   expect(inactive).toHaveLength(8);

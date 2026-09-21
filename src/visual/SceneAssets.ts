@@ -13,4 +13,18 @@ sceneAssetManager.onStart = () => {
 sceneAssetManager.onLoad = () => {
   resolveReady?.();
 };
-export const waitForSceneAssets = () => ready;
+// onError does not advance the manager's internal loaded/total tally, so a
+// single failed texture (404, network blip, decode failure) would otherwise
+// keep onLoad from ever firing and hang prepareStage()'s await forever.
+sceneAssetManager.onError = () => {
+  resolveReady?.();
+};
+/**
+ * `onProgress` reports this pass's texture loads only (0..1); only one
+ * prepareStage runs at a time, so a single manager-wide listener is safe.
+ */
+export function waitForSceneAssets(onProgress?: (fraction: number) => void) {
+  sceneAssetManager.onProgress = (_url, loaded, total) =>
+    onProgress?.(total > 0 ? loaded / total : 1);
+  return ready;
+}

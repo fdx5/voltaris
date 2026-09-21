@@ -187,7 +187,7 @@ export class Runtime {
     // Resuming Web Audio alone does not authorize HTMLAudioElement on iOS.
     const launchTrack = STAGES[stageIndex]?.music;
     if (launchTrack) this.audio.playTrack(asset(launchTrack));
-    useAccount.setState({ launching: true, error: '' });
+    useAccount.setState({ launching: true, error: '', launchProgress: 0 });
     let stopped = false;
     try {
       await this.finishRun();
@@ -195,7 +195,9 @@ export class Runtime {
       // single combat tick. stop/start also discards accumulated loading time.
       this.loop.stop();
       stopped = true;
-      await this.visual.prepareStage(stageIndex);
+      await this.visual.prepareStage(stageIndex, (p) =>
+        useAccount.setState({ launchProgress: p }),
+      );
       if (this.disposed) return;
       const autoFire = this.game.autoFire;
       const run = await api<{
@@ -243,7 +245,7 @@ export class Runtime {
       useAccount.setState({ error: e instanceof Error ? e.message : t('LAUNCH_FAILED') });
       throw e;
     } finally {
-      useAccount.setState({ launching: false });
+      useAccount.setState({ launching: false, launchProgress: 0 });
       if (stopped && !this.disposed) {
         this.visual.sync(this.game, 0, 0);
         this.visual.render();

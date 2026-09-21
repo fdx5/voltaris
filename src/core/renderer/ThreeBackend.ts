@@ -1197,17 +1197,24 @@ export class ThreeBackend implements IRenderBackend {
       this.renderer.setRenderTarget(previous);
     }
   }
-  /** Awaited before GameState.start(), including immediate launch and stage transitions. */
-  async prepareStage(index: number) {
+  /**
+   * Awaited before GameState.start(), including immediate launch and stage
+   * transitions. `onProgress` reports 0..1 across model download, texture
+   * decode and GPU pipeline compile, for a loading indicator.
+   */
+  async prepareStage(index: number, onProgress?: (fraction: number) => void) {
     if (this.disposed) throw new Error('Renderer disposed');
     const previousStage = this.stage;
     if (this.warmingUp) throw new Error('Mission preparation already in progress');
     this.showStage(index);
-    if (this.preparedStages.has(this.stage)) return;
+    if (this.preparedStages.has(this.stage)) {
+      onProgress?.(1);
+      return;
+    }
     this.warmingUp++;
     try {
-      await this.depthScenery.prepareStage(this.stage);
-      await waitForSceneAssets();
+      await this.depthScenery.prepareStage(this.stage, (f) => onProgress?.(f * 0.45));
+      await waitForSceneAssets((f) => onProgress?.(0.45 + f * 0.35));
       if (this.disposed) throw new Error('Renderer disposed');
       const excluded = new Set<T.Object3D>(this.depthScenery.inactiveModels(this.stage));
       for (let i = 0; i < this.skies.length; i++) {
@@ -1220,6 +1227,31 @@ export class ThreeBackend implements IRenderBackend {
           excluded.add(boss.root);
           boss.pods.forEach((pod) => excluded.add(pod));
         }
+      }
+      // Every enemy/ground hull type keeps its own instanced mesh and unique
+      // material, all permanently resident and visible - but any one stage
+      // only ever spawns a fraction of the 54 enemy and 12 ground types (only
+      // Section 5 mixes every hull as an escort). Compiling the rest wasted
+      // most of this pass's time on shaders this stage will never draw.
+      const stageDef = STAGES[this.stage] as {
+        spawns?: { type: number }[];
+        ground?: { type: number }[];
+      };
+      if (this.stage !== 4) {
+        const usedEnemyTypes = new Set(stageDef.spawns?.map((s) => s.type) ?? []);
+        for (let i = 0; i < this.enemyHulls.length; i++) {
+          if (usedEnemyTypes.has(i)) continue;
+          excluded.add(this.enemyHulls[i]);
+          const accent = this.enemyAccents[i];
+          if (accent) excluded.add(accent);
+        }
+      }
+      const usedGroundTypes = new Set(stageDef.ground?.map((g) => g.type) ?? []);
+      for (let i = 0; i < this.groundHulls.length; i++) {
+        if (usedGroundTypes.has(i)) continue;
+        excluded.add(this.groundHulls[i]);
+        const accent = this.groundAccents[i];
+        if (accent) excluded.add(accent);
       }
       // Additive, depth-read-only effects are order independent: both faces
       // can share a single draw. Avoid the renderer switching shared flame/
@@ -1236,14 +1268,19 @@ export class ThreeBackend implements IRenderBackend {
             material.forceSinglePass = true;
         }
       });
+      onProgress?.(0.8);
       await prepareVisibility(this.scene, excluded, () => this.compileForPass(this.scene, true));
       this.preparedStages.add(this.stage);
+      onProgress?.(1);
     } catch (error) {
       if (!this.disposed) this.showStage(previousStage);
       throw error;
     } finally {
       this.warmingUp--;
       if (!this.disposed) this.resize();
+      // Only this pass's own listener should ever drive it; never leave a
+      // stale callback attached for the next call to invoke unexpectedly.
+      waitForSceneAssets();
     }
   }
   resize() {

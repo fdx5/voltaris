@@ -12,7 +12,16 @@ export const useAccount = create<{
   error: string;
   saving: boolean;
   launching: boolean;
-}>(() => ({ user: null, loading: true, error: '', saving: false, launching: false }));
+  /** 0..1 progress through prepareStage's asset load + GPU warmup, while `launching`. */
+  launchProgress: number;
+}>(() => ({
+  user: null,
+  loading: true,
+  error: '',
+  saving: false,
+  launching: false,
+  launchProgress: 0,
+}));
 /** A server error carries a machine-readable `code` alongside its already-localized `message`. */
 export class ApiError extends Error {
   code?: string;
