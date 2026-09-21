@@ -62,7 +62,7 @@ test('WebGL2 hangar, launch, movement, options, pause and settings', async ({ pa
   await expect(page.getByRole('dialog')).toBeVisible();
   await page.getByRole('button', { name: 'SPREAD SCATTER CANNON' }).click();
   await page.getByRole('button', { name: '출격 · LAUNCH MISSION' }).click();
-  await expect(page.locator('.play-frame')).toBeVisible();
+  await expect(page.locator('.play-frame')).toBeVisible({ timeout: 45000 });
   await page.keyboard.down('ArrowUp');
   await page.waitForTimeout(500);
   await page.keyboard.up('ArrowUp');
@@ -91,6 +91,7 @@ test('boss training, phase notice and stress count controls', async ({ page }) =
   });
   await page.getByRole('button', { name: 'SIMULATION 보스 훈련' }).click();
   await page.getByRole('button', { name: '출격 · LAUNCH MISSION' }).click();
+  await expect(page.locator('.play-frame')).toBeVisible({ timeout: 45000 });
   await expect(page.locator('.boss-hud')).toContainText('GATEKEEPER');
   await page.waitForTimeout(6000);
   await page.screenshot({ path: 'test-results/boss.png' });
@@ -113,6 +114,7 @@ test('stage two launches with its own sector, roster and boss', async ({ page })
   await page.getByRole('button', { name: /IRON BELT/ }).click();
   await expect(page.getByRole('dialog')).toContainText('MISSION 02 / IRON BELT');
   await page.getByRole('button', { name: '출격 · LAUNCH MISSION' }).click();
+  await expect(page.locator('.play-frame')).toBeVisible({ timeout: 45000 });
   await expect(page.locator('.hud.top-left')).toContainText('STAGE 02');
   await expect(page.locator('.hud.top-left')).toContainText('IRON BELT');
   await page.waitForTimeout(4000);
@@ -130,6 +132,7 @@ test('stage three flies a surface sector with terrain and emplacements', async (
   await page.getByRole('button', { name: /IO SURFACE/ }).click();
   await expect(page.getByRole('dialog')).toContainText('MISSION 03 / IO SURFACE');
   await page.getByRole('button', { name: '출격 · LAUNCH MISSION' }).click();
+  await expect(page.locator('.play-frame')).toBeVisible({ timeout: 45000 });
   await expect(page.locator('.hud.top-left')).toContainText('IO SURFACE');
   await page.waitForTimeout(9000);
   await page.screenshot({ path: 'test-results/stage-03.png' });
@@ -146,6 +149,7 @@ test('stage four flies an ice cave with a roof and a deck', async ({ page }) => 
   await page.getByRole('button', { name: /GLACIAL VAULT/ }).click();
   await expect(page.getByRole('dialog')).toContainText('MISSION 04 / GLACIAL VAULT');
   await page.getByRole('button', { name: '출격 · LAUNCH MISSION' }).click();
+  await expect(page.locator('.play-frame')).toBeVisible({ timeout: 45000 });
   await expect(page.locator('.hud.top-left')).toContainText('GLACIAL VAULT');
   await page.waitForTimeout(9000);
   await page.screenshot({ path: 'test-results/stage-04.png' });
@@ -164,6 +168,7 @@ test('stage five flies a wide galaxy rim sector with an expanded vertical range'
   await page.getByRole('button', { name: /GALACTIC RIM/ }).click();
   await expect(page.getByRole('dialog')).toContainText('MISSION 05 / GALACTIC RIM');
   await page.getByRole('button', { name: '출격 · LAUNCH MISSION' }).click();
+  await expect(page.locator('.play-frame')).toBeVisible({ timeout: 45000 });
   await expect(page.locator('.hud.top-left')).toContainText('GALACTIC RIM');
   await page.waitForTimeout(9000);
   await page.screenshot({ path: 'test-results/stage-05.png' });
@@ -196,7 +201,7 @@ test('falls back to WebGL 2 when WebGPU advertises itself and then refuses', asy
   // The canvas was replaced on the way down, so touch has to still land.
   await page.getByRole('button', { name: 'BEGIN SORTIE 출격 준비' }).click();
   await page.getByRole('button', { name: '출격 · LAUNCH MISSION' }).click();
-  await expect(page.locator('.play-frame')).toBeVisible();
+  await expect(page.locator('.play-frame')).toBeVisible({ timeout: 45000 });
   await page.mouse.move(700, 450);
   await page.mouse.down();
   await page.mouse.move(700, 300, { steps: 8 });
@@ -230,7 +235,7 @@ test('latches option hold from the HUD, since a phone cannot hold a button', asy
   });
   await page.getByRole('button', { name: 'BEGIN SORTIE 출격 준비' }).click();
   await page.getByRole('button', { name: '출격 · LAUNCH MISSION' }).click();
-  await expect(page.locator('.play-frame')).toBeVisible();
+  await expect(page.locator('.play-frame')).toBeVisible({ timeout: 45000 });
   const hold = page.getByRole('button', { name: '옵션 홀드' });
   await expect(hold).toHaveAttribute('aria-pressed', 'false');
   await hold.click();
@@ -249,6 +254,7 @@ test('keeps the boss gauge inside its track on the heaviest boss', async ({ page
   await page.getByRole('button', { name: '닫기' }).click();
   await page.getByRole('button', { name: /보스 훈련/ }).click();
   await page.getByRole('button', { name: '출격 · LAUNCH MISSION' }).click();
+  await expect(page.locator('.play-frame')).toBeVisible({ timeout: 45000 });
   await expect(page.locator('.boss-hud')).toBeVisible({ timeout: 30000 });
   const fits = await page.locator('.boss-hud').evaluate((el) => {
     const track = el.querySelector('div') as HTMLElement;
@@ -285,7 +291,7 @@ test.describe('phone held sideways', () => {
     });
     await page.getByRole('button', { name: 'BEGIN SORTIE 출격 준비' }).click();
     await page.getByRole('button', { name: '출격 · LAUNCH MISSION' }).click();
-    await expect(page.locator('.play-frame')).toBeVisible();
+    await expect(page.locator('.play-frame')).toBeVisible({ timeout: 45000 });
     expect(await page.evaluate(() => (window as unknown as { fsCalls: number }).fsCalls)).toBe(1);
     // And the player can hand the screen back.
     await expect(page.getByRole('button', { name: /전체화면|창 모드/ })).toBeVisible();
@@ -304,6 +310,7 @@ test('mobile landscape touch and portrait pause overlay', async ({ page }) => {
   await page.screenshot({ path: 'test-results/mobile-hangar.png' });
   await page.getByRole('button', { name: 'BEGIN SORTIE 출격 준비' }).click();
   await page.getByRole('button', { name: '출격 · LAUNCH MISSION' }).click();
+  await expect(page.locator('.play-frame')).toBeVisible({ timeout: 45000 });
   await page
     .locator('canvas')
     .dispatchEvent('pointerdown', { pointerId: 1, clientX: 200, clientY: 200 });
@@ -330,7 +337,7 @@ test.describe('mobile touch device', () => {
     await page.goto('/?webgl=1');
     await page.getByRole('button', { name: 'BEGIN SORTIE 출격 준비' }).click();
     await page.getByRole('button', { name: '출격 · LAUNCH MISSION' }).click();
-    await expect(page.locator('.play-frame')).toBeVisible();
+    await expect(page.locator('.play-frame')).toBeVisible({ timeout: 45000 });
     const canvas = page.locator('canvas');
     await canvas.dispatchEvent('pointerdown', {
       pointerId: 21,

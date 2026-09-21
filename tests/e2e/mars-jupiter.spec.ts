@@ -32,7 +32,7 @@ test('stage 2 launches with the Mars/Jupiter backdrop on WebGPU', async ({ page 
   await page.getByRole('button', { name: /IRON BELT/ }).click();
   await expect(page.getByRole('dialog')).toContainText('MISSION 02');
   await page.getByRole('button', { name: '출격 · LAUNCH MISSION' }).click();
-  await expect(page.locator('.play-frame')).toBeVisible();
+  await expect(page.locator('.play-frame')).toBeVisible({ timeout: 45000 });
   await page.waitForTimeout(2000);
   await page.screenshot({ path: 'test-results/mj-t0.png' });
   // Deterministic timeline/size coverage lives in planet-transition.test.ts.

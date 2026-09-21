@@ -1,6 +1,12 @@
 import { test, expect } from '@playwright/test';
 
-test.use({ hasTouch: true, isMobile: true });
+test.use({
+  hasTouch: true,
+  isMobile: true,
+  // Exercise the app's iOS renderer and asset paths as well as its touch layout.
+  userAgent:
+    'Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.0 Mobile/15E148 Safari/604.1',
+});
 test.beforeEach(async ({ page }) => {
   await page.route('**/api/**', (route) =>
     route.fulfill({
@@ -48,7 +54,7 @@ for (const device of [
     const launch = page.getByRole('button', { name: '출격 · LAUNCH MISSION' });
     await launch.scrollIntoViewIfNeeded();
     await launch.click();
-    await expect(page.locator('.play-frame')).toBeVisible();
+    await expect(page.locator('.play-frame')).toBeVisible({ timeout: 45000 });
     await expect(page.locator('.rotate-overlay')).not.toBeVisible();
     for (const selector of [
       'canvas',
@@ -89,6 +95,7 @@ test('visual viewport toolbar resize keeps the bottom controls inside the visibl
   await page.goto('/?webgl=1');
   await page.getByRole('button', { name: /GLACIAL VAULT/ }).click();
   await page.getByRole('button', { name: '출격 · LAUNCH MISSION' }).click();
+  await expect(page.locator('.play-frame')).toBeVisible({ timeout: 45000 });
   for (const height of [280, 350, 390, 260, 390]) {
     await page.evaluate((h) => {
       Object.defineProperty(window.visualViewport!, 'height', { configurable: true, value: h });

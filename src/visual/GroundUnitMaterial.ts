@@ -1,3 +1,4 @@
+import { sceneAssetManager } from './SceneAssets';
 import * as T from 'three/webgpu';
 import {
   attribute,
@@ -54,7 +55,7 @@ const THEMES: Record<'io' | 'ice', Theme> = {
 /** Emplacement types flown over the ice; the rest stand on Io. */
 const ICE_TYPES = new Set([4, 5, 6, 7, 8, 9, 10, 11]);
 
-const loader = new T.TextureLoader();
+const loader = new T.TextureLoader(sceneAssetManager);
 const maps = new Map<string, T.Texture>();
 function map(name: string, srgb: boolean) {
   let tex = maps.get(name);

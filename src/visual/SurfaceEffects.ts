@@ -1,3 +1,4 @@
+import { sceneAssetManager } from './SceneAssets';
 import * as T from 'three/webgpu';
 import {
   attribute,
@@ -169,7 +170,9 @@ function icicles(vault: Terrain, span: number, near: number, far: number) {
  */
 function mist(base: number, near: number) {
   const group = new T.Group();
-  const noise = new T.TextureLoader().load(asset('/textures/terrain/snow_01_height.jpg'));
+  const noise = new T.TextureLoader(sceneAssetManager).load(
+    asset('/textures/terrain/snow_01_height.jpg'),
+  );
   noise.wrapS = noise.wrapT = T.RepeatWrapping;
   for (const [depth, lift, speed] of [
     [near - 12, 0.4, 0.018],

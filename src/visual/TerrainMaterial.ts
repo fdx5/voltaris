@@ -1,3 +1,4 @@
+import { sceneAssetManager } from './SceneAssets';
 import * as T from 'three/webgpu';
 import {
   attribute,
@@ -50,7 +51,7 @@ export type TerrainPbr = {
   sparkle?: number;
 };
 
-const loader = new T.TextureLoader();
+const loader = new T.TextureLoader(sceneAssetManager);
 const cache = new Map<string, T.Texture>();
 /** Shared texture cache keyed by `/textures/` path, so scenery reusing a
  * ground scan (the volcano's basalt, say) does not upload it twice. */

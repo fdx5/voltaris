@@ -25,7 +25,7 @@ test('real signup, mandatory login, stage lock, saved history, session restore a
   expect(locked.status()).toBe(403);
   await first.click();
   await page.getByRole('button', { name: /LAUNCH MISSION/ }).click();
-  await expect(page.locator('.play-frame')).toBeVisible();
+  await expect(page.locator('.play-frame')).toBeVisible({ timeout: 45000 });
   await page.waitForTimeout(1800);
   await page.keyboard.press('Escape');
   await page.getByRole('button', { name: '출격 포기 · 격납고로' }).click();

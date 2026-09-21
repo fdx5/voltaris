@@ -258,7 +258,7 @@ const STRINGS = {
 
   // Account banner / errors
   SAVING_STATUS: { ko: '플레이 검증 및 기록 저장 중…', en: 'Verifying and saving your run…' },
-  LAUNCHING_STATUS: { ko: '출격 승인 중…', en: 'Authorizing launch…' },
+  LAUNCHING_STATUS: { ko: '전장 준비 중…', en: 'Preparing mission…' },
   RETRY_SAVE: { ko: '저장 다시 시도', en: 'Retry save' },
   GRAPHICS_INIT_FAILED: {
     ko: '그래픽 초기화에 실패했습니다',

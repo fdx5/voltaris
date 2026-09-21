@@ -1,3 +1,4 @@
+import { sceneAssetManager } from './SceneAssets';
 import { asset } from '../core/assets';
 import { buildStarField, type StarPalette } from './StarField';
 import { terrainMaterial, type TerrainPbr } from './TerrainMaterial';
@@ -1123,7 +1124,7 @@ export function legacyEnemyGeometry(type: number): EnemyHulls {
  * its cloud shell keep their place and simply turn.
  * ------------------------------------------------------------------ */
 const TEXTURE_ROOT = asset('/textures/');
-const loader = new T.TextureLoader();
+const loader = new T.TextureLoader(sceneAssetManager);
 const textureCache = new Map<string, T.Texture>();
 function loadTexture(path: string, srgb: boolean, repeat = false) {
   const key = `${path}:${srgb}:${repeat}`;

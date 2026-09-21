@@ -164,8 +164,6 @@ export class Runtime {
       this.visual.sync(this.game, 0, 0);
       this.loop.start();
       this.checkOrientation();
-      // Combat shaders build behind the hangar rather than in front of it.
-      void this.visual.warmup().catch((e) => console.warn('[VOLTARIS] shader warmup skipped', e));
     } catch (e) {
       console.error('[VOLTARIS] renderer init failed', e);
       useUI.setState({ error: graphicsAdvice(e) });
@@ -190,8 +188,15 @@ export class Runtime {
     const launchTrack = STAGES[stageIndex]?.music;
     if (launchTrack) this.audio.playTrack(asset(launchTrack));
     useAccount.setState({ launching: true, error: '' });
+    let stopped = false;
     try {
       await this.finishRun();
+      // Preparation must finish before creating a server run or advancing a
+      // single combat tick. stop/start also discards accumulated loading time.
+      this.loop.stop();
+      stopped = true;
+      await this.visual.prepareStage(stageIndex);
+      if (this.disposed) return;
       const autoFire = this.game.autoFire;
       const run = await api<{
         id: string;
@@ -239,6 +244,11 @@ export class Runtime {
       throw e;
     } finally {
       useAccount.setState({ launching: false });
+      if (stopped && !this.disposed) {
+        this.visual.sync(this.game, 0, 0);
+        this.visual.render();
+        this.loop.start();
+      }
     }
   }
   activate(slot: number) {
