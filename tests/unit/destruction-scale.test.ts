@@ -48,7 +48,7 @@ it('varies rupture silhouettes and gives capital ships more persistent debris', 
   }
 });
 
-it('retains the thin crescent silhouette while increasing bevel depth and orange edge coverage', () => {
+it('retains the thin crescent bevel with emerald and full-upgrade yellow palettes', () => {
   const geometry = (
     ThreeBackend as unknown as { crescentGeometry(): BufferGeometry }
   ).crescentGeometry();
@@ -59,16 +59,24 @@ it('retains the thin crescent silhouette while increasing bevel depth and orange
   expect(geometry.boundingBox!.max.z - geometry.boundingBox!.min.z).toBeGreaterThan(0.27);
   const p = geometry.attributes.position;
   const c = geometry.attributes.color;
+  const full = geometry.attributes.fullColor;
+  const edge = geometry.attributes.bladeEdge;
+  for (let i = 0; i < c.count; i++) {
+    expect(c.getY(i)).toBeGreaterThan(c.getX(i) * 2);
+    expect(c.getY(i)).toBeGreaterThan(c.getZ(i) * 2);
+    expect(full.getX(i)).toBeGreaterThan(full.getZ(i) * 3);
+    expect(full.getY(i)).toBeGreaterThan(full.getZ(i) * 3);
+  }
   // Inspect the crown of the blade, where width is measured at y=0.
   const crown: number[] = [],
-    orange: number[] = [];
+    cuttingEdge: number[] = [];
   for (let i = 0; i < p.count / 2; i++)
     if (Math.abs(p.getY(i)) < 0.001) {
       crown.push(p.getX(i));
-      if (c.getX(i) > 0.9 && c.getY(i) < 0.3) orange.push(p.getX(i));
+      if (edge.getX(i) === 1) cuttingEdge.push(p.getX(i));
     }
   expect(Math.max(...crown) - Math.min(...crown)).toBeCloseTo(0.165);
-  expect(orange.length).toBe(4);
-  expect(Math.max(...orange) - orange[1]).toBeGreaterThan(0.018);
+  expect(cuttingEdge.length).toBe(4);
+  expect(Math.max(...cuttingEdge) - cuttingEdge[1]).toBeGreaterThan(0.018);
   geometry.dispose();
 });

@@ -14,7 +14,6 @@ import {
   positionGeometry,
   positionViewDirection,
   uniform,
-  vec3,
 } from 'three/tsl';
 import { bloom } from 'three/addons/tsl/display/BloomNode.js';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
@@ -363,20 +362,19 @@ export class ThreeBackend implements IRenderBackend {
   private crescentMaterial() {
     const material = new T.MeshStandardNodeMaterial({
       color: '#ffffff',
-      vertexColors: true,
+      // The shader selects the palette explicitly; multiplying vertex colour
+      // again would tint the full-upgrade yellow back towards green.
+      vertexColors: false,
       metalness: 0.12,
       roughness: 0.82,
       side: T.DoubleSide,
     });
     const color = attribute<'vec3'>('color', 'vec3');
-    const edge = color.r.sub(color.g).max(0).min(1);
-    // Lv.8 crescent power-up: a deep red body with a vivid purple edge trim -
-    // a visibly different weapon at full charge, not just a bigger hitbox.
-    const bodyColor = vec3(0.72, 0.035, 0.07);
-    const edgeColor = vec3(0.58, 0.14, 0.98);
-    const fullPower = mix(bodyColor, edgeColor, edge);
+    const edge = attribute<'float'>('bladeEdge', 'float');
+    // Deep emerald at Lv.1–7, unmistakable gold/yellow across the blade at Lv.8.
+    const fullPower = attribute<'vec3'>('fullColor', 'vec3');
     material.colorNode = mix(color, fullPower, this.crescentPower);
-    // Only the orange cutting edge emits; the green bevel retains real shading.
+    // Subdued, constant emission preserves the bevel without pulsing or glare.
     const normalGlow = color.mul(edge.mul(0.22).add(0.025));
     const fullPowerGlow = fullPower.mul(edge.mul(0.2).add(0.04));
     material.emissiveNode = mix(normalGlow, fullPowerGlow, this.crescentPower);
@@ -385,6 +383,8 @@ export class ThreeBackend implements IRenderBackend {
   private static crescentGeometry() {
     const positions: number[] = [],
       colors: number[] = [],
+      fullColors: number[] = [],
+      edges: number[] = [],
       indices: number[] = [];
     const rails = [0, 0.12, 0.17, 0.3, 0.46, 0.54, 0.72, 0.83, 0.88, 1];
     const color = new T.Color();
@@ -403,16 +403,30 @@ export class ThreeBackend implements IRenderBackend {
           );
           color.set(
             u <= 0.12 || u >= 0.88
-              ? '#ff7608'
+              ? '#19963b'
               : side
-                ? '#073d30'
+                ? '#034218'
                 : u < 0.3
-                  ? '#18694b'
+                  ? '#075c24'
                   : u < 0.54
-                    ? '#59a17c'
-                    : '#12814f',
+                    ? '#11843a'
+                    : '#0b692a',
           );
           colors.push(color.r, color.g, color.b);
+          const edge = u <= 0.12 || u >= 0.88;
+          edges.push(edge ? 1 : 0);
+          color.set(
+            edge
+              ? '#fff16a'
+              : side
+                ? '#997000'
+                : u < 0.3
+                  ? '#d8a900'
+                  : u < 0.54
+                    ? '#ffe024'
+                    : '#e8bd08',
+          );
+          fullColors.push(color.r, color.g, color.b);
         }
       }
       const offset = side * 65 * rails.length;
@@ -427,6 +441,8 @@ export class ThreeBackend implements IRenderBackend {
     const geometry = new T.BufferGeometry();
     geometry.setAttribute('position', new T.Float32BufferAttribute(positions, 3));
     geometry.setAttribute('color', new T.Float32BufferAttribute(colors, 3));
+    geometry.setAttribute('fullColor', new T.Float32BufferAttribute(fullColors, 3));
+    geometry.setAttribute('bladeEdge', new T.Float32BufferAttribute(edges, 1));
     geometry.setIndex(indices);
     geometry.computeVertexNormals();
     return geometry;
