@@ -51,37 +51,31 @@ describe('fleet refit', () => {
     for (const model of manifest.models)
       expect(Number(model.texture.split('x')[0])).toBeGreaterThanOrEqual(1024);
   });
-  it('stands a different turret or tank, painted by role, on every emplacement slot', async () => {
+  it('mounts two UV-authored gun families with independent barrels in all twelve slots', async () => {
     const bytes = Buffer.from(await readGroundGeometry());
     const document = JSON.parse(bytes.subarray(20, 20 + bytes.readUInt32LE(12)).toString());
     expect(document.nodes.map((n: { name: string }) => n.name).sort()).toEqual(
-      [...GROUND_SLOTS].sort(),
+      GROUND_SLOTS.flatMap((name) => [name, `${name}_barrel`]).sort(),
     );
-    expect(new Set(roster.ground.map((g) => `${g.pack}/${g.model}`)).size).toBe(
-      GROUND_SLOTS.length,
-    );
-    expect(roster.ground.every((g) => /^quaternius-(turrets|tanks)$/.test(g.pack))).toBe(true);
+    expect(new Set(groundMounts.map((g) => g.family)).size).toBe(2);
     for (const mesh of document.meshes) {
       expect(mesh.primitives).toHaveLength(1);
-      expect(mesh.primitives[0].attributes.COLOR_0).toBeDefined();
+      expect(mesh.primitives[0].attributes.TEXCOORD_0).toBeDefined();
+      expect(mesh.primitives[0].attributes.NORMAL).toBeDefined();
     }
     for (let i = 0; i < GROUND_SLOTS.length; i++) {
       const parts = groundGeometry(i);
-      const hull = parts.hull!;
-      expect(hull.getAttribute('paint')).toBeDefined();
-      hull.computeBoundingBox();
-      const box = hull.boundingBox!;
-      // Every emplacement stands on the deck: a little sunk, never floating.
-      expect(box.min.y).toBeCloseTo(-0.06, 5);
-      const [x, y, z] = groundMounts[i].muzzles[0];
-      expect(x).toBeGreaterThanOrEqual(box.min.x - 1e-3);
-      expect(x).toBeLessThanOrEqual(box.max.x + 1e-3);
-      expect(y).toBeGreaterThan(box.min.y);
-      expect(y).toBeLessThanOrEqual(box.max.y + 1e-3);
-      expect(z).toBeGreaterThanOrEqual(box.min.z - 1e-3);
-      expect(z).toBeLessThanOrEqual(box.max.z + 1e-3);
-      hull.dispose();
-      parts.accent!.dispose();
+      parts.hull.computeBoundingBox();
+      expect(parts.hull.boundingBox!.min.y).toBeCloseTo(-0.06, 5);
+      parts.barrel.computeBoundingBox();
+      // The muzzle coincides with the authored barrel tip, relative to the pivot.
+      expect(parts.barrel.boundingBox!.min.x).toBeCloseTo(-groundMounts[i].length, 4);
+      for (const mesh of [parts.hull, parts.barrel]) {
+        expect(mesh.getAttribute('uv').count).toBe(mesh.getAttribute('position').count);
+        expect([...mesh.attributes.position.array].every(Number.isFinite)).toBe(true);
+        mesh.dispose();
+      }
+      parts.accent.dispose();
     }
   });
   it('sizes the player and attaches every muzzle to its imported hull', () => {

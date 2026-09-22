@@ -27,22 +27,25 @@
     "contour": 0,
     "roof": null,
     "pbr": {
-      "tile": 5.5,
+      "tile": 4.2,
       "rock": {
-        "color": "terrain/dark_rock_color.jpg",
-        "normal": "terrain/dark_rock_normal.jpg",
-        "rough": "terrain/dark_rock_rough.jpg",
-        "height": "terrain/dark_rock_height.jpg",
-        "tint": "#6e5c4f"
+        "color": "terrain/dark_rock_02_color.jpg",
+        "normal": "terrain/dark_rock_02_normal.jpg",
+        "rough": "terrain/dark_rock_02_rough.jpg",
+        "height": "terrain/dark_rock_02_height.jpg",
+        "ao": "terrain/dark_rock_02_ao.jpg",
+        "tint": "#aca8a1"
       },
       "crust": {
-        "color": "terrain/sandstone_cracks_color.jpg",
-        "normal": "terrain/sandstone_cracks_normal.jpg",
-        "rough": "terrain/sandstone_cracks_rough.jpg",
-        "height": "terrain/sandstone_cracks_height.jpg",
-        "tint": "#b98f45"
+        "color": "terrain/cracked_red_ground_color.jpg",
+        "normal": "terrain/cracked_red_ground_normal.jpg",
+        "rough": "terrain/cracked_red_ground_rough.jpg",
+        "height": "terrain/cracked_red_ground_height.jpg",
+        "ao": "terrain/cracked_red_ground_ao.jpg",
+        "tint": "#d2aa76"
       },
-      "lava": "#ff4a10"
+      "lava": "#ff4a10",
+      "relief": 0.6
     }
   },
   "ground": [

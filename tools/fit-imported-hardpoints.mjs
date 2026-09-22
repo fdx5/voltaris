@@ -1,3 +1,4 @@
+// Ground joints are authored by pack-surface-batteries.mjs; never refit them as rigid hulls.
 import { build } from 'esbuild';
 import { readFile, writeFile, unlink } from 'node:fs/promises';
 import { readFleetGeometry, readGroundGeometry } from './read-fleet-geometry.mjs';
@@ -15,7 +16,7 @@ await build({
 try {
   const fleet = await import(temp.href);
   await fleet.loadImportedFleet(await readFleetGeometry(), await readGroundGeometry());
-  for (const kind of ['fleet', 'ground']) {
+  for (const kind of ['fleet']) {
     const path = `data/enemies/${kind}-hardpoints.json`;
     const records = JSON.parse(await readFile(path, 'utf8'));
     for (const [i, record] of records.entries()) {

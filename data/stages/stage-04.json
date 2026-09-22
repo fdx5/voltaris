@@ -40,22 +40,26 @@
     "normal": "surfaces/ice_normal.jpg",
     "roughness": "surfaces/ice_roughness.jpg",
     "pbr": {
-      "tile": 9,
+      "tile": 5.8,
       "rock": {
-        "color": "surfaces/ice_color.jpg",
-        "normal": "surfaces/ice_normal.jpg",
-        "rough": "surfaces/ice_roughness.jpg",
-        "tint": "#d8ecf6"
+        "color": "terrain/rock_boulder_cracked_color.jpg",
+        "normal": "terrain/rock_boulder_cracked_normal.jpg",
+        "rough": "terrain/rock_boulder_cracked_rough.jpg",
+        "height": "terrain/rock_boulder_cracked_height.jpg",
+        "ao": "terrain/rock_boulder_cracked_ao.jpg",
+        "tint": "#609ab7"
       },
       "crust": {
-        "color": "terrain/snow_01_color.jpg",
-        "normal": "terrain/snow_01_normal.jpg",
-        "rough": "terrain/snow_01_rough.jpg",
-        "height": "terrain/snow_01_height.jpg",
-        "tint": "#eef6fb"
+        "color": "terrain/snow_03_color.jpg",
+        "normal": "terrain/snow_03_normal.jpg",
+        "rough": "terrain/snow_03_rough.jpg",
+        "height": "terrain/snow_03_height.jpg",
+        "ao": "terrain/snow_03_ao.jpg",
+        "tint": "#e8f6ff"
       },
-      "glow": "#2f8fd0",
-      "sparkle": 1.6
+      "glow": "#287eaa",
+      "sparkle": 0.22,
+      "relief": 0.48
     }
   },
   "ground": [

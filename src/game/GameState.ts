@@ -19,6 +19,7 @@ import {
 } from './HostilePatterns';
 import fleetHardpoints from '../../data/enemies/fleet-hardpoints.json';
 import groundHardpoints from '../../data/enemies/ground-hardpoints.json';
+import { groundMuzzle, turnGroundGun } from './GroundAim';
 import tuning from '../../data/tuning.json';
 import defs from '../../data/enemies/enemy-defs.json';
 import emplacements from '../../data/enemies/ground-defs.json';
@@ -189,6 +190,8 @@ export class GameState {
   /** Emplacements riding the scrolling surface of a ground stage. */
   readonly ground = new ObjectPool(tuning.pools.ground);
   readonly groundFlash = new Float32Array(tuning.pools.ground);
+  readonly groundAim = new Float32Array(tuning.pools.ground);
+  readonly groundShot = new Float32Array(tuning.pools.ground);
   readonly groundGrid = new SpatialHash(tuning.pools.ground);
   /**
    * Rocks drifting through the play field. Unlike the belt in the backdrop
@@ -431,6 +434,8 @@ export class GameState {
     this.items.clear();
     this.ground.clear();
     this.groundFlash.fill(0);
+    this.groundAim.fill(Math.PI);
+    this.groundShot.fill(0);
     this.rocks.clear();
     this.rockFlash.fill(0);
     this.hazardIndex = 0;
@@ -1217,6 +1222,8 @@ export class GameState {
           );
           if (i >= 0) {
             this.groundFlash[i] = 0;
+            this.groundAim[i] = Math.atan2(this.y - this.ground.y[i], this.x - x);
+            this.groundShot[i] = 0;
             this.ground.aux[i] = roof ? 1 : 0;
           }
         }
@@ -1558,6 +1565,7 @@ export class GameState {
       g.py[i] = g.y[i];
       g.age[i] += dt;
       this.groundFlash[i] = Math.max(0, this.groundFlash[i] - dt);
+      this.groundShot[i] = Math.max(0, this.groundShot[i] - dt);
       g.x[i] -= speed * dt;
       g.y[i] = this.surfaceAt(g.x[i], g.aux[i] === 1);
       if (g.x[i] < -18 * this.worldScale) {
@@ -1566,14 +1574,13 @@ export class GameState {
       }
       const period = d.period / (1 + this.rank * 0.006) / this.stage.pressure;
       // A roof mount's muzzle hangs below its footing, not above it.
-      const muzzle = g.aux[i] === 1 ? -d.radius : d.radius;
+      const muzzle = groundHardpoints[g.type[i]].pivot[1] * (g.aux[i] === 1 ? -1 : 1);
+      const aim = Math.atan2(this.y - g.y[i] - muzzle, this.x - g.x[i]);
+      // Track before firing; retain the actual burst heading through its recoil.
+      if (this.groundShot[i] === 0) this.groundAim[i] = turnGroundGun(this.groundAim[i], aim, dt);
       if (g.age[i] > 0.6 && g.age[i] % period >= period - dt && this.canDamage(g, i))
         this.queueSalvo(
-          groundSalvo(
-            g.type[i],
-            Math.atan2(this.y - g.y[i] - muzzle, this.x - g.x[i]),
-            Math.floor(g.age[i] / period),
-          ),
+          groundSalvo(g.type[i], this.groundAim[i], Math.floor(g.age[i] / period)),
           'ground',
           i,
           tuning.combat.enemyBulletSpeed * d.fire.speed,
@@ -1677,12 +1684,12 @@ export class GameState {
         x = pool.x[index] + m[0] * Math.cos(a) - my * Math.sin(a) + dx;
         y = pool.y[index] + m[0] * Math.sin(a) + my * Math.cos(a) + dy;
       } else {
-        // Roof craft are the floor model turned over about X: only height flips.
-        const sign = pool.aux[index] === 1 ? -1 : 1;
-        const mounts = groundHardpoints[type].muzzles;
-        const m = mounts[mount % mounts.length];
-        x = pool.x[index] + m[0] + dx;
-        y = pool.y[index] + (m[1] + dy) * sign;
+        // Every round leaves the real barrel tip, including delayed bursts.
+        this.groundAim[index] = angle;
+        this.groundShot[index] = 0.14;
+        const m = groundMuzzle(type, angle, pool.aux[index] === 1);
+        x = pool.x[index] + m.x;
+        y = pool.y[index] + m.y;
       }
     }
     this.hostileShot(x, y, angle, baseSpeed * shotSpeed, kind, tint);

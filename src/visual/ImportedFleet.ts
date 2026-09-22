@@ -19,8 +19,8 @@ import groundHardpoints from '../../data/enemies/ground-hardpoints.json';
  * Every hostile family, boss hull and escort drone is a different downloaded CC0
  * spaceship; tools/pack-imported-fleet.mjs packs them into one GLB with one
  * textured primitive per roster slot (see data/enemies/imported-fleet.json).
- * Surface emplacements are turrets and tanks instead, packed on their own by
- * tools/pack-ground-units.mjs with paint roles in place of textures.
+ * Surface batteries use two downloaded PBR turret families with separate
+ * fixed mounts and aiming assemblies (tools/pack-surface-batteries.mjs).
  */
 export const FLEET_URLS = fleetParts.parts.map((name) =>
   asset(`/models/imported/${name}?v=${fleetParts.sha256.slice(0, 12)}`),
@@ -92,7 +92,7 @@ export function loadImportedFleet(data?: ArrayBuffer, groundData?: ArrayBuffer):
         if (!data && !(node.material as T.MeshStandardMaterial).map)
           throw new Error(`Spaceship texture failed to load: ${name}`);
       }
-      for (const name of GROUND_SLOTS)
+      for (const name of GROUND_SLOTS.flatMap((slot) => [slot, `${slot}_barrel`]))
         if (!(ground.scene.getObjectByName(name) instanceof T.Mesh))
           throw new Error(`Missing ground unit: ${name}`);
       fleet = gltf.scene;
@@ -282,14 +282,24 @@ export const importedEnemyGeometry = (type: number) =>
  * Emplacement craft rest on the surface: the hull's lowest point is the origin,
  * sunk a few centimetres, so a roof unit is the same batch turned over about X.
  */
-export const importedGroundGeometry = (type: number) =>
-  instanceGeometry(
-    `ground_${pad(type)}`,
-    groundReach(type),
-    roster.ground[type].view,
-    groundHardpoints[type].muzzles[0],
-    0.06,
+export function importedGroundGeometry(type: number) {
+  const geometry = (suffix: string) => {
+    const source = groundUnits?.getObjectByName(`ground_${pad(type)}${suffix}`) as T.Mesh;
+    if (!source) throw new Error(`Surface battery has not loaded: ${type}${suffix}`);
+    const result = floatGeometry(source.geometry);
+    result.setAttribute(
+      'color',
+      new T.BufferAttribute(new Float32Array(result.attributes.position.count * 3).fill(1), 3),
+    );
+    return result;
+  };
+  const accent = new T.SphereGeometry(0.055, 8, 6).translate(-groundHardpoints[type].length, 0, 0);
+  accent.setAttribute(
+    'color',
+    new T.BufferAttribute(new Float32Array(accent.attributes.position.count * 3).fill(1), 3),
   );
+  return { hull: geometry(''), barrel: geometry('_barrel'), accent };
+}
 
 function mesh(
   slot: string,

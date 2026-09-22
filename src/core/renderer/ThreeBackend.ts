@@ -91,6 +91,13 @@ const LARGE_ACCENT = [
 import { makeNovaMissile } from '../../visual/NovaMissile';
 import { groundUnitMaterial } from '../../visual/GroundUnitMaterial';
 import fleetHardpoints from '../../../data/enemies/fleet-hardpoints.json';
+import groundHardpoints from '../../../data/enemies/ground-hardpoints.json';
+import { groundMuzzle } from '../../game/GroundAim';
+import {
+  hostileShellMaterial,
+  hostileGlowMaterial,
+  projectileGeometry,
+} from '../../visual/HostileProjectiles';
 
 /**
  * Debris colours, indexed by a particle's type. Saturated on purpose: the
@@ -128,13 +135,12 @@ type ShotStyle = {
 };
 
 function shotStyles(): ShotStyle[] {
-  const capsule = () => new T.CapsuleGeometry(1, 5, 3, 6).rotateZ(Math.PI / 2);
   return [
     // ORB
     {
-      geometry: new T.SphereGeometry(1, 10, 8),
+      geometry: projectileGeometry(0),
       hex: '#ff4d6a',
-      gain: 2.6,
+      gain: 1.6,
       sx: 1.15,
       sy: 1.15,
       sz: 1.15,
@@ -143,10 +149,10 @@ function shotStyles(): ShotStyle[] {
     },
     // NEEDLE
     {
-      geometry: capsule(),
+      geometry: projectileGeometry(1),
       hex: '#ffd23f',
-      gain: 2.8,
-      sx: 2.1,
+      gain: 1.7,
+      sx: 1.2,
       sy: 0.5,
       sz: 0.5,
       spin: 0,
@@ -154,9 +160,9 @@ function shotStyles(): ShotStyle[] {
     },
     // WAVE
     {
-      geometry: new T.OctahedronGeometry(1, 0),
+      geometry: projectileGeometry(2),
       hex: '#5effb0',
-      gain: 2.6,
+      gain: 1.6,
       sx: 1.5,
       sy: 1.2,
       sz: 1.2,
@@ -165,9 +171,9 @@ function shotStyles(): ShotStyle[] {
     },
     // ACCEL
     {
-      geometry: new T.ConeGeometry(1, 2.6, 7).rotateZ(-Math.PI / 2),
+      geometry: projectileGeometry(3),
       hex: '#ff8a3c',
-      gain: 2.8,
+      gain: 1.7,
       sx: 1.4,
       sy: 1,
       sz: 1,
@@ -176,9 +182,9 @@ function shotStyles(): ShotStyle[] {
     },
     // HOMING
     {
-      geometry: new T.TorusGeometry(0.7, 0.32, 6, 12),
+      geometry: projectileGeometry(4),
       hex: '#ff5ce0',
-      gain: 3,
+      gain: 1.8,
       sx: 1.5,
       sy: 1.5,
       sz: 1.5,
@@ -187,9 +193,9 @@ function shotStyles(): ShotStyle[] {
     },
     // PULSE
     {
-      geometry: new T.SphereGeometry(1, 14, 10),
+      geometry: projectileGeometry(5),
       hex: '#9b6bff',
-      gain: 2.2,
+      gain: 1.5,
       sx: 1.05,
       sy: 1.05,
       sz: 1.05,
@@ -198,9 +204,9 @@ function shotStyles(): ShotStyle[] {
     },
     // SPLIT
     {
-      geometry: new T.IcosahedronGeometry(1, 0),
+      geometry: projectileGeometry(6),
       hex: '#ff3ca0',
-      gain: 2.8,
+      gain: 1.7,
       sx: 1.4,
       sy: 1.4,
       sz: 1.4,
@@ -209,9 +215,9 @@ function shotStyles(): ShotStyle[] {
     },
     // BOUNCE
     {
-      geometry: new T.BoxGeometry(1.5, 1.5, 1.5),
+      geometry: projectileGeometry(7),
       hex: '#b6ff5a',
-      gain: 2.4,
+      gain: 1.6,
       sx: 1.05,
       sy: 1.05,
       sz: 1.05,
@@ -220,9 +226,9 @@ function shotStyles(): ShotStyle[] {
     },
     // SHARD
     {
-      geometry: new T.TetrahedronGeometry(1.3, 0),
+      geometry: projectileGeometry(8),
       hex: '#ffa8c0',
-      gain: 2.2,
+      gain: 1.5,
       sx: 1.7,
       sy: 0.85,
       sz: 0.85,
@@ -231,9 +237,9 @@ function shotStyles(): ShotStyle[] {
     },
     // PLASMA
     {
-      geometry: new T.TorusGeometry(0.8, 0.26, 8, 16),
+      geometry: projectileGeometry(9),
       hex: '#ff5252',
-      gain: 3.2,
+      gain: 1.9,
       sx: 1.35,
       sy: 1.35,
       sz: 1.35,
@@ -283,6 +289,8 @@ export class ThreeBackend implements IRenderBackend {
   private readonly tint = new T.Color();
   private readonly shotStyle = shotStyles();
   private readonly hostileShots: T.InstancedMesh[] = [];
+  private readonly hostileHalos: T.InstancedMesh;
+  private readonly hostileTrails: T.InstancedMesh;
   private readonly shotCore: T.InstancedMesh;
   private readonly shotHalo: T.InstancedMesh;
   private readonly missiles: T.InstancedMesh;
@@ -330,6 +338,7 @@ export class ThreeBackend implements IRenderBackend {
   /** Each hull type burns its own colour, so a mixed squadron reads as mixed. */
   private readonly exhaustTint: T.Color[] = [];
   private readonly groundHulls: T.InstancedMesh[] = [];
+  private readonly groundBarrels: T.InstancedMesh[] = [];
   private readonly groundAccents: (T.InstancedMesh | null)[] = [];
   private readonly groundCores: T.InstancedMesh;
   private readonly bombs: T.InstancedMesh;
@@ -829,8 +838,23 @@ export class ThreeBackend implements IRenderBackend {
     );
     this.skyBombs = batch(new T.ConeGeometry(1, 2.6, 6), lit('#a8e6ff', 2.6), 256);
     this.bombs = batch(new T.ConeGeometry(1, 2.6, 6).rotateZ(Math.PI), lit('#ffd06a', 2.6), 256);
+    this.hostileHalos = batch(
+      new T.PlaneGeometry(1, 1),
+      hostileGlowMaterial(false),
+      tuning.pools.bullets,
+      19,
+    );
+    this.hostileTrails = batch(
+      new T.PlaneGeometry(1, 1).translate(-0.5, 0, 0),
+      hostileGlowMaterial(true),
+      tuning.pools.bullets,
+      18,
+    );
+    ThreeBackend.tintable(this.hostileHalos);
+    ThreeBackend.tintable(this.hostileTrails);
+    const shellMaterial = hostileShellMaterial();
     for (const style of this.shotStyle) {
-      const shots = batch(style.geometry, lit('#ffffff', 1), style.capacity);
+      const shots = batch(style.geometry, shellMaterial, style.capacity);
       ThreeBackend.tintable(shots);
       this.hostileShots.push(shots);
     }
@@ -885,6 +909,14 @@ export class ThreeBackend implements IRenderBackend {
       this.groundHulls.push(hull);
       this.deferred.push(hull);
       this.scene.add(hull);
+      const barrel = new T.InstancedMesh(parts.barrel, hull.material, 64);
+      barrel.count = 0;
+      barrel.frustumCulled = false;
+      barrel.instanceMatrix.setUsage(T.DynamicDrawUsage);
+      ThreeBackend.tintable(barrel);
+      this.groundBarrels.push(barrel);
+      this.deferred.push(barrel);
+      this.scene.add(barrel);
       if (parts.accent) {
         const accent = new T.InstancedMesh(parts.accent, accentMaterial, 64);
         accent.count = 0;
@@ -1550,6 +1582,31 @@ export class ThreeBackend implements IRenderBackend {
           break;
         case 1: {
           const k = p.kind[i];
+          const style = this.shotStyle[k];
+          const color = p.tint[i] || style.hex;
+          const haloSlot = this.hostileHalos.count;
+          this.push(this.hostileHalos, x, y, 0.12, r * 4.8, r * 4.8, 1);
+          if (this.hostileHalos.count > haloSlot) {
+            this.tint.set(color).multiplyScalar(1.5);
+            this.hostileHalos.setColorAt(haloSlot, this.tint);
+          }
+          const speed = Math.hypot(p.vx[i], p.vy[i]);
+          const length = Math.min(1.5, speed * Math.min(p.age[i], 0.085));
+          const trailSlot = this.hostileTrails.count;
+          this.push(
+            this.hostileTrails,
+            x - Math.cos(aim) * r * 0.4,
+            y - Math.sin(aim) * r * 0.4,
+            0.1,
+            length,
+            r * (k === Shot.NEEDLE ? 1 : 1.8),
+            1,
+            aim,
+          );
+          if (this.hostileTrails.count > trailSlot) {
+            this.tint.set(color).multiplyScalar(1.2);
+            this.hostileTrails.setColorAt(trailSlot, this.tint);
+          }
           if (k === Shot.HOMING) {
             // A real missile silhouette (see hostileMissiles above) instead
             // of the abstract spinning torus every other hostile kind uses -
@@ -1588,7 +1645,7 @@ export class ThreeBackend implements IRenderBackend {
           if (hostileBatch.count > slot) {
             this.tint
               .set(p.tint[i] || s.hex)
-              .lerp(this.white, 0.18)
+              .lerp(this.white, 0.08)
               .multiplyScalar(s.gain);
             hostileBatch.setColorAt(hostileBatch.count - 1, this.tint);
           }
@@ -1801,51 +1858,54 @@ export class ThreeBackend implements IRenderBackend {
   }
   /** Emplacements sit on the surface; the lamp marks the muzzle. */
   private syncGround(g: Readonly<GameState>, alpha: number) {
-    const p = g.ground,
-      t = this.visualTime;
-    for (const b of this.groundHulls) b.count = 0;
+    const p = g.ground;
+    for (const b of [...this.groundHulls, ...this.groundBarrels]) b.count = 0;
     for (const b of this.groundAccents) if (b) b.count = 0;
     this.groundCores.count = 0;
     for (let i = 0; i < p.capacity; i++) {
       if (!p.active[i]) continue;
       const type = p.type[i],
-        hull = this.groundHulls[type];
-      if (!hull) continue;
-      const x = p.px[i] + (p.x[i] - p.px[i]) * alpha,
-        y = p.py[i] + (p.y[i] - p.py[i]) * alpha;
-      // A roof unit is the floor model turned over about its nose axis, so it
-      // still faces the player and hangs from the ceiling by its dorsal line.
-      const flip = p.aux[i] === 1 ? -1 : 1;
+        hull = this.groundHulls[type],
+        barrel = this.groundBarrels[type];
+      const x = p.px[i] + (p.x[i] - p.px[i]) * alpha;
+      const y = p.py[i] + (p.y[i] - p.py[i]) * alpha;
+      const roof = p.aux[i] === 1,
+        flip = roof ? -1 : 1;
+      const aim = g.groundAim[i];
+      const kick = Math.sin(Math.min(1, (0.14 - g.groundShot[i]) / 0.14) * Math.PI) * 0.14;
+      const pivot = groundHardpoints[type].pivot;
+      const bx = x + pivot[0] - Math.cos(aim) * kick;
+      const by = y + pivot[1] * flip - Math.sin(aim) * kick;
       const slot = hull.count;
       this.push(hull, x, y, 0, 1, flip, flip);
-      if (hull.count > slot) {
-        const flash = g.groundFlash[i];
-        if (flash > 0) {
-          const flare = 1 + flash * 26;
-          this.tint.setRGB(flare, flare, flare);
-        } else this.tint.copy(this.white);
-        hull.setColorAt(slot, this.tint);
-      }
-      const accent = this.groundAccents[type];
-      if (accent) this.push(accent, x, y, 0, 1, flip, flip);
+      this.push(barrel, bx, by, 0, 1, flip, flip, aim - Math.PI);
+      const hit = 1 + g.groundFlash[i] * 26;
+      this.tint.setRGB(hit, hit, hit);
+      hull.setColorAt(slot, this.tint);
+      barrel.setColorAt(slot, this.tint);
+      const muzzle = groundMuzzle(type, aim, roof, kick);
       const core = GROUND_CORE[type];
-      const pulse = g.groundTelegraph(i) ? 2 + Math.sin(t * 50) * 0.9 : 1;
-      if (this.groundCores.count < this.groundCores.instanceMatrix.count) {
-        const idx = this.groundCores.count;
-        this.push(
-          this.groundCores,
-          x + core.x,
-          y + core.y * flip,
-          core.z * flip,
-          core.size * pulse,
-          core.size * pulse,
-          core.size * pulse,
-        );
-        this.tint.set(core.hex).multiplyScalar(pulse > 1 ? 2.4 : 1.5);
+      const firing = g.groundShot[i] > 0.085;
+      const charge = g.groundTelegraph(i) ? 1.7 : 1;
+      // One brief, direction-aligned hot flash, no idle strobe.
+      const size = firing ? 0.12 + g.groundShot[i] * 0.9 : core.size * charge;
+      const idx = this.groundCores.count;
+      this.push(
+        this.groundCores,
+        x + muzzle.x,
+        y + muzzle.y,
+        0.08,
+        size * (firing ? 2.8 : 1),
+        size,
+        size,
+        aim,
+      );
+      if (this.groundCores.count > idx) {
+        this.tint.set(firing ? '#fff2ce' : core.hex).multiplyScalar(firing ? 3 : charge);
         this.groundCores.setColorAt(idx, this.tint);
       }
     }
-    for (const b of this.groundHulls) this.commit(b);
+    for (const b of [...this.groundHulls, ...this.groundBarrels]) this.commit(b);
     for (const b of this.groundAccents) this.commit(b);
     this.commit(this.groundCores);
   }

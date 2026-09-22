@@ -8,6 +8,7 @@ import {
   normalLocal,
   normalMap,
   normalView,
+  positionGeometry,
   positionViewDirection,
   sin,
   smoothstep,
@@ -25,6 +26,7 @@ export type TerrainLayer = {
   normal: string;
   rough: string;
   height?: string;
+  ao?: string;
   /** Multiplies the scan's colour: pushes a neutral rock towards the sector's mineral. */
   tint: string;
 };
@@ -49,6 +51,7 @@ export type TerrainPbr = {
   glow?: string;
   /** Glints on crust grains that catch the light (snow). */
   sparkle?: number;
+  relief?: number;
 };
 
 const loader = new T.TextureLoader(sceneAssetManager);
@@ -72,10 +75,13 @@ export function map(path: string, srgb: boolean) {
  * carrying crust - snow does not lie on a ceiling.
  */
 export function terrainMaterial(pbr: TerrainPbr, flip: boolean) {
-  const material = new T.MeshStandardNodeMaterial({
+  const material = new T.MeshPhysicalNodeMaterial({
     vertexColors: true,
     metalness: 0,
     side: flip ? T.DoubleSide : T.FrontSide,
+    clearcoat: pbr.glow ? 0.6 : 0,
+    clearcoatRoughness: 0.24,
+    ior: pbr.glow ? 1.31 : 1.5,
   });
   // The strip's uv is world x/z over the stage's tile size; a second, broader
   // sampling at an odd ratio is blended in wherever a low-frequency mask says,
@@ -109,12 +115,30 @@ export function terrainMaterial(pbr: TerrainPbr, flip: boolean) {
     float(0.28),
     coverage.add(crustHeight.sub(rockHeight).mul(0.45)).sub(0.36),
   ).clamp(0, 1);
-  material.colorNode = mix(rockColor, crustColor, crust);
+  const occlusion = mix(
+    pbr.rock.ao ? pick(pbr.rock.ao, false).r : float(1),
+    pbr.crust.ao ? pick(pbr.crust.ao, false).r : float(1),
+    crust,
+  );
+  const strata = texture(
+    map(pbr.rock.rough, false),
+    vec2(uv().x.mul(0.17), positionGeometry.y.mul(0.45)),
+  ).r;
+  material.colorNode = mix(rockColor, crustColor, crust)
+    .mul(occlusion.mul(0.55).add(0.45))
+    .mul(strata.mul(0.26).add(0.82));
   const rockNormal = pick(pbr.rock.normal, false).rgb;
   const crustNormal = pick(pbr.crust.normal, false).rgb;
-  material.normalNode = normalMap(mix(rockNormal, crustNormal, crust), vec2(flip ? 1.3 : 1.9));
+  material.normalNode = normalMap(mix(rockNormal, crustNormal, crust), vec2(flip ? 1.15 : 1.45));
+  // High-frequency relief adds actual parallax and a broken silhouette. Fade
+  // at the combat lane so visible footings still match the collision surface.
+  const relief = mix(rockHeight, crustHeight, crust)
+    .sub(0.5)
+    .mul(pbr.relief ?? 0.35)
+    .mul(smoothstep(0.7, 3.5, positionGeometry.z.abs()));
+  material.positionNode = positionGeometry.add(vec3(0, relief.mul(flip ? -1 : 1), 0));
   material.roughnessNode = mix(
-    pick(pbr.rock.rough, false).r,
+    pbr.glow ? pick(pbr.rock.rough, false).r.mul(0.3).add(0.1) : pick(pbr.rock.rough, false).r,
     pick(pbr.crust.rough, false).r,
     crust,
   ).clamp(0.08, 1);
@@ -123,21 +147,21 @@ export function terrainMaterial(pbr: TerrainPbr, flip: boolean) {
     // Cracks are the crust's lowest texels; the glow pools in valleys and
     // breathes slowly, each stretch on its own phase along the strip.
     const cracks = float(1)
-      .sub(smoothstep(0.46, 0.52, crustHeight))
+      .sub(smoothstep(0.33, 0.47, crustHeight))
       .mul(crust.mul(0.7).add(0.3));
     const seams = float(1)
-      .sub(smoothstep(0.43, 0.47, rockHeight))
+      .sub(smoothstep(0.3, 0.44, rockHeight))
       .mul(float(1).sub(crust));
-    const valley = float(1).sub(smoothstep(0.12, 0.45, lift));
+    const valley = float(1).sub(smoothstep(0.18, 0.72, lift));
     const breathe = sin(time.mul(1.3).add(uv().x.mul(2.1)))
       .mul(0.3)
       .add(0.85);
     emissive = emissive.add(
-      color(pbr.lava).mul(cracks.add(seams.mul(0.35)).mul(valley).mul(breathe).mul(3.2)),
+      color(pbr.lava).mul(cracks.add(seams.mul(0.55)).mul(valley).mul(breathe).mul(2.4)),
     );
   }
   if (pbr.glow) {
-    const hollow = float(1).sub(rockHeight).clamp(0, 1).pow(2.2).mul(float(1).sub(crust));
+    const hollow = float(1).sub(rockHeight).clamp(0, 1).pow(3).mul(float(1).sub(crust));
     emissive = emissive.add(
       color(pbr.glow)
         .mul(hollow)

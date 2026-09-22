@@ -168,15 +168,16 @@ function icicles(vault: Terrain, span: number, near: number, far: number) {
  * hair at a plane's edge, a negative base makes pow() NaN, and one NaN pixel
  * is smeared across the whole frame by the bloom pass - the screen goes black.
  */
-function mist(base: number, near: number) {
+function mist(base: number, near: number, lava = false) {
   const group = new T.Group();
   const noise = new T.TextureLoader(sceneAssetManager).load(
-    asset('/textures/terrain/snow_01_height.jpg'),
+    asset('/textures/terrain/snow_03_height.jpg'),
   );
   noise.wrapS = noise.wrapT = T.RepeatWrapping;
   for (const [depth, lift, speed] of [
-    [near - 12, 0.4, 0.018],
-    [near - 26, 0.9, 0.011],
+    [near - 18, 0.2, 0.012],
+    [near - 34, 0.6, 0.008],
+    [near - 48, 1.4, 0.005],
   ]) {
     const material = new T.MeshBasicNodeMaterial({
       transparent: true,
@@ -185,14 +186,19 @@ function mist(base: number, near: number) {
       toneMapped: false,
     });
     const p = uv();
-    const flow = texture(noise, vec2(p.x.mul(3).add(time.mul(speed)), p.y.mul(0.8))).r;
+    const flow = texture(noise, vec2(p.x.mul(3).add(time.mul(speed)), p.y.mul(0.8))).r.mul(
+      texture(noise, vec2(p.x.mul(7).sub(time.mul(speed * 0.6)), p.y.mul(2).add(0.37))).r,
+    );
     const band = float(1)
       .sub(p.y)
       .clamp(0, 1)
       .pow(2.2)
       .mul(smoothstep(0, 0.12, p.y));
-    material.colorNode = color('#7cc4ec');
-    material.opacityNode = flow.smoothstep(0.35, 0.75).mul(band).mul(0.16);
+    material.colorNode = color(lava ? '#bb7946' : '#9ccfdf');
+    material.opacityNode = flow
+      .smoothstep(0.14, 0.46)
+      .mul(band)
+      .mul(lava ? 0.13 : 0.2);
     const sheet = new T.Mesh(new T.PlaneGeometry(160, 5), material);
     sheet.position.set(0, base + 2.5 + lift, depth);
     sheet.renderOrder = 25;
@@ -228,6 +234,7 @@ export function surfaceEffects(
       deck: [plumes(deck, cfg.span, cfg.far)],
       vault: [],
       still: [
+        mist(cfg.base, cfg.near, true),
         motes(
           260,
           { x: 44, y: [cfg.base - 1, cfg.base + 12], z: [-14, 6] },

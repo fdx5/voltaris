@@ -18,17 +18,17 @@
       "license": "CC0-1.0",
       "url": "https://polyyai.itch.io/3d-spaceships-pack-2"
     },
-    "quaternius-turrets": {
-      "title": "Turrets Pack",
-      "artist": "Quaternius",
-      "license": "CC0-1.0",
-      "url": "https://quaternius.com/packs/turrets.html"
+    "david-w-cg-rotary": {
+      "title": "Sci-Fi Rotary Turret",
+      "artist": "David W CG",
+      "license": "CC-BY-4.0",
+      "url": "https://opengameart.org/content/sci-fi-rotary-turret"
     },
-    "quaternius-tanks": {
-      "title": "Tanks Pack",
-      "artist": "Quaternius",
+    "polygondan-turret": {
+      "title": "3D Turret PBR texture + Flat Diff Texture",
+      "artist": "PolygonDan",
       "license": "CC0-1.0",
-      "url": "https://quaternius.com/packs/tanks.html"
+      "url": "https://opengameart.org/content/3d-turret-pbr-texture-flat-diff-texture"
     }
   },
   "player": {
@@ -375,81 +375,75 @@
   "ground": [
     {
       "name": "BUNKER",
-      "pack": "quaternius-turrets",
-      "model": "GearCannon_2",
-      "view": 30,
-      "turn": 90
+      "pack": "david-w-cg-rotary",
+      "model": "rotary",
+      "view": 0
     },
     {
       "name": "TANK",
-      "pack": "quaternius-tanks",
-      "model": "Tank3",
-      "view": 30,
-      "turn": 180
+      "pack": "polygondan-turret",
+      "model": "sentinel",
+      "view": 0
     },
     {
       "name": "SILO",
-      "pack": "quaternius-turrets",
-      "model": "Upwards_3_",
-      "view": 30,
-      "muzzle": "top"
+      "pack": "david-w-cg-rotary",
+      "model": "rotary",
+      "view": 0
     },
     {
       "name": "FLAK",
-      "pack": "quaternius-turrets",
-      "model": "Cannon_4",
-      "view": 30
+      "pack": "polygondan-turret",
+      "model": "sentinel",
+      "view": 0
     },
     {
       "name": "FROST GUN",
-      "pack": "quaternius-turrets",
-      "model": "Laser_2",
-      "view": 30
+      "pack": "david-w-cg-rotary",
+      "model": "rotary",
+      "view": 0
     },
     {
       "name": "BLOOM",
-      "pack": "quaternius-turrets",
-      "model": "Teleporter4",
-      "view": 30,
-      "muzzle": "top"
+      "pack": "david-w-cg-rotary",
+      "model": "rotary",
+      "view": 0
     },
     {
       "name": "SLED",
-      "pack": "quaternius-tanks",
-      "model": "Tank2",
-      "view": 30
+      "pack": "polygondan-turret",
+      "model": "sentinel",
+      "view": 0
     },
     {
       "name": "PILLAR",
-      "pack": "quaternius-turrets",
-      "model": "Teleporter5",
-      "view": 30,
-      "muzzle": "top"
+      "pack": "polygondan-turret",
+      "model": "sentinel",
+      "view": 0
     },
     {
       "name": "CLAMP",
-      "pack": "quaternius-turrets",
-      "model": "Bomber_2",
-      "view": 30
+      "pack": "david-w-cg-rotary",
+      "model": "rotary",
+      "view": 0
     },
     {
       "name": "ICICLE",
-      "pack": "quaternius-turrets",
-      "model": "Upwards_2",
-      "view": 30,
-      "muzzle": "top"
+      "pack": "polygondan-turret",
+      "model": "sentinel",
+      "view": 0
     },
     {
       "name": "RAIL",
-      "pack": "quaternius-turrets",
-      "model": "Long_2",
-      "view": 30
+      "pack": "polygondan-turret",
+      "model": "sentinel",
+      "view": 0
     },
     {
       "name": "CATHEDRAL",
-      "pack": "quaternius-turrets",
-      "model": "Cannon_7",
-      "view": 30
+      "pack": "david-w-cg-rotary",
+      "model": "rotary",
+      "view": 0
     }
   ],
   "bosses": {
